@@ -4,7 +4,28 @@ import { useEffect, useState } from "react";
 import { db, auth } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Home, Check, BarChart3, Lock, AlertCircle, ArrowRight, Users, Eye, EyeOff, Clock, RefreshCw, ChevronRight } from "lucide-react";
+import { 
+  Loader2, 
+  Home, 
+  Check, 
+  BarChart3, 
+  Lock, 
+  AlertCircle, 
+  ArrowRight, 
+  Users, 
+  Eye, 
+  EyeOff, 
+  Clock, 
+  RefreshCw, 
+  ChevronRight, 
+  TrendingUp, 
+  Award, 
+  Target,
+  PieChart,
+  ChevronLeft,
+  X,
+  Calendar
+} from "lucide-react";
 
 export default function PollRoom() {
   const { pollId } = useParams();
@@ -17,8 +38,9 @@ export default function PollRoom() {
   const [showResults, setShowResults] = useState(false);
   const [totalVotes, setTotalVotes] = useState(0);
   const [userName, setUserName] = useState("Participant");
+  const [previousQuestionResults, setPreviousQuestionResults] = useState(null);
 
-  // Get user's voting status from localStorage - FIXED: Track by question index
+  // Get user's voting status from localStorage
   useEffect(() => {
     if (pollId && poll) {
       const votedPolls = JSON.parse(localStorage.getItem("votedPolls") || "{}");
@@ -67,6 +89,26 @@ export default function PollRoom() {
           const currentQuestion = pollData.questions[pollData.activeQuestionIndex];
           const votes = currentQuestion.options.reduce((sum, option) => sum + (option.votes || 0), 0);
           setTotalVotes(votes);
+        }
+
+        // Store results of previous question when host moves to next question
+        if (pollData.activeQuestionIndex > 0 && !pollData.currentQuestionActive) {
+          const prevQuestionIndex = pollData.activeQuestionIndex - 1;
+          const prevQuestion = pollData.questions[prevQuestionIndex];
+          if (prevQuestion) {
+            const prevVotes = prevQuestion.options.reduce((sum, option) => sum + (option.votes || 0), 0);
+            setPreviousQuestionResults({
+              questionIndex: prevQuestionIndex,
+              questionText: prevQuestion.text,
+              totalVotes: prevVotes,
+              options: prevQuestion.options.map((opt, idx) => ({
+                ...opt,
+                percentage: prevVotes > 0 ? Math.round((opt.votes / prevVotes) * 100) : 0
+              }))
+            });
+          }
+        } else {
+          setPreviousQuestionResults(null);
         }
       },
       (err) => {
@@ -128,7 +170,7 @@ export default function PollRoom() {
       setSelectedOption(optionIndex);
       setTotalVotes(totalVotes + 1);
 
-      // Save vote to localStorage - FIXED: Track by question index
+      // Save vote to localStorage
       const votedPolls = JSON.parse(localStorage.getItem("votedPolls") || "{}");
       const pollKey = `${pollId}_${poll.activeQuestionIndex}`;
       votedPolls[pollKey] = {
@@ -301,12 +343,12 @@ export default function PollRoom() {
                   {poll.status === "live" && poll.currentQuestionActive ? (
                     <>
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>Live</span>
+                      <span>Live Voting</span>
                     </>
                   ) : poll.status === "live" ? (
                     <>
                       <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      <span>Ready</span>
+                      <span>Results Showing</span>
                     </>
                   ) : (
                     <>
@@ -341,6 +383,44 @@ export default function PollRoom() {
           </div>
         </div>
 
+        {/* Previous Question Results */}
+        {previousQuestionResults && (
+          <div className="mb-6 bg-gradient-to-r from-light-taupe/10 to-silver-pink/10 border border-light-taupe/20 rounded-xl p-4 animate-pulse">
+            <div className="flex items-center gap-3 mb-3">
+              <BarChart3 className="w-5 h-5 text-light-taupe" />
+              <h3 className="font-semibold text-light-taupe">Previous Question Results</h3>
+            </div>
+            <p className="text-sm text-silver-pink mb-3">
+              Q{previousQuestionResults.questionIndex + 1}: {previousQuestionResults.questionText}
+            </p>
+            <div className="space-y-2">
+              {previousQuestionResults.options
+                .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+                .slice(0, 3)
+                .map((option, idx) => (
+                  <div key={idx} className="flex justify-between items-center">
+                    <span className="text-sm text-light-taupe truncate max-w-[70%]">
+                      {String.fromCharCode(65 + idx)}. {option.text}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-light-taupe">
+                        {option.percentage}%
+                      </span>
+                      <span className="text-xs text-silver-pink">
+                        ({option.votes || 0})
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+            <div className="text-center mt-3 pt-3 border-t border-light-taupe/20">
+              <p className="text-xs text-silver-pink">
+                Host is preparing next question...
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Question Status Banner */}
         {!poll.currentQuestionActive && poll.status === "live" && (
           <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
@@ -349,7 +429,10 @@ export default function PollRoom() {
               <div>
                 <p className="font-semibold text-yellow-700">Question Locked</p>
                 <p className="text-sm text-yellow-700/90">
-                  Waiting for host to activate this question for voting
+                  {previousQuestionResults 
+                    ? "Viewing previous question results. Next question starting soon..."
+                    : "Waiting for host to activate this question for voting"
+                  }
                 </p>
               </div>
             </div>
@@ -392,6 +475,7 @@ export default function PollRoom() {
             {activeQuestion.options?.map((option, index) => {
               const percentage = calculatePercentage(option.votes || 0);
               const isSelected = selectedOption === index;
+              const isTopVote = totalVotes > 0 && (option.votes || 0) === Math.max(...activeQuestion.options.map(opt => opt.votes || 0));
               
               return (
                 <button
@@ -406,7 +490,7 @@ export default function PollRoom() {
                     isSelected 
                       ? 'border-2 border-green-500 bg-green-500/5 shadow-sm' 
                       : 'border border-silver-pink/30 bg-white/50'
-                  }`}
+                  } ${isTopVote && showResults ? 'ring-1 ring-yellow-500/30' : ''}`}
                 >
                   {/* Voting progress bar (only when showResults is true) */}
                   {showResults && percentage > 0 && (
@@ -426,6 +510,9 @@ export default function PollRoom() {
                         {String.fromCharCode(65 + index)}
                         {isSelected && (
                           <Check className="absolute -top-1 -right-1 w-5 h-5 text-green-500 bg-white rounded-full p-0.5 border border-green-500" />
+                        )}
+                        {isTopVote && showResults && !isSelected && (
+                          <Award className="absolute -top-1 -right-1 w-5 h-5 text-yellow-500 bg-white rounded-full p-0.5 border border-yellow-500" />
                         )}
                       </div>
                       <span className="text-base md:text-lg font-medium text-light-taupe text-left">{option.text}</span>
@@ -468,7 +555,7 @@ export default function PollRoom() {
             {hasVoted ? (
               <div className="flex items-center justify-center gap-3 text-green-700 bg-green-500/10 p-4 rounded-xl border border-green-500/20">
                 <Check className="w-5 h-5" />
-                <span className="font-medium">Your vote has been recorded! Waiting for next question...</span>
+                <span className="font-medium">Your vote has been recorded! {poll.currentQuestionActive ? 'Waiting for voting to end...' : 'Results will show soon...'}</span>
               </div>
             ) : poll.currentQuestionActive ? (
               <div className="text-center p-4 bg-light-taupe/5 rounded-xl border border-light-taupe/20">
@@ -479,11 +566,101 @@ export default function PollRoom() {
             ) : (
               <div className="flex items-center justify-center gap-3 text-yellow-700 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
                 <Lock className="w-5 h-5" />
-                <span className="font-medium">Voting is locked. Please wait for the host to activate this question.</span>
+                <span className="font-medium">Voting is locked. {previousQuestionResults ? 'Viewing previous results...' : 'Please wait for the host to activate this question.'}</span>
               </div>
             )}
           </div>
         </div>
+
+        {/* Enhanced Results Display for Participants */}
+        {hasVoted && poll.currentQuestionActive && totalVotes > 0 && (
+          <div className="mt-6 p-4 bg-gradient-to-r from-light-taupe/5 to-silver-pink/5 rounded-xl border border-silver-pink/20">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-light-taupe flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                Live Results
+              </h4>
+              <button
+                onClick={() => setShowResults(!showResults)}
+                className="text-xs text-light-taupe hover:text-light-taupe/80 transition-colors"
+              >
+                {showResults ? 'Hide Details' : 'Show Details'}
+              </button>
+            </div>
+            
+            {/* Selected Vote Summary */}
+            {selectedOption !== null && activeQuestion.options[selectedOption] && (
+              <div className="mb-4 p-3 bg-white/50 rounded-lg border border-green-500/20">
+                <div className="flex items-center gap-2 mb-1">
+                  <Check className="w-4 h-4 text-green-500" />
+                  <span className="font-medium text-light-taupe">You voted for:</span>
+                </div>
+                <p className="text-light-taupe ml-6">
+                  {String.fromCharCode(65 + selectedOption)}. {activeQuestion.options[selectedOption].text}
+                </p>
+              </div>
+            )}
+            
+            {/* Quick Results Summary */}
+            {showResults && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-silver-pink">Total votes on this question:</span>
+                  <span className="font-semibold text-light-taupe">{totalVotes}</span>
+                </div>
+                
+                {/* Top 3 options summary */}
+                {activeQuestion.options
+                  .map((opt, idx) => ({ ...opt, index: idx }))
+                  .sort((a, b) => (b.votes || 0) - (a.votes || 0))
+                  .slice(0, 3)
+                  .map((option, idx) => {
+                    const percentage = calculatePercentage(option.votes || 0);
+                    const isUserVote = selectedOption === option.index;
+                    return (
+                      <div key={option.index} className="space-y-1">
+                        <div className="flex justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-light-taupe">
+                              {String.fromCharCode(65 + option.index)}. {option.text}
+                            </span>
+                            {isUserVote && (
+                              <span className="text-xs px-1.5 py-0.5 bg-green-500/20 text-green-700 rounded">
+                                You
+                              </span>
+                            )}
+                            {idx === 0 && totalVotes > 0 && (
+                              <TrendingUp className="w-3 h-3 text-yellow-500" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-light-taupe">
+                              {percentage}%
+                            </span>
+                            <span className="text-xs text-silver-pink">
+                              ({option.votes || 0})
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-white/30 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              idx === 0 
+                                ? 'bg-gradient-to-r from-yellow-500 to-amber-500' 
+                                : idx === 1
+                                ? 'bg-gradient-to-r from-light-taupe to-silver-pink'
+                                : 'bg-gradient-to-r from-light-taupe/70 to-silver-pink/70'
+                            }`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Instructions & Tips */}
         <div className="grid md:grid-cols-2 gap-4 md:gap-6">
@@ -503,7 +680,7 @@ export default function PollRoom() {
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="w-4 h-4 text-light-taupe flex-shrink-0 mt-0.5" />
-                <span>Use "Show Results" to see live percentages</span>
+                <span>Results show automatically after voting ends</span>
               </li>
               <li className="flex items-start gap-2">
                 <ChevronRight className="w-4 h-4 text-light-taupe flex-shrink-0 mt-0.5" />
@@ -515,24 +692,24 @@ export default function PollRoom() {
           <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 md:p-5">
             <h4 className="font-semibold text-light-taupe mb-3 flex items-center gap-2">
               <BarChart3 className="w-5 h-5" />
-              Voting Tips
+              Live Analytics
             </h4>
             <ul className="text-silver-pink space-y-2 text-sm">
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <span>Your vote is anonymous and secure</span>
+                <span>See real-time vote percentages</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <span>Results update in real-time as votes come in</span>
+                <span>Top choices highlighted automatically</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <span>Wait for host to activate voting before selecting</span>
+                <span>Previous question results shown between questions</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <span>Questions will auto-advance when host moves on</span>
+                <span>All results saved for host analytics</span>
               </li>
             </ul>
           </div>

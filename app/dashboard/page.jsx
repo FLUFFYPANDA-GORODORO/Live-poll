@@ -17,7 +17,6 @@ import {
   Clock,
   Loader2,
   Copy,
-  Trash2,
   User,
   LogOut,
   ChevronRight,
@@ -25,14 +24,20 @@ import {
   LockOpen,
   AlertCircle,
   Check,
-  ExternalLink,
   RefreshCw,
-  Settings,
   Share2,
   FileText,
-  Edit,
-  MoreVertical,
-  X
+  TrendingUp,
+  Target,
+  Award,
+  ChevronDown,
+  Download,
+  PieChart,
+  Maximize2,
+  ArrowRight,
+  ExternalLink,
+  X,
+  BarChart
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -43,6 +48,8 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [expandedPoll, setExpandedPoll] = useState(null);
   const [showResultsPoll, setShowResultsPoll] = useState({});
+  const [detailedResultsPoll, setDetailedResultsPoll] = useState({});
+  const [processingQuestion, setProcessingQuestion] = useState(null);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -89,15 +96,15 @@ export default function Dashboard() {
 
   const getPollStatus = (poll) => {
     if (poll.status === "ended") {
-      return { label: "Ended", color: "bg-gray-500", textColor: "text-gray-100", icon: <CheckCircle className="w-3 h-3" /> };
+      return { label: "Ended", color: "bg-gray-500", textColor: "text-gray-700", icon: <CheckCircle className="w-3 h-3" /> };
     }
     if (poll.status === "live") {
       if (poll.currentQuestionActive === true) {
-        return { label: "Live", color: "bg-green-500", textColor: "text-green-100", icon: <Eye className="w-3 h-3" /> };
+        return { label: "Live", color: "bg-green-500", textColor: "text-green-700", icon: <Eye className="w-3 h-3" /> };
       }
-      return { label: "Ready", color: "bg-yellow-500", textColor: "text-yellow-100", icon: <EyeOff className="w-3 h-3" /> };
+      return { label: "Ready", color: "bg-yellow-500", textColor: "text-yellow-700", icon: <EyeOff className="w-3 h-3" /> };
     }
-    return { label: "Draft", color: "bg-gray-400", textColor: "text-gray-100", icon: <Clock className="w-3 h-3" /> };
+    return { label: "Draft", color: "bg-gray-400", textColor: "text-gray-700", icon: <Clock className="w-3 h-3" /> };
   };
 
   const getTotalVotes = (poll) => {
@@ -129,6 +136,29 @@ export default function Dashboard() {
     return Math.round((votes / total) * 100);
   };
 
+  const getQuestionStats = (poll, questionIndex) => {
+    if (!poll || !poll.questions || !poll.questions[questionIndex]) return null;
+    
+    const question = poll.questions[questionIndex];
+    const totalVotes = question.options.reduce((sum, option) => sum + (option.votes || 0), 0);
+    
+    const optionsWithPercentages = question.options.map(option => ({
+      ...option,
+      percentage: totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0
+    }));
+    
+    const maxVotes = Math.max(...question.options.map(opt => opt.votes || 0));
+    const winningOptions = question.options.filter(opt => (opt.votes || 0) === maxVotes);
+    
+    return {
+      totalVotes,
+      optionsWithPercentages,
+      maxVotes,
+      winningOptions,
+      hasData: totalVotes > 0
+    };
+  };
+
   const copyPollId = (pollId) => {
     navigator.clipboard.writeText(pollId);
     setCopiedPollId(pollId);
@@ -141,20 +171,6 @@ export default function Dashboard() {
       day: 'numeric',
       year: 'numeric'
     });
-  };
-
-  const deletePoll = async (pollId) => {
-    if (!confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
-      return;
-    }
-
-    try {
-      setPolls(polls.filter(poll => poll.id !== pollId));
-      alert("Poll deleted successfully");
-    } catch (error) {
-      console.error("Error deleting poll:", error);
-      alert("Failed to delete poll");
-    }
   };
 
   const handleSignOut = async () => {
@@ -176,7 +192,6 @@ export default function Dashboard() {
         currentQuestionActive: false,
       });
       
-      // Refresh the poll data
       fetchUserPolls(user.uid);
     } catch (err) {
       console.error("Error starting poll:", err);
@@ -210,34 +225,68 @@ export default function Dashboard() {
     }
   };
 
-  const nextQuestion = async (poll) => {
+  const nextQuestionWithResults = async (poll) => {
     if (!poll || poll.activeQuestionIndex === undefined) return;
     
     try {
-      // Deactivate current question first
+      setProcessingQuestion(poll.id);
+      
+      // Deactivate current question and show results
       await updateDoc(doc(db, "polls", poll.id), {
         currentQuestionActive: false,
       });
       
-      // Wait a moment then activate next question
+      // Show results for current question
+      setShowResultsPoll(prev => ({ ...prev, [poll.id]: true }));
+      
+      // Wait 3 seconds to show results before moving on
       setTimeout(async () => {
-        await updateDoc(doc(db, "polls", poll.id), {
-          activeQuestionIndex: poll.activeQuestionIndex + 1,
-          currentQuestionActive: false, // Start inactive
-        });
+        if (poll.activeQuestionIndex < (poll.questions?.length || 0) - 1) {
+          await updateDoc(doc(db, "polls", poll.id), {
+            activeQuestionIndex: poll.activeQuestionIndex + 1,
+            currentQuestionActive: false,
+          });
+          
+          // Hide results for new question
+          setShowResultsPoll(prev => ({ ...prev, [poll.id]: false }));
+        } else {
+          // If it's the last question, end the poll
+          await updateDoc(doc(db, "polls", poll.id), {
+            status: "ended",
+            activeQuestionIndex: -1,
+            currentQuestionActive: false,
+          });
+        }
         
         fetchUserPolls(user.uid);
-      }, 300);
+        setProcessingQuestion(null);
+        
+        // Show notification
+        if (poll.activeQuestionIndex < (poll.questions?.length || 0) - 1) {
+          alert(`Moved to question ${poll.activeQuestionIndex + 2}. Results for question ${poll.activeQuestionIndex + 1} are available below.`);
+        } else {
+          alert("Poll ended! All results are available.");
+        }
+      }, 3000);
       
     } catch (err) {
       console.error("Error moving to next question:", err);
       alert("Failed to move to next question");
+      setProcessingQuestion(null);
     }
   };
 
-  const endPoll = async (pollId) => {
-    if (confirm("Are you sure you want to end the poll?")) {
+  const endPollWithResults = async (pollId, poll) => {
+    if (confirm("End poll and show comprehensive results?")) {
       try {
+        // Show all results
+        const allQuestionKeys = {};
+        poll.questions?.forEach((_, index) => {
+          allQuestionKeys[`${pollId}_${index}`] = true;
+        });
+        setDetailedResultsPoll(prev => ({ ...prev, ...allQuestionKeys }));
+        setShowResultsPoll(prev => ({ ...prev, [pollId]: true }));
+        
         await updateDoc(doc(db, "polls", pollId), {
           status: "ended",
           activeQuestionIndex: -1,
@@ -245,7 +294,8 @@ export default function Dashboard() {
         });
         
         fetchUserPolls(user.uid);
-        alert("Poll has ended!");
+        
+        alert(`Poll ended! Total votes: ${getTotalVotes(poll)}. View detailed results below.`);
       } catch (err) {
         console.error("Error ending poll:", err);
         alert("Failed to end poll");
@@ -260,8 +310,20 @@ export default function Dashboard() {
     }));
   };
 
+  const toggleDetailedResults = (pollId, questionIndex) => {
+    const key = `${pollId}_${questionIndex}`;
+    setDetailedResultsPoll(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
   const toggleExpandPoll = (pollId) => {
     setExpandedPoll(expandedPoll === pollId ? null : pollId);
+  };
+
+  const viewDetailedResults = (pollId) => {
+    router.push(`/dashboard/results/${pollId}`);
   };
 
   if (loading && !user) {
@@ -299,7 +361,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-3 w-full md:w-auto">
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 text-sm border border-light-taupe/30 hover:border-light-taupe px-3 py-2 rounded-lg transition-colors text-light-taupe hover:bg-light-taupe/5"
+                  className="flex items-center gap-2 text-sm border border-light-taupe/30 hover:border-light-taupe px-3 py-2 rounded-lg transition-colors text-light-taupe hover:bg-white/50"
                 >
                   <LogOut className="w-4 h-4" />
                   <span className="hidden sm:inline">Sign Out</span>
@@ -445,7 +507,7 @@ export default function Dashboard() {
                                 <span className="text-xs md:text-sm text-silver-pink">{getTotalVotes(poll)} votes</span>
                               </div>
                               <div className="flex items-center gap-1.5">
-                                <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 text-light-taupe" />
+                                <FileText className="w-3.5 h-3.5 md:w-4 md:h-4 text-light-taupe" />
                                 <span className="text-xs md:text-sm text-silver-pink">{getTotalQuestions(poll)} questions</span>
                               </div>
                               <div className="flex items-center gap-1.5">
@@ -508,7 +570,7 @@ export default function Dashboard() {
                               
                               <p className="text-lg md:text-xl text-light-taupe mb-4">{currentQuestion.text}</p>
                               
-                              {/* Results (when shown) */}
+                              {/* Live Results (when shown) */}
                               {showResults && totalVotesCurrent > 0 && (
                                 <div className="space-y-3 mt-4">
                                   {currentQuestion.options.map((option, index) => {
@@ -562,17 +624,17 @@ export default function Dashboard() {
                             {/* Live Poll Controls */}
                             {isLive && (
                               <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                   {/* Question Activation */}
                                   <div className="space-y-2">
-                                    <h5 className="font-medium text-sm text-silver-pink">Question Control</h5>
+                                    <h5 className="font-medium text-sm text-silver-pink">Voting Control</h5>
                                     {!poll.currentQuestionActive ? (
                                       <button
                                         onClick={() => activateCurrentQuestion(poll.id)}
                                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                       >
                                         <LockOpen className="w-4 h-4" />
-                                        Activate Voting
+                                        Start Voting
                                       </button>
                                     ) : (
                                       <button
@@ -580,70 +642,89 @@ export default function Dashboard() {
                                         className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                       >
                                         <Lock className="w-4 h-4" />
-                                        Deactivate Voting
+                                        Stop Voting
                                       </button>
                                     )}
                                     <p className="text-xs text-silver-pink">
                                       {poll.currentQuestionActive 
-                                        ? "Participants can vote now"
-                                        : "Question is locked - waiting"
+                                        ? "Participants are voting now"
+                                        : "Ready to start voting"
                                       }
                                     </p>
                                   </div>
 
-                                  {/* Results Toggle */}
+                                  {/* Results Display */}
                                   <div className="space-y-2">
                                     <h5 className="font-medium text-sm text-silver-pink">Results</h5>
                                     <button
                                       onClick={() => toggleShowResults(poll.id)}
                                       className="w-full flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                     >
-                                      <BarChart3 className="w-4 h-4" />
-                                      {showResults ? 'Hide Results' : 'Show Results'}
+                                      {showResults ? (
+                                        <>
+                                          <EyeOff className="w-4 h-4" />
+                                          Hide Results
+                                        </>
+                                      ) : (
+                                        <>
+                                          <BarChart3 className="w-4 h-4" />
+                                          Show Results
+                                        </>
+                                      )}
                                     </button>
                                   </div>
-                                </div>
 
-                                {/* Navigation Controls */}
-                                <div className="space-y-2">
-                                  <h5 className="font-medium text-sm text-silver-pink">Navigation</h5>
-                                  <div className="flex gap-3">
+                                  {/* Navigation Control */}
+                                  <div className="space-y-2">
+                                    <h5 className="font-medium text-sm text-silver-pink">Progress</h5>
                                     {poll.activeQuestionIndex < (poll.questions?.length || 0) - 1 ? (
                                       <button
-                                        onClick={() => nextQuestion(poll)}
-                                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-4 py-3 rounded-lg font-semibold text-eggshell transition-all"
+                                        onClick={() => nextQuestionWithResults(poll)}
+                                        disabled={processingQuestion === poll.id}
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] disabled:opacity-50 disabled:cursor-not-allowed px-4 py-3 rounded-lg font-semibold text-eggshell transition-all"
                                       >
-                                        Next Question
-                                        <ChevronRight className="w-4 h-4" />
+                                        {processingQuestion === poll.id ? (
+                                          <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Processing...
+                                          </>
+                                        ) : (
+                                          <>
+                                            Next Question
+                                            <ChevronRight className="w-4 h-4" />
+                                          </>
+                                        )}
                                       </button>
                                     ) : (
                                       <button
-                                        onClick={() => endPoll(poll.id)}
-                                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
+                                        onClick={() => endPollWithResults(poll.id, poll)}
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                       >
                                         End Poll
                                       </button>
                                     )}
+                                    <p className="text-xs text-silver-pink">
+                                      Question {poll.activeQuestionIndex + 1} of {poll.questions?.length}
+                                    </p>
                                   </div>
                                 </div>
 
-                                {/* Quick Actions */}
-                                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-silver-pink/20">
-                                  <button
-                                    onClick={() => router.push(`/poll/${poll.id}`)}
-                                    className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
-                                    title="View as Participant"
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                    View Participant Screen
-                                  </button>
-                                  <button
-                                    onClick={() => router.push(`/share?pollId=${poll.id}`)}
-                                    className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
-                                  >
-                                    <Share2 className="w-4 h-4" />
-                                    Share Poll
-                                  </button>
+                                {/* Quick Stats Bar */}
+                                <div className="grid grid-cols-3 gap-3 bg-white/30 rounded-xl p-3">
+                                  <div className="text-center">
+                                    <div className="text-lg font-bold text-light-taupe">{getTotalVotes(poll)}</div>
+                                    <div className="text-xs text-silver-pink">Total Votes</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-lg font-bold text-light-taupe">{totalVotesCurrent}</div>
+                                    <div className="text-xs text-silver-pink">Current Q</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-lg font-bold text-light-taupe">
+                                      {poll.questions?.length || 0}
+                                    </div>
+                                    <div className="text-xs text-silver-pink">Questions</div>
+                                  </div>
                                 </div>
                               </div>
                             )}
@@ -654,17 +735,15 @@ export default function Dashboard() {
                                 <div className="p-4 bg-white/50 rounded-xl border border-silver-pink/20">
                                   <h4 className="font-semibold text-light-taupe mb-2">Poll Ended</h4>
                                   <p className="text-sm text-silver-pink mb-4">
-                                    This poll has ended. Participants can no longer vote.
+                                    This poll has ended with {getTotalVotes(poll)} total votes.
                                   </p>
                                   <div className="flex flex-col sm:flex-row gap-3">
                                     <button
-                                      onClick={() => {
-                                        setShowResultsPoll(prev => ({ ...prev, [poll.id]: true }));
-                                      }}
-                                      className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
+                                      onClick={() => viewDetailedResults(poll.id)}
+                                      className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-4 py-3 rounded-lg font-semibold text-eggshell transition-all"
                                     >
-                                      <BarChart3 className="w-4 h-4" />
-                                      View Final Results
+                                      <BarChart className="w-4 h-4" />
+                                      View Detailed Analytics
                                     </button>
                                     <button
                                       onClick={() => router.push(`/share?pollId=${poll.id}`)}
@@ -678,6 +757,140 @@ export default function Dashboard() {
                               </div>
                             )}
                           </div>
+
+                          {/* Question-by-Question Results Section */}
+                          {(isEnded || showResults) && poll.questions && (
+                            <div className="mt-8 pt-6 border-t border-silver-pink/20">
+                              <div className="flex items-center justify-between mb-4">
+                                <h4 className="font-semibold text-light-taupe flex items-center gap-2">
+                                  <BarChart3 className="w-5 h-5" />
+                                  {isEnded ? "Final Results" : "Question Results"}
+                                </h4>
+                                <div className="text-sm text-silver-pink">
+                                  {getTotalVotes(poll)} total votes
+                                </div>
+                              </div>
+                              
+                              <div className="space-y-6">
+                                {poll.questions.map((question, qIndex) => {
+                                  const stats = getQuestionStats(poll, qIndex);
+                                  const isDetailed = detailedResultsPoll[`${poll.id}_${qIndex}`];
+                                  const isCurrentQuestion = isLive && qIndex === poll.activeQuestionIndex;
+                                  
+                                  return (
+                                    <div key={qIndex} className="bg-white/50 rounded-xl border border-silver-pink/20 p-4">
+                                      <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                          <h5 className="font-medium text-light-taupe">
+                                            Q{qIndex + 1}: {question.text}
+                                          </h5>
+                                          <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-xs text-silver-pink">
+                                              {stats?.totalVotes || 0} votes
+                                            </span>
+                                            {isCurrentQuestion && (
+                                              <span className="text-xs px-2 py-1 bg-green-500/20 text-green-700 rounded-full">
+                                                Current
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <button
+                                          onClick={() => toggleDetailedResults(poll.id, qIndex)}
+                                          className="text-silver-pink hover:text-light-taupe transition-colors"
+                                        >
+                                          {isDetailed ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                        </button>
+                                      </div>
+                                      
+                                      {/* Summary Bar */}
+                                      {stats && stats.hasData && (
+                                        <div className="space-y-2 mb-3">
+                                          {stats.optionsWithPercentages.slice(0, 1).map((option, oIndex) => (
+                                            <div key={oIndex} className="space-y-1">
+                                              <div className="flex justify-between text-sm">
+                                                <span className="text-light-taupe">Top Choice: {option.text}</span>
+                                                <span className="font-semibold text-light-taupe">{option.percentage}%</span>
+                                              </div>
+                                              <div className="w-full bg-white/30 rounded-full h-2">
+                                                <div 
+                                                  className="bg-gradient-to-r from-light-taupe to-silver-pink h-2 rounded-full transition-all duration-500"
+                                                  style={{ width: `${option.percentage}%` }}
+                                                />
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Detailed Results (when expanded) */}
+                                      {isDetailed && stats && stats.hasData && (
+                                        <div className="mt-4 pt-4 border-t border-silver-pink/10">
+                                          <div className="space-y-3">
+                                            {stats.optionsWithPercentages.map((option, oIndex) => {
+                                              const isWinner = (option.votes || 0) === stats.maxVotes;
+                                              return (
+                                                <div key={oIndex} className="space-y-1.5">
+                                                  <div className="flex justify-between">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-sm font-medium text-light-taupe">
+                                                        {String.fromCharCode(65 + oIndex)}. {option.text}
+                                                      </span>
+                                                      {isWinner && (
+                                                        <Award className="w-3 h-3 text-yellow-500" />
+                                                      )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                      <span className="text-sm font-semibold text-light-taupe">
+                                                        {option.percentage}%
+                                                      </span>
+                                                      <span className="text-xs text-silver-pink">
+                                                        ({option.votes || 0})
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                  <div className="w-full bg-white/30 rounded-full h-2">
+                                                    <div 
+                                                      className={`h-2 rounded-full transition-all duration-500 ${
+                                                        isWinner 
+                                                          ? 'bg-gradient-to-r from-yellow-500 to-amber-500' 
+                                                          : 'bg-gradient-to-r from-light-taupe/70 to-silver-pink/70'
+                                                      }`}
+                                                      style={{ width: `${option.percentage}%` }}
+                                                    />
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                          
+                                          {/* Summary Stats */}
+                                          <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-silver-pink/10">
+                                            <div className="text-center">
+                                              <div className="text-lg font-bold text-light-taupe">{stats.totalVotes}</div>
+                                              <div className="text-xs text-silver-pink">Total Votes</div>
+                                            </div>
+                                            <div className="text-center">
+                                              <div className="text-lg font-bold text-light-taupe">
+                                                {stats.winningOptions.length > 1 ? 'Tie' : 'Clear'}
+                                              </div>
+                                              <div className="text-xs text-silver-pink">Result</div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {(!stats || !stats.hasData) && (
+                                        <div className="text-center py-4">
+                                          <p className="text-silver-pink text-sm">No votes recorded yet</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -706,6 +919,15 @@ export default function Dashboard() {
                                 <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-700">
                                   {poll.currentQuestionActive ? 'Live' : 'Paused'}
                                 </span>
+                              )}
+                              {isEnded && (
+                                <button
+                                  onClick={() => viewDetailedResults(poll.id)}
+                                  className="flex items-center gap-2 px-3 py-2 bg-white/50 hover:bg-white/70 border border-silver-pink/30 hover:border-silver-pink rounded-lg transition-colors text-sm text-silver-pink"
+                                >
+                                  <BarChart className="w-4 h-4" />
+                                  <span className="hidden sm:inline">Analytics</span>
+                                </button>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
@@ -748,15 +970,11 @@ export default function Dashboard() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-light-taupe font-medium">• Next Question:</span>
-                  <span>Shows next question (deactivates current)</span>
+                  <span>Shows results for 3s, then moves to next question</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-red-600 font-medium">• End Poll:</span>
-                  <span>Closes the poll session</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-light-taupe font-medium">• Join URL:</span>
-                  <code className="bg-white/50 px-1.5 py-0.5 rounded text-xs">/poll/[ID]</code>
+                  <span>Shows comprehensive final results</span>
                 </li>
               </ul>
             </div>
@@ -764,15 +982,15 @@ export default function Dashboard() {
             <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl md:rounded-2xl p-4 md:p-6">
               <h3 className="font-semibold text-light-taupe mb-3 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" />
-                Tips & Best Practices
+                Results Flow
               </h3>
               <ul className="text-silver-pink space-y-2 text-sm">
-                <li>• Keep questions active only when you want voting</li>
-                <li>• Use "Show Results" to display voting percentages</li>
-                <li>• Share the poll ID with participants</li>
-                <li>• Monitor vote counts in real-time</li>
-                <li>• Use "View Participant Screen" to see participant view</li>
-                <li>• End poll when all questions are completed</li>
+                <li>• Results automatically show after each question</li>
+                <li>• Participants see results after voting ends</li>
+                <li>• Expand any question for detailed analytics</li>
+                <li>• View comprehensive analytics on dedicated page</li>
+                <li>• Export results as CSV for further analysis</li>
+                <li>• All results are saved and accessible anytime</li>
               </ul>
             </div>
           </div>
@@ -780,11 +998,11 @@ export default function Dashboard() {
           {/* Footer */}
           <div className="mt-6 md:mt-8 pt-4 border-t border-silver-pink/20 text-center">
             <p className="text-sm text-silver-pink">
-              Need help? Visit our help center or contact support
+              Need help? Click "View Detailed Analytics" for comprehensive results
             </p>
           </div>
         </div>
-      </div>
+      </div>  
     </AuthGuard>
   );
 }

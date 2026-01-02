@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { db, auth } from "@/lib/firebase";
 import { doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
 import { useParams, useRouter } from "next/navigation";
-import { Loader2, Home, Check, BarChart3, Lock, AlertCircle, ArrowRight, Users } from "lucide-react";
+import { Loader2, Home, Check, BarChart3, Lock, AlertCircle, ArrowRight, Users, Eye, EyeOff, Clock, RefreshCw, ChevronRight } from "lucide-react";
 
 export default function PollRoom() {
   const { pollId } = useParams();
@@ -16,6 +16,7 @@ export default function PollRoom() {
   const [selectedOption, setSelectedOption] = useState(null);
   const [showResults, setShowResults] = useState(false);
   const [totalVotes, setTotalVotes] = useState(0);
+  const [userName, setUserName] = useState("Participant");
 
   // Get user's voting status from localStorage - FIXED: Track by question index
   useEffect(() => {
@@ -31,6 +32,14 @@ export default function PollRoom() {
       }
     }
   }, [pollId, poll?.activeQuestionIndex]);
+
+  // Get participant name from localStorage
+  useEffect(() => {
+    const storedName = localStorage.getItem("participantName");
+    if (storedName) {
+      setUserName(storedName);
+    }
+  }, []);
 
   useEffect(() => {
     if (!pollId) {
@@ -142,9 +151,11 @@ export default function PollRoom() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-center">
-        <Loader2 className="w-12 h-12 text-indigo-400 animate-spin mb-4" />
-        <p className="text-gray-400">Loading poll...</p>
+      <div className="min-h-screen bg-eggshell text-foreground flex flex-col items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-light-taupe border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-silver-pink">Loading poll...</p>
+        </div>
       </div>
     );
   }
@@ -152,23 +163,26 @@ export default function PollRoom() {
   // Error state
   if (error || !poll) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-center">
-        <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Poll Not Found</h1>
-          <p className="text-gray-400 mb-6">
+      <div className="min-h-screen bg-eggshell text-foreground flex flex-col items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6">
+            <AlertCircle className="w-10 h-10 text-red-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-4 text-light-taupe">Poll Not Found</h1>
+          <p className="text-silver-pink mb-6">
             {error || "The poll you're trying to access doesn't exist or has been removed."}
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => router.push("/join")}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-6 py-3 rounded-xl font-semibold text-eggshell transition-all hover:scale-105"
             >
               <ArrowRight className="w-5 h-5" />
               Join Another Poll
             </button>
             <button
               onClick={() => router.push("/")}
-              className="flex items-center justify-center gap-2 border border-gray-600 hover:border-gray-500 px-6 py-3 rounded-xl font-semibold transition-all"
+              className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-6 py-3 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
             >
               <Home className="w-5 h-5" />
               Home
@@ -188,28 +202,43 @@ export default function PollRoom() {
   // Poll hasn't started - waiting screen
   if (pollNotStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-center p-6">
+      <div className="min-h-screen bg-eggshell text-foreground flex flex-col items-center justify-center p-6">
         <div className="max-w-2xl text-center">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-light-taupe to-silver-pink bg-clip-text text-transparent">
               {poll.title}
             </h1>
-            <p className="text-gray-400">Poll ID: <code className="bg-gray-800 px-2 py-1 rounded text-indigo-300">{pollId}</code></p>
+            <div className="flex items-center justify-center gap-2 text-silver-pink">
+              <span>Poll ID:</span>
+              <code className="bg-white/50 border border-silver-pink/30 px-3 py-1 rounded-lg text-light-taupe font-mono">
+                {pollId}
+              </code>
+            </div>
           </div>
 
-          <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl p-8 border border-gray-600 shadow-xl">
-            <div className="w-24 h-24 rounded-full bg-indigo-500/20 flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-12 h-12 text-indigo-400" />
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-6 md:p-8 border border-silver-pink/30 shadow-sm">
+            <div className="w-20 h-20 rounded-full bg-light-taupe/20 flex items-center justify-center mx-auto mb-6">
+              <Lock className="w-10 h-10 text-light-taupe" />
             </div>
-            <h2 className="text-2xl font-bold mb-4 text-white">Waiting for Host to Start</h2>
-            <p className="text-gray-300 mb-6">
+            <h2 className="text-xl md:text-2xl font-bold mb-4 text-light-taupe">Waiting for Host to Start</h2>
+            <p className="text-silver-pink mb-6">
               The poll host will start the session soon. Please wait...
             </p>
             <div className="flex items-center justify-center gap-2">
-              <div className="w-3 h-3 bg-indigo-400 rounded-full animate-pulse" />
-              <div className="w-3 h-3 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-              <div className="w-3 h-3 bg-indigo-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+              <div className="w-3 h-3 bg-light-taupe rounded-full animate-pulse" />
+              <div className="w-3 h-3 bg-light-taupe rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
+              <div className="w-3 h-3 bg-light-taupe rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
             </div>
+          </div>
+
+          <div className="mt-8">
+            <button
+              onClick={() => router.push("/")}
+              className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-6 py-3 rounded-xl text-light-taupe transition-colors hover:bg-white/50 mx-auto"
+            >
+              <Home className="w-5 h-5" />
+              Return Home
+            </button>
           </div>
         </div>
       </div>
@@ -219,19 +248,31 @@ export default function PollRoom() {
   // Check if activeQuestion is valid
   if (!activeQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex flex-col items-center justify-center">
-        <div className="text-center max-w-md">
-          <h1 className="text-2xl font-bold mb-4">Poll Ended</h1>
-          <p className="text-gray-400 mb-6">
-            This poll has ended. Thank you for participating!
+      <div className="min-h-screen bg-eggshell text-foreground flex flex-col items-center justify-center p-6">
+        <div className="max-w-md text-center">
+          <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6">
+            <Check className="w-10 h-10 text-green-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-4 text-light-taupe">Poll Ended</h1>
+          <p className="text-silver-pink mb-6">
+            Thank you for participating! This poll has ended.
           </p>
-          <button
-            onClick={() => router.push("/")}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
-          >
-            <Home className="w-5 h-5" />
-            Return Home
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => router.push("/")}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-6 py-3 rounded-xl font-semibold text-eggshell transition-all hover:scale-105"
+            >
+              <Home className="w-5 h-5" />
+              Return Home
+            </button>
+            <button
+              onClick={() => router.push("/join")}
+              className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-6 py-3 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
+            >
+              <ArrowRight className="w-5 h-5" />
+              Join Another
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -239,63 +280,75 @@ export default function PollRoom() {
 
   // Active poll with questions
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-4 md:p-8">
+    <div className="min-h-screen bg-eggshell text-foreground p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8 bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-600 shadow-lg">
+        <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-5 md:p-6 border border-silver-pink/30 shadow-sm">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white">{poll.title}</h1>
-              <div className="flex flex-wrap items-center gap-3 mt-2">
-                <span className="text-sm bg-gray-700 px-3 py-1 rounded-full">
+            <div className="flex-1">
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-light-taupe mb-2">{poll.title}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs md:text-sm bg-white/50 border border-silver-pink/30 px-2.5 py-1 rounded-full text-light-taupe">
                   Question {poll.activeQuestionIndex + 1} of {poll.questions?.length || 0}
                 </span>
-                <span className={`text-sm px-3 py-1 rounded-full flex items-center gap-1 ${
+                <span className={`text-xs md:text-sm px-2.5 py-1 rounded-full flex items-center gap-1 border ${
                   poll.status === "live" && poll.currentQuestionActive
-                    ? "bg-green-500/30 text-green-300 border border-green-500/50"
+                    ? "bg-green-500/20 text-green-700 border-green-500/30"
                     : poll.status === "live"
-                    ? "bg-yellow-500/30 text-yellow-300 border border-yellow-500/50"
-                    : "bg-gray-500/30 text-gray-300 border border-gray-500/50"
+                    ? "bg-yellow-500/20 text-yellow-700 border-yellow-500/30"
+                    : "bg-gray-500/20 text-gray-700 border-gray-500/30"
                 }`}>
                   {poll.status === "live" && poll.currentQuestionActive ? (
                     <>
-                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                      Voting Active
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>Live</span>
                     </>
                   ) : poll.status === "live" ? (
                     <>
-                      <div className="w-2 h-2 bg-yellow-400 rounded-full"></div>
-                      Ready
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      <span>Ready</span>
                     </>
                   ) : (
-                    "Ended"
+                    <>
+                      <Clock className="w-3 h-3" />
+                      <span>Ended</span>
+                    </>
                   )}
                 </span>
                 {hasVoted && (
-                  <span className="text-sm px-3 py-1 bg-green-500/30 text-green-300 rounded-full flex items-center gap-1 border border-green-500/50">
+                  <span className="text-xs md:text-sm px-2.5 py-1 bg-green-500/20 text-green-700 rounded-full flex items-center gap-1 border border-green-500/30">
                     <Check className="w-3 h-3" />
-                    Voted
+                    <span>Voted</span>
                   </span>
                 )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-400">Poll ID</p>
-              <code className="font-mono font-bold text-lg bg-gray-800 px-3 py-1 rounded-lg border border-gray-700">
-                {pollId}
-              </code>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-xs text-silver-pink">Poll ID</p>
+                <code className="font-mono font-bold text-sm md:text-base bg-white/50 border border-silver-pink/30 px-3 py-1.5 rounded-lg text-light-taupe">
+                  {pollId}
+                </code>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="p-2 text-silver-pink hover:text-light-taupe transition-colors hover:bg-white/50 rounded-lg"
+                title="Refresh"
+              >
+                <RefreshCw className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
 
         {/* Question Status Banner */}
-        {!poll.currentQuestionActive && (
-          <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-xl p-4 mb-6 shadow-lg">
+        {!poll.currentQuestionActive && poll.status === "live" && (
+          <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-xl p-4 mb-6">
             <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-yellow-400" />
+              <Lock className="w-5 h-5 text-yellow-600" />
               <div>
-                <p className="font-semibold text-yellow-300">Question Locked</p>
-                <p className="text-sm text-yellow-300/90">
+                <p className="font-semibold text-yellow-700">Question Locked</p>
+                <p className="text-sm text-yellow-700/90">
                   Waiting for host to activate this question for voting
                 </p>
               </div>
@@ -304,36 +357,38 @@ export default function PollRoom() {
         )}
 
         {/* Question Card */}
-        <div className="bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 md:p-8 border border-gray-600 shadow-xl mb-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-5 md:p-6 border border-silver-pink/30 shadow-sm mb-6">
           <div className="mb-6">
-            <div className="flex justify-between items-center">
-              <span className="text-indigo-300 font-semibold bg-indigo-500/20 px-3 py-1 rounded-lg">
-                Question {poll.activeQuestionIndex + 1}
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-light-taupe font-semibold bg-light-taupe/10 px-3 py-1.5 rounded-lg">
+                  Question {poll.activeQuestionIndex + 1}
+                </span>
+                {totalVotes > 0 && (
+                  <div className="flex items-center gap-2 text-sm text-silver-pink">
+                    <Users className="w-4 h-4" />
+                    <span>{totalVotes} vote{totalVotes !== 1 ? 's' : ''}</span>
+                  </div>
+                )}
+              </div>
               {totalVotes > 0 && (
                 <button
                   onClick={() => setShowResults(!showResults)}
-                  className="flex items-center gap-2 text-indigo-300 hover:text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-2 rounded-lg transition-colors"
+                  className="flex items-center gap-2 text-light-taupe hover:text-light-taupe/80 bg-white/50 hover:bg-white px-3 py-2 rounded-lg transition-colors border border-silver-pink/30"
                 >
-                  <BarChart3 className="w-4 h-4" />
+                  {showResults ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   {showResults ? 'Hide Results' : 'Show Results'}
                 </button>
               )}
             </div>
-            {totalVotes > 0 && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-gray-300">
-                <Users className="w-4 h-4" />
-                <span>{totalVotes} vote{totalVotes !== 1 ? 's' : ''} received</span>
-              </div>
-            )}
           </div>
           
-          <h2 className="text-2xl md:text-3xl font-bold mb-8 text-white">
+          <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-6 md:mb-8 text-light-taupe leading-tight">
             {activeQuestion.text}
           </h2>
 
           {/* Options */}
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4">
             {activeQuestion.options?.map((option, index) => {
               const percentage = calculatePercentage(option.votes || 0);
               const isSelected = selectedOption === index;
@@ -343,53 +398,53 @@ export default function PollRoom() {
                   key={index}
                   onClick={() => voteForOption(index)}
                   disabled={!poll.currentQuestionActive || hasVoted}
-                  className={`w-full relative overflow-hidden rounded-xl p-5 text-left transition-all duration-200 shadow-lg ${
+                  className={`w-full relative overflow-hidden rounded-xl p-4 md:p-5 text-left transition-all duration-200 ${
                     poll.currentQuestionActive && !hasVoted 
-                      ? 'hover:scale-[1.01] active:scale-[0.99] hover:shadow-indigo-500/20 cursor-pointer' 
+                      ? 'hover:scale-[1.01] active:scale-[0.99] cursor-pointer' 
                       : 'cursor-not-allowed'
                   } ${
                     isSelected 
-                      ? 'border-2 border-green-500 bg-gradient-to-r from-green-500/10 to-emerald-500/10 shadow-green-500/20' 
-                      : 'border border-gray-600 bg-gradient-to-r from-gray-800 to-gray-900'
+                      ? 'border-2 border-green-500 bg-green-500/5 shadow-sm' 
+                      : 'border border-silver-pink/30 bg-white/50'
                   }`}
                 >
                   {/* Voting progress bar (only when showResults is true) */}
                   {showResults && percentage > 0 && (
                     <div 
-                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-indigo-500/30 to-purple-500/30 transition-all duration-500 ease-out"
+                      className="absolute left-0 top-0 h-full bg-gradient-to-r from-light-taupe/10 to-silver-pink/10 transition-all duration-500 ease-out"
                       style={{ width: `${percentage}%` }}
                     />
                   )}
                   
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-full border-2 flex items-center justify-center font-bold text-lg transition-all ${
+                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 md:gap-4">
+                      <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-lg transition-all flex-shrink-0 ${
                         isSelected 
-                          ? 'border-green-500 bg-green-500/20 text-green-300 shadow-green-500/30' 
-                          : 'border-gray-500 bg-gray-700 text-gray-300'
+                          ? 'border-green-500 bg-green-500/10 text-green-700' 
+                          : 'border-silver-pink/50 bg-white text-light-taupe'
                       }`}>
                         {String.fromCharCode(65 + index)}
                         {isSelected && (
-                          <Check className="absolute -top-1 -right-1 w-5 h-5 text-green-400 bg-green-500/30 rounded-full p-1" />
+                          <Check className="absolute -top-1 -right-1 w-5 h-5 text-green-500 bg-white rounded-full p-0.5 border border-green-500" />
                         )}
                       </div>
-                      <span className="text-lg font-medium">{option.text}</span>
+                      <span className="text-base md:text-lg font-medium text-light-taupe text-left">{option.text}</span>
                     </div>
                     
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 md:gap-4 self-start sm:self-center">
                       {showResults && (
                         <>
-                          <span className="text-lg font-bold bg-gray-800/50 px-3 py-1 rounded-lg min-w-[60px] text-center">
+                          <span className="text-base md:text-lg font-bold bg-white/80 px-3 py-1.5 rounded-lg min-w-[55px] md:min-w-[60px] text-center text-light-taupe border border-silver-pink/30">
                             {percentage}%
                           </span>
-                          <span className="text-sm text-gray-300 min-w-[80px] text-right">
+                          <span className="text-sm text-silver-pink min-w-[70px] md:min-w-[80px] text-right">
                             {option.votes || 0} vote{(option.votes || 0) !== 1 ? 's' : ''}
                           </span>
                         </>
                       )}
                       {!showResults && (option.votes || 0) > 0 && (
-                        <span className="text-sm text-gray-400 bg-gray-800/50 px-2 py-1 rounded">
-                          {option.votes || 0} vote{(option.votes || 0) !== 1 ? 's' : ''}
+                        <span className="text-sm text-silver-pink bg-white/50 px-2 py-1 rounded border border-silver-pink/30">
+                          {option.votes || 0}
                         </span>
                       )}
                     </div>
@@ -397,8 +452,8 @@ export default function PollRoom() {
                   
                   {/* Vote button for participants */}
                   {!hasVoted && poll.currentQuestionActive && (
-                    <div className="relative z-10 mt-4 text-right">
-                      <span className="text-sm text-indigo-300 bg-indigo-500/10 px-3 py-1 rounded-lg inline-block">
+                    <div className="relative z-10 mt-3 sm:mt-4 text-right">
+                      <span className="text-xs md:text-sm text-light-taupe bg-white/80 px-2 py-1 rounded border border-silver-pink/30 inline-block">
                         Click to vote
                       </span>
                     </div>
@@ -409,20 +464,20 @@ export default function PollRoom() {
           </div>
 
           {/* Voting status */}
-          <div className="mt-8 pt-6 border-t border-gray-600">
+          <div className="mt-6 md:mt-8 pt-5 md:pt-6 border-t border-silver-pink/30">
             {hasVoted ? (
-              <div className="flex items-center justify-center gap-3 text-green-300 bg-green-500/10 p-4 rounded-xl border border-green-500/30">
+              <div className="flex items-center justify-center gap-3 text-green-700 bg-green-500/10 p-4 rounded-xl border border-green-500/20">
                 <Check className="w-5 h-5" />
                 <span className="font-medium">Your vote has been recorded! Waiting for next question...</span>
               </div>
             ) : poll.currentQuestionActive ? (
-              <div className="text-center p-4 bg-indigo-500/10 rounded-xl border border-indigo-500/30">
-                <p className="text-gray-300">
-                  <span className="font-semibold text-indigo-300">Select an option above to vote.</span> You can only vote once per question.
+              <div className="text-center p-4 bg-light-taupe/5 rounded-xl border border-light-taupe/20">
+                <p className="text-light-taupe">
+                  <span className="font-semibold">Select an option above to vote.</span> You can only vote once per question.
                 </p>
               </div>
             ) : (
-              <div className="flex items-center justify-center gap-3 text-yellow-300 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/30">
+              <div className="flex items-center justify-center gap-3 text-yellow-700 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
                 <Lock className="w-5 h-5" />
                 <span className="font-medium">Voting is locked. Please wait for the host to activate this question.</span>
               </div>
@@ -430,14 +485,65 @@ export default function PollRoom() {
           </div>
         </div>
 
-        {/* Instructions */}
-        {!hasVoted && poll.currentQuestionActive && (
-          <div className="text-center p-4 bg-gray-800/50 rounded-xl border border-gray-600">
-            <p className="text-gray-300">
-              <span className="text-indigo-300 font-semibold">Tip:</span> You can click on "Show Results" to see live voting percentages
-            </p>
+        {/* Instructions & Tips */}
+        <div className="grid md:grid-cols-2 gap-4 md:gap-6">
+          <div className="bg-gradient-to-r from-light-taupe/10 to-silver-pink/10 border border-light-taupe/20 rounded-xl p-4 md:p-5">
+            <h4 className="font-semibold text-light-taupe mb-3 flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              How it works
+            </h4>
+            <ul className="text-silver-pink space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <ChevronRight className="w-4 h-4 text-light-taupe flex-shrink-0 mt-0.5" />
+                <span>Select your answer by clicking an option</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ChevronRight className="w-4 h-4 text-light-taupe flex-shrink-0 mt-0.5" />
+                <span>You can only vote once per question</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ChevronRight className="w-4 h-4 text-light-taupe flex-shrink-0 mt-0.5" />
+                <span>Use "Show Results" to see live percentages</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <ChevronRight className="w-4 h-4 text-light-taupe flex-shrink-0 mt-0.5" />
+                <span>Wait for host to activate/advance questions</span>
+              </li>
+            </ul>
           </div>
-        )}
+
+          <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl p-4 md:p-5">
+            <h4 className="font-semibold text-light-taupe mb-3 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Voting Tips
+            </h4>
+            <ul className="text-silver-pink space-y-2 text-sm">
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Your vote is anonymous and secure</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Results update in real-time as votes come in</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Wait for host to activate voting before selecting</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <span>Questions will auto-advance when host moves on</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-6 pt-4 border-t border-silver-pink/30 text-center">
+          <p className="text-sm text-silver-pink">
+            Participating as: <span className="font-medium text-light-taupe">{userName}</span>
+          </p>
+        </div>
       </div>
     </div>
   );

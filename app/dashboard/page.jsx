@@ -24,7 +24,15 @@ import {
   Lock,
   LockOpen,
   AlertCircle,
-  Check
+  Check,
+  ExternalLink,
+  RefreshCw,
+  Settings,
+  Share2,
+  FileText,
+  Edit,
+  MoreVertical,
+  X
 } from "lucide-react";
 
 export default function Dashboard() {
@@ -81,15 +89,15 @@ export default function Dashboard() {
 
   const getPollStatus = (poll) => {
     if (poll.status === "ended") {
-      return { label: "Ended", color: "bg-gray-500", icon: <CheckCircle className="w-3 h-3" /> };
+      return { label: "Ended", color: "bg-gray-500", textColor: "text-gray-100", icon: <CheckCircle className="w-3 h-3" /> };
     }
     if (poll.status === "live") {
       if (poll.currentQuestionActive === true) {
-        return { label: "Live", color: "bg-green-500", icon: <Eye className="w-3 h-3" /> };
+        return { label: "Live", color: "bg-green-500", textColor: "text-green-100", icon: <Eye className="w-3 h-3" /> };
       }
-      return { label: "Ready", color: "bg-yellow-500", icon: <EyeOff className="w-3 h-3" /> };
+      return { label: "Ready", color: "bg-yellow-500", textColor: "text-yellow-100", icon: <EyeOff className="w-3 h-3" /> };
     }
-    return { label: "Draft", color: "bg-gray-400", icon: <Clock className="w-3 h-3" /> };
+    return { label: "Draft", color: "bg-gray-400", textColor: "text-gray-100", icon: <Clock className="w-3 h-3" /> };
   };
 
   const getTotalVotes = (poll) => {
@@ -258,10 +266,10 @@ export default function Dashboard() {
 
   if (loading && !user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-eggshell text-foreground flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-indigo-400 animate-spin mx-auto mb-4" />
-          <p>Loading your dashboard...</p>
+          <Loader2 className="w-12 h-12 text-light-taupe animate-spin mx-auto mb-4" />
+          <p className="text-silver-pink">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -269,93 +277,95 @@ export default function Dashboard() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-4 md:p-8">
+      <div className="min-h-screen bg-eggshell text-foreground p-4 md:p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* Header with User Info */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                  Your Polls Dashboard
+          <div className="mb-6 md:mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <div className="w-full md:w-auto">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-light-taupe to-silver-pink bg-clip-text text-transparent">
+                  Polls Dashboard
                 </h1>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center gap-2 text-gray-400">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
+                  <div className="flex items-center gap-2 text-light-taupe">
                     <User className="w-4 h-4" />
-                    <span>Logged in as: <span className="text-indigo-300">{user?.email}</span></span>
+                    <span className="text-sm">{user?.email}</span>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {polls.length} poll{polls.length !== 1 ? 's' : ''} found
+                  <div className="text-sm text-silver-pink">
+                    {polls.length} poll{polls.length !== 1 ? 's' : ''}
                   </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center gap-2 text-sm border border-gray-600 hover:border-gray-500 px-3 py-1 rounded-lg transition-colors"
-                  >
-                    <LogOut className="w-3 h-3" />
-                    Sign Out
-                  </button>
                 </div>
               </div>
-              <button
-                onClick={() => router.push("/dashboard/create")}
-                className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95"
-              >
-                <Plus className="w-5 h-5" />
-                Create New Poll
-              </button>
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-2 text-sm border border-light-taupe/30 hover:border-light-taupe px-3 py-2 rounded-lg transition-colors text-light-taupe hover:bg-light-taupe/5"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Sign Out</span>
+                </button>
+                <button
+                  onClick={() => router.push("/dashboard/create")}
+                  className="flex items-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-4 py-3 md:px-6 md:py-3 rounded-xl font-semibold text-eggshell transition-all hover:scale-105 active:scale-95 whitespace-nowrap flex-1 md:flex-none justify-center"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span>New Poll</span>
+                </button>
+              </div>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-silver-pink/30 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Total Polls</p>
-                    <p className="text-3xl font-bold">{polls.length}</p>
+                    <p className="text-silver-pink text-xs md:text-sm">Total Polls</p>
+                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-light-taupe">{polls.length}</p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-indigo-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-light-taupe/20 flex items-center justify-center">
+                    <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-light-taupe" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-silver-pink/30 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Live Polls</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-silver-pink text-xs md:text-sm">Live Polls</p>
+                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-light-taupe">
                       {polls.filter(p => p.status === "live").length}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <Eye className="w-6 h-6 text-green-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Eye className="w-5 h-5 md:w-6 md:h-6 text-green-500" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-silver-pink/30 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Total Votes</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-silver-pink text-xs md:text-sm">Total Votes</p>
+                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-light-taupe">
                       {polls.reduce((sum, poll) => sum + getTotalVotes(poll), 0)}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-purple-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-silver-pink/20 flex items-center justify-center">
+                    <Users className="w-5 h-5 md:w-6 md:h-6 text-silver-pink" />
                   </div>
                 </div>
               </div>
 
-              <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-4 md:p-6 border border-silver-pink/30 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-400 text-sm">Drafts</p>
-                    <p className="text-3xl font-bold">
+                    <p className="text-silver-pink text-xs md:text-sm">Drafts</p>
+                    <p className="text-xl md:text-2xl lg:text-3xl font-bold text-light-taupe">
                       {polls.filter(p => p.status === "draft").length}
                     </p>
                   </div>
-                  <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-yellow-400" />
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <Clock className="w-5 h-5 md:w-6 md:h-6 text-yellow-500" />
                   </div>
                 </div>
               </div>
@@ -363,38 +373,49 @@ export default function Dashboard() {
           </div>
 
           {/* Polls List */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl border border-gray-700 overflow-hidden">
-            <div className="p-6 border-b border-gray-700">
-              <h2 className="text-xl font-semibold">Your Polls</h2>
-              <p className="text-gray-400 text-sm mt-1">
-                Showing {polls.length} poll{polls.length !== 1 ? 's' : ''} created by you
-              </p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl border border-silver-pink/30 shadow-sm overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-silver-pink/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h2 className="text-lg md:text-xl font-semibold text-light-taupe">Your Polls</h2>
+                  <p className="text-silver-pink text-sm mt-1">
+                    {polls.length} poll{polls.length !== 1 ? 's' : ''} created by you
+                  </p>
+                </div>
+                <button
+                  onClick={() => user && fetchUserPolls(user.uid)}
+                  className="flex items-center gap-2 text-sm border border-silver-pink/30 hover:border-silver-pink px-3 py-2 rounded-lg transition-colors text-light-taupe hover:bg-white/50 self-start sm:self-center"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Refresh
+                </button>
+              </div>
             </div>
 
             {loading ? (
-              <div className="p-12 text-center">
-                <Loader2 className="w-12 h-12 text-indigo-400 animate-spin mx-auto mb-4" />
-                <p className="text-gray-400">Loading your polls...</p>
+              <div className="p-8 md:p-12 text-center">
+                <Loader2 className="w-10 h-10 md:w-12 md:h-12 text-light-taupe animate-spin mx-auto mb-4" />
+                <p className="text-silver-pink">Loading your polls...</p>
               </div>
             ) : polls.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="w-24 h-24 rounded-full bg-gray-800/50 flex items-center justify-center mx-auto mb-6">
-                  <BarChart3 className="w-12 h-12 text-gray-500" />
+              <div className="p-8 md:p-12 text-center">
+                <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-light-taupe/10 flex items-center justify-center mx-auto mb-6">
+                  <BarChart3 className="w-8 h-8 md:w-10 md:h-10 text-light-taupe/60" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">No polls yet</h3>
-                <p className="text-gray-400 mb-6">
-                  You haven't created any polls yet. Create your first one!
+                <h3 className="text-lg md:text-xl font-semibold text-light-taupe mb-2">No polls yet</h3>
+                <p className="text-silver-pink mb-6 max-w-md mx-auto">
+                  Create your first poll to start engaging with your audience
                 </p>
                 <button
                   onClick={() => router.push("/dashboard/create")}
-                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 rounded-xl font-semibold mx-auto"
+                  className="flex items-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-6 py-3 rounded-xl font-semibold text-eggshell mx-auto transition-all hover:scale-105"
                 >
                   <Plus className="w-5 h-5" />
                   Create Your First Poll
                 </button>
               </div>
             ) : (
-              <div className="space-y-4 p-4">
+              <div className="space-y-3 md:space-y-4 p-3 md:p-4">
                 {polls.map((poll) => {
                   const status = getPollStatus(poll);
                   const currentQuestion = getCurrentQuestion(poll);
@@ -406,43 +427,43 @@ export default function Dashboard() {
                   const isEnded = poll.status === "ended";
 
                   return (
-                    <div key={poll.id} className="bg-gray-800/30 rounded-xl border border-gray-700 overflow-hidden">
+                    <div key={poll.id} className="bg-white/60 backdrop-blur-sm rounded-xl border border-silver-pink/20 overflow-hidden hover:border-silver-pink/40 transition-colors">
                       {/* Poll Header */}
-                      <div className="p-4 border-b border-gray-700">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <h3 className="font-semibold text-lg">{poll.title}</h3>
-                              <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${status.color} bg-opacity-20`}>
+                      <div className="p-4 border-b border-silver-pink/20">
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-2">
+                              <h3 className="font-semibold text-light-taupe truncate">{poll.title}</h3>
+                              <div className={`px-2 py-1 rounded-full text-xs flex items-center gap-1 ${status.color} ${status.textColor} bg-opacity-20 whitespace-nowrap`}>
                                 {status.icon}
                                 {status.label}
                               </div>
                             </div>
-                            <div className="flex items-center gap-4 mt-2">
-                              <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-purple-400" />
-                                <span className="text-sm text-gray-400">{getTotalVotes(poll)} votes</span>
+                            <div className="flex flex-wrap items-center gap-3 md:gap-4">
+                              <div className="flex items-center gap-1.5">
+                                <Users className="w-3.5 h-3.5 md:w-4 md:h-4 text-silver-pink" />
+                                <span className="text-xs md:text-sm text-silver-pink">{getTotalVotes(poll)} votes</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <BarChart3 className="w-4 h-4 text-indigo-400" />
-                                <span className="text-sm text-gray-400">{getTotalQuestions(poll)} questions</span>
+                              <div className="flex items-center gap-1.5">
+                                <BarChart3 className="w-3.5 h-3.5 md:w-4 md:h-4 text-light-taupe" />
+                                <span className="text-xs md:text-sm text-silver-pink">{getTotalQuestions(poll)} questions</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 text-gray-500" />
-                                <span className="text-sm text-gray-500">{formatDate(poll.createdAt)}</span>
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="w-3.5 h-3.5 md:w-4 md:h-4 text-silver-pink" />
+                                <span className="text-xs md:text-sm text-silver-pink">{formatDate(poll.createdAt)}</span>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2 mt-2">
-                              <code className="text-xs bg-gray-800 px-2 py-1 rounded">
+                            <div className="flex items-center gap-2 mt-3">
+                              <code className="text-xs bg-white/50 border border-silver-pink/20 px-2 py-1 rounded text-light-taupe truncate flex-1 max-w-[200px] md:max-w-[300px]">
                                 ID: {poll.id}
                               </code>
                               <button
                                 onClick={() => copyPollId(poll.id)}
-                                className="text-gray-500 hover:text-gray-300 transition-colors"
+                                className="text-silver-pink hover:text-light-taupe transition-colors flex-shrink-0"
                                 title="Copy Poll ID"
                               >
                                 {copiedPollId === poll.id ? (
-                                  <CheckCircle className="w-4 h-4 text-green-400" />
+                                  <Check className="w-4 h-4 text-green-500" />
                                 ) : (
                                   <Copy className="w-4 h-4" />
                                 )}
@@ -450,10 +471,10 @@ export default function Dashboard() {
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1">
                             <button
                               onClick={() => toggleExpandPoll(poll.id)}
-                              className="p-2 text-gray-400 hover:text-white transition-colors"
+                              className="p-1.5 text-silver-pink hover:text-light-taupe transition-colors rounded-lg hover:bg-white/50"
                               title={isExpanded ? "Collapse" : "Expand"}
                             >
                               <ChevronRight className={`w-5 h-5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
@@ -464,28 +485,28 @@ export default function Dashboard() {
 
                       {/* Expanded Content */}
                       {isExpanded && (
-                        <div className="p-4 bg-gray-900/50">
+                        <div className="p-4 bg-white/30">
                           {/* Current Question Info (for live polls) */}
                           {isLive && currentQuestion && (
-                            <div className="mb-6 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
-                              <div className="flex justify-between items-center mb-4">
+                            <div className="mb-6 p-4 bg-white/50 rounded-xl border border-silver-pink/20">
+                              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-4">
                                 <div>
-                                  <h4 className="font-semibold text-lg">Current Question</h4>
-                                  <p className="text-gray-400 text-sm">
+                                  <h4 className="font-semibold text-light-taupe">Current Question</h4>
+                                  <p className="text-silver-pink text-sm">
                                     Question {poll.activeQuestionIndex + 1} of {poll.questions?.length}
                                   </p>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-3 py-1 rounded-full text-sm ${poll.currentQuestionActive ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className={`px-3 py-1 rounded-full text-xs ${poll.currentQuestionActive ? 'bg-green-500/20 text-green-700' : 'bg-yellow-500/20 text-yellow-700'}`}>
                                     {poll.currentQuestionActive ? 'Voting Active' : 'Ready'}
                                   </span>
-                                  <span className="text-sm text-gray-400">
+                                  <span className="text-sm text-silver-pink">
                                     {totalVotesCurrent} votes
                                   </span>
                                 </div>
                               </div>
                               
-                              <p className="text-xl mb-4">{currentQuestion.text}</p>
+                              <p className="text-lg md:text-xl text-light-taupe mb-4">{currentQuestion.text}</p>
                               
                               {/* Results (when shown) */}
                               {showResults && totalVotesCurrent > 0 && (
@@ -493,18 +514,18 @@ export default function Dashboard() {
                                   {currentQuestion.options.map((option, index) => {
                                     const percentage = calculatePercentage(option.votes || 0, totalVotesCurrent);
                                     return (
-                                      <div key={index} className="space-y-1">
+                                      <div key={index} className="space-y-1.5">
                                         <div className="flex justify-between">
-                                          <span className="text-sm">
+                                          <span className="text-sm text-light-taupe">
                                             {String.fromCharCode(65 + index)}. {option.text}
                                           </span>
-                                          <span className="text-sm font-semibold">
+                                          <span className="text-sm font-semibold text-light-taupe">
                                             {percentage}% ({option.votes || 0} votes)
                                           </span>
                                         </div>
-                                        <div className="w-full bg-gray-700 rounded-full h-2">
+                                        <div className="w-full bg-white/50 rounded-full h-2">
                                           <div 
-                                            className="bg-indigo-500 h-2 rounded-full transition-all duration-500"
+                                            className="bg-gradient-to-r from-light-taupe to-silver-pink h-2 rounded-full transition-all duration-500"
                                             style={{ width: `${percentage}%` }}
                                           />
                                         </div>
@@ -520,20 +541,20 @@ export default function Dashboard() {
                           <div className="space-y-4">
                             {/* Start Poll Button (for drafts) */}
                             {isDraft && (
-                              <div className="flex gap-4">
+                              <div className="flex flex-col sm:flex-row gap-3">
                                 <button
                                   onClick={() => startPoll(poll.id)}
-                                  className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 px-4 py-2 rounded-lg font-semibold transition-all"
+                                  className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                 >
                                   <Play className="w-4 h-4" />
                                   Start Poll Session
                                 </button>
                                 <button
                                   onClick={() => router.push(`/share?pollId=${poll.id}`)}
-                                  className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                                  className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                 >
-                                  <Users className="w-4 h-4" />
-                                  Share
+                                  <Share2 className="w-4 h-4" />
+                                  Share Poll
                                 </button>
                               </div>
                             )}
@@ -544,38 +565,38 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   {/* Question Activation */}
                                   <div className="space-y-2">
-                                    <h5 className="font-medium text-sm text-gray-400">Question Control</h5>
+                                    <h5 className="font-medium text-sm text-silver-pink">Question Control</h5>
                                     {!poll.currentQuestionActive ? (
                                       <button
                                         onClick={() => activateCurrentQuestion(poll.id)}
-                                        className="w-full flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 px-4 py-3 rounded-lg font-semibold transition-all"
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                       >
                                         <LockOpen className="w-4 h-4" />
-                                        Activate Question for Voting
+                                        Activate Voting
                                       </button>
                                     ) : (
                                       <button
                                         onClick={() => deactivateCurrentQuestion(poll.id)}
-                                        className="w-full flex items-center gap-2 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 px-4 py-3 rounded-lg font-semibold transition-all"
+                                        className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-500 hover:to-amber-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                       >
                                         <Lock className="w-4 h-4" />
-                                        Deactivate Question
+                                        Deactivate Voting
                                       </button>
                                     )}
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-xs text-silver-pink">
                                       {poll.currentQuestionActive 
                                         ? "Participants can vote now"
-                                        : "Question is locked - participants waiting"
+                                        : "Question is locked - waiting"
                                       }
                                     </p>
                                   </div>
 
                                   {/* Results Toggle */}
                                   <div className="space-y-2">
-                                    <h5 className="font-medium text-sm text-gray-400">Results</h5>
+                                    <h5 className="font-medium text-sm text-silver-pink">Results</h5>
                                     <button
                                       onClick={() => toggleShowResults(poll.id)}
-                                      className="w-full flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-3 rounded-lg transition-colors"
+                                      className="w-full flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                     >
                                       <BarChart3 className="w-4 h-4" />
                                       {showResults ? 'Hide Results' : 'Show Results'}
@@ -585,12 +606,12 @@ export default function Dashboard() {
 
                                 {/* Navigation Controls */}
                                 <div className="space-y-2">
-                                  <h5 className="font-medium text-sm text-gray-400">Navigation</h5>
-                                  <div className="flex gap-4">
+                                  <h5 className="font-medium text-sm text-silver-pink">Navigation</h5>
+                                  <div className="flex gap-3">
                                     {poll.activeQuestionIndex < (poll.questions?.length || 0) - 1 ? (
                                       <button
                                         onClick={() => nextQuestion(poll)}
-                                        className="flex-1 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-4 py-3 rounded-lg font-semibold transition-all"
+                                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-4 py-3 rounded-lg font-semibold text-eggshell transition-all"
                                       >
                                         Next Question
                                         <ChevronRight className="w-4 h-4" />
@@ -598,7 +619,7 @@ export default function Dashboard() {
                                     ) : (
                                       <button
                                         onClick={() => endPoll(poll.id)}
-                                        className="flex-1 flex items-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 px-4 py-3 rounded-lg font-semibold transition-all"
+                                        className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-500 hover:to-pink-500 px-4 py-3 rounded-lg font-semibold text-white transition-all"
                                       >
                                         End Poll
                                       </button>
@@ -607,10 +628,10 @@ export default function Dashboard() {
                                 </div>
 
                                 {/* Quick Actions */}
-                                <div className="flex gap-4 pt-4 border-t border-gray-700">
+                                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-silver-pink/20">
                                   <button
                                     onClick={() => router.push(`/poll/${poll.id}`)}
-                                    className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                     title="View as Participant"
                                   >
                                     <Eye className="w-4 h-4" />
@@ -618,9 +639,9 @@ export default function Dashboard() {
                                   </button>
                                   <button
                                     onClick={() => router.push(`/share?pollId=${poll.id}`)}
-                                    className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                                    className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                   >
-                                    <Users className="w-4 h-4" />
+                                    <Share2 className="w-4 h-4" />
                                     Share Poll
                                   </button>
                                 </div>
@@ -630,26 +651,26 @@ export default function Dashboard() {
                             {/* Ended Poll Actions */}
                             {isEnded && (
                               <div className="space-y-4">
-                                <div className="p-4 bg-gray-800/30 rounded-xl">
-                                  <h4 className="font-semibold mb-2">Poll Ended</h4>
-                                  <p className="text-sm text-gray-400 mb-4">
+                                <div className="p-4 bg-white/50 rounded-xl border border-silver-pink/20">
+                                  <h4 className="font-semibold text-light-taupe mb-2">Poll Ended</h4>
+                                  <p className="text-sm text-silver-pink mb-4">
                                     This poll has ended. Participants can no longer vote.
                                   </p>
-                                  <div className="flex gap-4">
+                                  <div className="flex flex-col sm:flex-row gap-3">
                                     <button
                                       onClick={() => {
                                         setShowResultsPoll(prev => ({ ...prev, [poll.id]: true }));
                                       }}
-                                      className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                                      className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                     >
                                       <BarChart3 className="w-4 h-4" />
                                       View Final Results
                                     </button>
                                     <button
                                       onClick={() => router.push(`/share?pollId=${poll.id}`)}
-                                      className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                                      className="flex-1 flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-lg text-light-taupe transition-colors hover:bg-white/50"
                                     >
-                                      <Users className="w-4 h-4" />
+                                      <Share2 className="w-4 h-4" />
                                       Share Results
                                     </button>
                                   </div>
@@ -662,27 +683,27 @@ export default function Dashboard() {
 
                       {/* Footer Actions (when collapsed) */}
                       {!isExpanded && (
-                        <div className="p-4 border-t border-gray-700">
+                        <div className="p-3 border-t border-silver-pink/20">
                           <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => router.push(`/poll/${poll.id}`)}
-                                className="flex items-center gap-2 px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 hover:text-indigo-300 rounded-lg transition-colors text-sm"
+                                className="flex items-center gap-2 px-3 py-2 bg-light-taupe/10 hover:bg-light-taupe/20 text-light-taupe hover:text-light-taupe rounded-lg transition-colors text-sm"
                                 title="View Poll"
                               >
                                 <Eye className="w-4 h-4" />
-                                View
+                                <span className="hidden sm:inline">View</span>
                               </button>
                               <button
                                 onClick={() => router.push(`/share?pollId=${poll.id}`)}
-                                className="flex items-center gap-2 px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors text-sm"
+                                className="flex items-center gap-2 px-3 py-2 bg-white/50 hover:bg-white/70 border border-silver-pink/30 hover:border-silver-pink rounded-lg transition-colors text-sm text-silver-pink"
                                 title="Share Poll"
                               >
-                                <Users className="w-4 h-4" />
-                                Share
+                                <Share2 className="w-4 h-4" />
+                                <span className="hidden sm:inline">Share</span>
                               </button>
                               {isLive && (
-                                <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400">
+                                <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-700">
                                   {poll.currentQuestionActive ? 'Live' : 'Paused'}
                                 </span>
                               )}
@@ -690,7 +711,7 @@ export default function Dashboard() {
                             <div className="flex items-center gap-2">
                               <button
                                 onClick={() => toggleExpandPoll(poll.id)}
-                                className="text-sm text-indigo-400 hover:text-indigo-300 transition-colors"
+                                className="text-sm text-light-taupe hover:text-light-taupe/80 transition-colors px-3 py-1.5 rounded-lg hover:bg-white/50"
                               >
                                 Manage
                               </button>
@@ -703,62 +724,64 @@ export default function Dashboard() {
                 })}
               </div>
             )}
-
-            {/* Quick Actions */}
-            {polls.length > 0 && (
-              <div className="p-6 border-t border-gray-700">
-                <h3 className="font-semibold mb-4">Quick Actions</h3>
-                <div className="flex flex-wrap gap-4">
-                  <button
-                    onClick={() => router.push("/dashboard/create")}
-                    className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create New Poll
-                  </button>
-                  <button
-                    onClick={() => user && fetchUserPolls(user.uid)}
-                    className="flex items-center gap-2 border border-gray-600 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
-                  >
-                    <Loader2 className="w-4 h-4" />
-                    Refresh
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* User Info & Tips */}
-          <div className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <User className="w-5 h-5 text-indigo-400" />
+          {/* Help Sections */}
+          <div className="mt-6 md:mt-8 grid lg:grid-cols-2 gap-4 md:gap-6">
+            <div className="bg-gradient-to-r from-light-taupe/10 to-silver-pink/10 border border-light-taupe/20 rounded-xl md:rounded-2xl p-4 md:p-6">
+              <h3 className="font-semibold text-light-taupe mb-3 flex items-center gap-2">
+                <User className="w-5 h-5" />
                 Host Instructions
               </h3>
-              <ul className="text-gray-400 space-y-2 text-sm">
-                <li>• <span className="text-indigo-300">Start Poll</span>: Makes poll live and shows first question</li>
-                <li>• <span className="text-green-300">Activate Question</span>: Allows participants to vote</li>
-                <li>• <span className="text-yellow-300">Deactivate</span>: Stops voting for current question</li>
-                <li>• <span className="text-purple-300">Next Question</span>: Shows next question (deactivates current)</li>
-                <li>• <span className="text-red-300">End Poll</span>: Closes the poll session</li>
-                <li>• Participants join at: <code className="bg-gray-800 px-1">/poll/[ID]</code></li>
+              <ul className="text-silver-pink space-y-2 text-sm">
+                <li className="flex items-start gap-2">
+                  <span className="text-light-taupe font-medium">• Start Poll:</span>
+                  <span>Makes poll live and shows first question</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-600 font-medium">• Activate Question:</span>
+                  <span>Allows participants to vote</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-600 font-medium">• Deactivate:</span>
+                  <span>Stops voting for current question</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-light-taupe font-medium">• Next Question:</span>
+                  <span>Shows next question (deactivates current)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-600 font-medium">• End Poll:</span>
+                  <span>Closes the poll session</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-light-taupe font-medium">• Join URL:</span>
+                  <code className="bg-white/50 px-1.5 py-0.5 rounded text-xs">/poll/[ID]</code>
+                </li>
               </ul>
             </div>
 
-            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-2xl p-6">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <AlertCircle className="w-5 h-5 text-green-400" />
-                Live Poll Management Tips
+            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/20 rounded-xl md:rounded-2xl p-4 md:p-6">
+              <h3 className="font-semibold text-light-taupe mb-3 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Tips & Best Practices
               </h3>
-              <ul className="text-gray-400 space-y-2 text-sm">
+              <ul className="text-silver-pink space-y-2 text-sm">
                 <li>• Keep questions active only when you want voting</li>
                 <li>• Use "Show Results" to display voting percentages</li>
                 <li>• Share the poll ID with participants</li>
                 <li>• Monitor vote counts in real-time</li>
-                <li>• Use "View Participant Screen" to see what participants see</li>
+                <li>• Use "View Participant Screen" to see participant view</li>
                 <li>• End poll when all questions are completed</li>
               </ul>
             </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-6 md:mt-8 pt-4 border-t border-silver-pink/20 text-center">
+            <p className="text-sm text-silver-pink">
+              Need help? Visit our help center or contact support
+            </p>
           </div>
         </div>
       </div>

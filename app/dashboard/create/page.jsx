@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { PlusCircle, Trash2, Save, Type, Plus, ChevronLeft, AlertCircle } from "lucide-react";
+import { PlusCircle, Trash2, Save, Type, Plus, ChevronLeft, AlertCircle, FileText, Check, Info, User } from "lucide-react";
 import AuthGuard from "@/components/AuthGuard";
 
 const generatePollId = () =>
@@ -127,10 +127,10 @@ export default function CreatePoll() {
   // Show loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex items-center justify-center">
+      <div className="min-h-screen bg-eggshell text-foreground flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <div className="w-16 h-16 border-4 border-light-taupe border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-silver-pink">Loading...</p>
         </div>
       </div>
     );
@@ -139,25 +139,25 @@ export default function CreatePoll() {
   // Show auth required message
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-eggshell text-foreground flex items-center justify-center p-4">
         <div className="max-w-md text-center">
           <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-red-400" />
           </div>
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-gray-400 mb-6">
+          <h1 className="text-2xl font-bold mb-4 text-light-taupe">Authentication Required</h1>
+          <p className="text-silver-pink mb-6">
             You need to be logged in to create polls. Please sign in with Google to continue.
           </p>
-          <div className="flex gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
               onClick={() => router.push("/login")}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 px-6 py-3 rounded-xl font-semibold"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-6 py-3 rounded-xl font-semibold text-eggshell transition-all hover:scale-105"
             >
               Sign In with Google
             </button>
             <button
               onClick={() => router.push("/")}
-              className="border border-gray-600 hover:border-gray-500 px-6 py-3 rounded-xl"
+              className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-6 py-3 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
             >
               Go Home
             </button>
@@ -169,97 +169,160 @@ export default function CreatePoll() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-4 md:p-8">
+      <div className="min-h-screen bg-eggshell text-foreground p-4 md:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header with User Info */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
+          <div className="mb-6 md:mb-8">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+              <div className="space-y-3">
                 <button
                   onClick={() => router.push("/dashboard")}
-                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-light-taupe hover:text-light-taupe/80 transition-colors group"
                 >
                   <ChevronLeft className="w-5 h-5" />
-                  Back to Dashboard
+                  <span>Back to Dashboard</span>
                 </button>
-                <div className="text-sm text-gray-500">
-                  Creating as: <span className="text-indigo-400">{user.email}</span>
+                
+                <div className="flex items-center gap-3">
+                  <User className="w-5 h-5 text-light-taupe" />
+                  <div className="text-sm text-silver-pink">
+                    Creating as: <span className="text-light-taupe font-medium">{user.email}</span>
+                  </div>
                 </div>
               </div>
               
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={addQuestion}
-                  className="flex items-center gap-2 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 px-4 py-2 rounded-xl border border-gray-700 transition-all hover:scale-105 active:scale-95"
+                  className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-4 py-3 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
                 >
-                  <Plus className="w-5 h-5 text-indigo-400" />
+                  <Plus className="w-5 h-5" />
                   <span>Add Question</span>
                 </button>
                 
                 <button
                   onClick={createPoll}
                   disabled={isSaving}
-                  className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-semibold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-indigo-500/25"
+                  className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed px-6 py-3 rounded-xl font-semibold text-eggshell transition-all hover:scale-105 active:scale-95 shadow-lg"
                 >
-                  <Save className="w-5 h-5" />
-                  {isSaving ? "Saving..." : "Save Poll"}
+                  {isSaving ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-eggshell border-t-transparent rounded-full animate-spin"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-5 h-5" />
+                      <span>Save Poll</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
             
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
+              <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-light-taupe to-silver-pink bg-clip-text text-transparent">
                 Create Interactive Poll
               </h1>
-              <p className="text-gray-400 mt-2">
-                Poll will be created under your account: <span className="text-indigo-300">{user.email}</span>
+              <p className="text-silver-pink mt-2">
+                Poll will be created under your account
               </p>
             </div>
           </div>
 
+          {/* Stats Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-silver-pink/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-silver-pink">Questions</p>
+                  <p className="text-xl font-bold text-light-taupe">{questions.length}</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-light-taupe/20 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-light-taupe" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-silver-pink/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-silver-pink">Total Options</p>
+                  <p className="text-xl font-bold text-light-taupe">
+                    {questions.reduce((total, q) => total + q.options.length, 0)}
+                  </p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-silver-pink/20 flex items-center justify-center">
+                  <Check className="w-5 h-5 text-silver-pink" />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-silver-pink/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs text-silver-pink">Status</p>
+                  <p className="text-xl font-bold text-light-taupe">Draft</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-green-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Poll Title */}
-          <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 mb-8 border border-gray-700">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-5 md:p-6 mb-6 border border-silver-pink/30 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
-              <Type className="w-6 h-6 text-indigo-400" />
-              <label className="text-lg font-semibold">Poll Title</label>
+              <div className="w-10 h-10 rounded-lg bg-light-taupe/20 flex items-center justify-center">
+                <Type className="w-5 h-5 text-light-taupe" />
+              </div>
+              <div>
+                <label className="text-lg font-semibold text-light-taupe">Poll Title</label>
+                <p className="text-sm text-silver-pink">Give your poll a compelling title</p>
+              </div>
             </div>
             <input
               type="text"
               placeholder="Enter a compelling title for your poll..."
-              className="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 text-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              className="w-full bg-white/50 border border-silver-pink/30 rounded-xl p-4 text-lg focus:outline-none focus:ring-2 focus:ring-light-taupe focus:border-transparent transition-all placeholder:text-silver-pink"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </div>
 
           {/* Questions Section */}
-          <div className="space-y-6">
+          <div className="space-y-5">
             {questions.map((q, qi) => (
-              <div key={qi} className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-6 border border-gray-700">
-                <div className="flex justify-between items-center mb-6">
+              <div key={qi} className="bg-white/80 backdrop-blur-sm rounded-xl md:rounded-2xl p-5 md:p-6 border border-silver-pink/30 shadow-sm">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-light-taupe to-silver-pink flex items-center justify-center font-bold text-eggshell">
                       {qi + 1}
                     </div>
-                    <h3 className="text-xl font-semibold">Question {qi + 1}</h3>
+                    <div>
+                      <h3 className="text-lg md:text-xl font-semibold text-light-taupe">Question {qi + 1}</h3>
+                      <p className="text-sm text-silver-pink">Add question text and options</p>
+                    </div>
                   </div>
                   {questions.length > 1 && (
                     <button
                       onClick={() => removeQuestion(qi)}
-                      className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                      className="flex items-center gap-2 text-red-500 hover:bg-red-50 px-3 py-2 rounded-lg transition-colors self-start md:self-center"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
+                      <span className="text-sm">Remove</span>
                     </button>
                   )}
                 </div>
 
                 {/* Question Input */}
                 <div className="mb-6">
-                  <label className="block text-gray-400 mb-3">Question Text</label>
+                  <label className="block text-silver-pink mb-3 font-medium">Question Text</label>
                   <input
                     type="text"
                     placeholder="What would you like to ask?"
-                    className="w-full bg-gray-900 border border-gray-600 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full bg-white/50 border border-silver-pink/30 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-light-taupe focus:border-transparent transition-all placeholder:text-silver-pink"
                     value={q.text}
                     onChange={(e) => {
                       const copy = [...questions];
@@ -271,20 +334,20 @@ export default function CreatePoll() {
 
                 {/* Options Section */}
                 <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <label className="text-gray-400">Options</label>
-                    <span className="text-sm text-gray-500">Minimum 2 options required</span>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+                    <label className="text-silver-pink font-medium">Options</label>
+                    <span className="text-sm text-silver-pink">Minimum 2 options required</span>
                   </div>
                   <div className="space-y-3 mb-6">
                     {q.options.map((o, oi) => (
                       <div key={oi} className="flex items-center gap-3 group">
-                        <div className="w-6 h-6 rounded-full border-2 border-gray-600 flex items-center justify-center text-xs">
+                        <div className="w-8 h-8 rounded-full border-2 border-light-taupe/30 flex items-center justify-center text-sm font-medium text-light-taupe flex-shrink-0">
                           {String.fromCharCode(65 + oi)}
                         </div>
                         <input
                           type="text"
                           placeholder={`Option ${oi + 1}`}
-                          className="flex-1 bg-gray-900 border border-gray-600 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                          className="flex-1 bg-white/50 border border-silver-pink/30 rounded-xl p-4 focus:outline-none focus:ring-2 focus:ring-light-taupe focus:border-transparent transition-all placeholder:text-silver-pink"
                           value={o}
                           onChange={(e) => {
                             const copy = [...questions];
@@ -295,7 +358,8 @@ export default function CreatePoll() {
                         {q.options.length > 2 && (
                           <button
                             onClick={() => removeOption(qi, oi)}
-                            className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                            className="p-3 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                            title="Remove option"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -307,7 +371,7 @@ export default function CreatePoll() {
                   {/* Add Option Button */}
                   <button
                     onClick={() => addOption(qi)}
-                    className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 transition-colors p-3 hover:bg-indigo-400/10 rounded-xl w-full justify-center border border-dashed border-gray-600"
+                    className="flex items-center justify-center gap-2 text-light-taupe hover:text-light-taupe/80 transition-colors p-3 hover:bg-white/50 rounded-xl w-full border border-dashed border-light-taupe/30"
                   >
                     <PlusCircle className="w-5 h-5" />
                     Add Option
@@ -321,47 +385,82 @@ export default function CreatePoll() {
           <div className="flex justify-center mt-8">
             <button
               onClick={addQuestion}
-              className="flex items-center gap-3 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 px-8 py-4 rounded-2xl border border-gray-700 transition-all hover:scale-105 active:scale-95 shadow-xl"
+              className="flex items-center gap-3 border border-light-taupe/30 hover:border-light-taupe px-6 py-4 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
             >
-              <Plus className="w-6 h-6 text-indigo-400" />
+              <Plus className="w-6 h-6" />
               <span className="text-lg font-semibold">Add Another Question</span>
             </button>
           </div>
 
-          {/* Info Box */}
-          <div className="mt-12 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 rounded-2xl p-6">
-            <h4 className="font-semibold text-lg mb-2 flex items-center gap-2">
-              <PlusCircle className="w-5 h-5" />
-              Tips for creating great polls
-            </h4>
-            <ul className="text-gray-400 space-y-2 list-disc pl-5">
-              <li>Keep questions clear and concise</li>
-              <li>Use 3-5 options for best engagement</li>
-              <li>Add compelling titles to attract participants</li>
-              <li>Questions will be saved as draft until published</li>
-              <li>You can add unlimited questions and options</li>
-              <li>After saving, you'll get a shareable link and QR code</li>
-              <li className="text-indigo-400">Poll will be saved under your account: {user.email}</li>
+          {/* Tips & Info Box */}
+          <div className="mt-8 bg-gradient-to-r from-light-taupe/10 to-silver-pink/10 border border-light-taupe/20 rounded-xl md:rounded-2xl p-5 md:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-light-taupe/20 flex items-center justify-center">
+                <Info className="w-5 h-5 text-light-taupe" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-lg text-light-taupe">Tips for creating great polls</h4>
+                <p className="text-sm text-silver-pink">Best practices for engagement</p>
+              </div>
+            </div>
+            <ul className="text-silver-pink space-y-3 list-none pl-0">
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-light-taupe/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-light-taupe" />
+                </div>
+                <span>Keep questions clear and concise</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-light-taupe/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-light-taupe" />
+                </div>
+                <span>Use 3-5 options for best engagement</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-light-taupe/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-light-taupe" />
+                </div>
+                <span>Add compelling titles to attract participants</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-light-taupe/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-light-taupe" />
+                </div>
+                <span>Questions will be saved as draft until published</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-light-taupe/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-light-taupe" />
+                </div>
+                <span>You can add unlimited questions and options</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-light-taupe/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Check className="w-3 h-3 text-light-taupe" />
+                </div>
+                <span>After saving, you'll get a shareable link and QR code</span>
+              </li>
             </ul>
           </div>
 
-          {/* Mobile Action Buttons (Fixed at bottom for mobile) */}
-          <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-4 px-4 md:hidden">
-            <button
-              onClick={addQuestion}
-              className="flex items-center gap-2 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 px-6 py-3 rounded-full border border-gray-700 transition-all hover:scale-105 active:scale-95 shadow-xl flex-1 max-w-[160px] justify-center"
-            >
-              <Plus className="w-5 h-5 text-indigo-400" />
-              <span>Add</span>
-            </button>
-            
+          {/* Save Poll Button (Mobile) */}
+          <div className="fixed bottom-6 left-0 right-0 flex justify-center px-4 z-10 md:hidden">
             <button
               onClick={createPoll}
               disabled={isSaving}
-              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed px-6 py-3 rounded-full font-semibold transition-all hover:scale-105 active:scale-95 shadow-xl shadow-indigo-500/25 flex-1 max-w-[160px] justify-center"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed px-8 py-4 rounded-full font-semibold text-eggshell transition-all hover:scale-105 active:scale-95 shadow-xl w-full max-w-md"
             >
-              <Save className="w-5 h-5" />
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-eggshell border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving Poll...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5" />
+                  <span>Save Poll</span>
+                </>
+              )}
             </button>
           </div>
         </div>

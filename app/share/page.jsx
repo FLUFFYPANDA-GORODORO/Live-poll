@@ -1,15 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Copy, QrCode, Home, Check, Share2, Link as LinkIcon, Users, ArrowRight, ExternalLink, CheckCircle } from "lucide-react";
+import { Suspense, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Copy, QrCode, Home, Check, Share2, Link as LinkIcon, Users, ArrowRight, ExternalLink, CheckCircle, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
-export default function SharePage() {
+function ShareContent({ pollId }) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const pollId = searchParams.get("pollId");
-  
   const [copied, setCopied] = useState(false);
   const [copiedId, setCopiedId] = useState(false);
   const [pollLink, setPollLink] = useState("");
@@ -281,5 +278,28 @@ export default function SharePage() {
         </div>
       </div>
     </div>
-  );``
+  );
+}
+
+export default function SharePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-eggshell text-foreground flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 text-light-taupe animate-spin mx-auto mb-4" />
+          <p className="text-silver-pink">Loading share options...</p>
+        </div>
+      </div>
+    }>
+      <ShareContentWithParams />
+    </Suspense>
+  );
+}
+
+function ShareContentWithParams() {
+  const { useSearchParams } = require("next/navigation");
+  const searchParams = useSearchParams();
+  const pollId = searchParams.get("pollId");
+
+  return <ShareContent pollId={pollId} />;
 }

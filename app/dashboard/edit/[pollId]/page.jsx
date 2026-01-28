@@ -2,16 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { useRouter } from "next/navigation";
+import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { useRouter, useParams } from "next/navigation";
 import { 
   Plus, 
   Trash2, 
-  Play, 
+  Save, 
   ChevronLeft, 
-  Loader2, 
-  GripVertical,
-  Edit3,
+  Loader2,
   Check,
   X
 } from "lucide-react";
@@ -19,71 +17,34 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
 
-const generatePollId = () =>
-  Math.random().toString(36).substring(2, 8).toUpperCase();
-
 // Chart colors for bars
 const CHART_COLORS = [
-  "#6366F1", // Indigo
-  "#8B5CF6", // Violet
-  "#EC4899", // Pink
-  "#F59E0B", // Amber
-  "#10B981", // Emerald
-  "#3B82F6", // Blue
-  "#EF4444", // Red
-  "#14B8A6", // Teal
+  "#6366F1", "#8B5CF6", "#EC4899", "#F59E0B",
+  "#10B981", "#3B82F6", "#EF4444", "#14B8A6",
 ];
 
 // Vertical Bar Chart Component
-function VerticalBarChart({ options, showSampleData = true }) {
-  // Generate sample vote data for preview
-  const generateSampleVotes = () => {
-    if (!showSampleData) return options.map(() => 0);
-    const total = 100;
-    let remaining = total;
-    return options.map((_, idx) => {
-      if (idx === options.length - 1) return remaining;
-      const vote = Math.floor(Math.random() * remaining * 0.7);
-      remaining -= vote;
-      return vote;
-    });
-  };
-
-  const [sampleVotes, setSampleVotes] = useState([]);
-
-  useEffect(() => {
-    setSampleVotes(generateSampleVotes());
-  }, [options.length, showSampleData]);
-
-  const totalVotes = sampleVotes.reduce((a, b) => a + b, 0) || 1;
-  const maxVotes = Math.max(...sampleVotes, 1);
-
+function VerticalBarChart({ options }) {
   return (
     <div className="flex items-end justify-center gap-4 h-48 px-4">
       {options.map((option, idx) => {
-        const votes = sampleVotes[idx] || 0;
-        const percentage = Math.round((votes / totalVotes) * 100);
-        const height = (votes / maxVotes) * 100;
-
+        const height = 30 + (idx * 15) % 70;
         return (
           <div key={idx} className="flex flex-col items-center gap-2">
-            {/* Bar */}
             <div className="relative h-36 w-12 flex items-end">
               <div
                 className="w-full rounded-t-lg transition-all duration-500"
                 style={{
                   height: `${height}%`,
                   backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
-                  minHeight: votes > 0 ? "8px" : "0",
+                  minHeight: "8px",
                 }}
               />
             </div>
-            {/* Label */}
             <div className="text-center">
-              <div className="text-sm font-semibold text-[#1E293B] truncate max-w-[60px]">
-                {option.text || `Opt ${idx + 1}`}
+              <div className="text-sm font-semibold text-text truncate max-w-[60px]">
+                {option || `Opt ${idx + 1}`}
               </div>
-              <div className="text-xs text-[#64748B]">{percentage}%</div>
             </div>
           </div>
         );
@@ -102,12 +63,12 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
       className={`relative p-3 rounded-xl cursor-pointer transition-all ${
         isActive
           ? "bg-[#6366F1] text-white shadow-lg shadow-[#6366F1]/25 scale-[1.02]"
-          : "bg-white hover:bg-[#F1F5F9] border border-[#E2E8F0]"
+          : "bg-white hover:bg-surface-hover border border-border"
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-          isActive ? "bg-white/20 text-white" : "bg-[#6366F1]/10 text-[#6366F1]"
+          isActive ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
         }`}>
           Q{index + 1}
         </span>
@@ -115,7 +76,7 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
             className={`ml-auto p-1 rounded hover:bg-red-500/20 ${
-              isActive ? "text-white/80 hover:text-white" : "text-[#94A3B8] hover:text-red-500"
+              isActive ? "text-white/80 hover:text-white" : "text-text-muted hover:text-error"
             }`}
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -123,42 +84,67 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
         )}
       </div>
       <p className={`text-sm font-medium truncate ${
-        isActive ? "text-white" : "text-[#1E293B]"
+        isActive ? "text-white" : "text-text"
       }`}>
         {question.text || "Untitled Question"}
       </p>
       <div className={`text-xs mt-1 ${
-        isActive ? "text-white/70" : "text-[#64748B]"
+        isActive ? "text-white/70" : "text-text-muted"
       }`}>
         {optionCount} option{optionCount !== 1 ? "s" : ""}
-      </div>
-      
-      {/* Mini bar preview */}
-      <div className="flex items-end gap-0.5 h-4 mt-2">
-        {question.options.slice(0, 4).map((_, i) => (
-          <div
-            key={i}
-            className={`flex-1 rounded-t ${
-              isActive ? "bg-white/30" : "bg-[#6366F1]/30"
-            }`}
-            style={{ height: `${30 + (i * 20)}%` }}
-          />
-        ))}
       </div>
     </div>
   );
 }
 
-export default function CreatePoll() {
+export default function EditPoll() {
   const router = useRouter();
+  const { pollId } = useParams();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState([
-    { text: "", options: ["", ""] },
-  ]);
+  const [questions, setQuestions] = useState([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [editingTitle, setEditingTitle] = useState(false);
+
+  // Load poll data
+  useEffect(() => {
+    if (!pollId || !user) return;
+
+    const loadPoll = async () => {
+      try {
+        const pollDoc = await getDoc(doc(db, "polls", pollId));
+        if (!pollDoc.exists()) {
+          toast.error("Poll not found");
+          router.push("/dashboard");
+          return;
+        }
+
+        const data = pollDoc.data();
+        if (data.createdBy !== user.uid) {
+          toast.error("You don't have permission to edit this poll");
+          router.push("/dashboard");
+          return;
+        }
+
+        setTitle(data.title || "");
+        setQuestions(
+          data.questions?.map(q => ({
+            text: q.text || "",
+            options: q.options?.map(o => o.text || "") || ["", ""]
+          })) || [{ text: "", options: ["", ""] }]
+        );
+      } catch (err) {
+        console.error("Error loading poll:", err);
+        toast.error("Failed to load poll");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPoll();
+  }, [pollId, user, router]);
 
   const activeQuestion = questions[activeQuestionIndex];
 
@@ -204,14 +190,8 @@ export default function CreatePoll() {
     setQuestions(newQuestions);
   };
 
-  // Create poll
-  const createPoll = async () => {
-    if (!user) {
-      toast.error("Please log in to create a poll");
-      router.push("/login");
-      return;
-    }
-
+  // Save poll
+  const savePoll = async () => {
     if (!title.trim()) {
       toast.error("Please enter a poll title");
       return;
@@ -234,8 +214,6 @@ export default function CreatePoll() {
 
     setIsSaving(true);
     try {
-      const pollId = generatePollId();
-
       const questionsData = questions.map((q) => ({
         text: q.text.trim(),
         options: q.options
@@ -243,6 +221,7 @@ export default function CreatePoll() {
           .map((o) => ({ text: o.trim() })),
       }));
 
+      // Rebuild voteCounts for new structure
       const voteCounts = {};
       questionsData.forEach((q, qIdx) => {
         q.options.forEach((_, optIdx) => {
@@ -250,40 +229,43 @@ export default function CreatePoll() {
         });
       });
 
-      await setDoc(doc(db, "polls", pollId), {
+      await updateDoc(doc(db, "polls", pollId), {
         title: title.trim(),
-        createdBy: user.uid,
-        createdByEmail: user.email,
-        createdByName: user.displayName || "Anonymous",
-        status: "draft",
-        activeQuestionIndex: -1,
-        currentQuestionActive: false,
         questions: questionsData,
         voteCounts,
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });
 
-      toast.success("Poll created successfully!");
-      router.push(`/present/${pollId}`);
+      toast.success("Poll saved!");
+      router.push("/dashboard");
     } catch (err) {
-      console.error("Error creating poll:", err);
-      toast.error("Failed to create poll");
+      console.error("Error saving poll:", err);
+      toast.error("Failed to save poll");
     } finally {
       setIsSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <Loader2 className="w-10 h-10 text-primary animate-spin" />
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         {/* Top Header */}
-        <header className="bg-white border-b border-[#E2E8F0] px-4 py-3">
+        <header className="bg-surface border-b border-border px-4 py-3">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push("/dashboard")}
-                className="p-2 rounded-lg hover:bg-[#F1F5F9] text-[#64748B]"
+                className="p-2 rounded-lg hover:bg-surface-hover text-text-secondary"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -296,13 +278,13 @@ export default function CreatePoll() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Poll Title"
-                    className="text-xl font-bold text-[#1E293B] bg-transparent border-b-2 border-[#6366F1] focus:outline-none px-1"
+                    className="text-xl font-bold text-text bg-transparent border-b-2 border-primary focus:outline-none px-1"
                     autoFocus
                     onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
                   />
                   <button
                     onClick={() => setEditingTitle(false)}
-                    className="p-1 rounded bg-[#6366F1] text-white"
+                    className="p-1 rounded bg-primary text-white"
                   >
                     <Check className="w-4 h-4" />
                   </button>
@@ -310,10 +292,9 @@ export default function CreatePoll() {
               ) : (
                 <button
                   onClick={() => setEditingTitle(true)}
-                  className="flex items-center gap-2 text-xl font-bold text-[#1E293B] hover:text-[#6366F1]"
+                  className="text-xl font-bold text-text hover:text-primary"
                 >
                   {title || "Untitled Poll"}
-                  <Edit3 className="w-4 h-4 text-[#94A3B8]" />
                 </button>
               )}
             </div>
@@ -321,22 +302,22 @@ export default function CreatePoll() {
             <div className="flex items-center gap-3">
               <button
                 onClick={addQuestion}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0] transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-surface-hover text-text-secondary hover:bg-border transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 Add Question
               </button>
               <button
-                onClick={createPoll}
+                onClick={savePoll}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white font-semibold hover:shadow-lg hover:shadow-[#6366F1]/25 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <Play className="w-4 h-4" />
+                  <Save className="w-4 h-4" />
                 )}
-                Start Presentation
+                Save Changes
               </button>
             </div>
           </div>
@@ -344,7 +325,7 @@ export default function CreatePoll() {
 
         <div className="flex flex-1 overflow-hidden">
           {/* Left Sidebar - Question Slides */}
-          <aside className="w-64 bg-[#F1F5F9] border-r border-[#E2E8F0] p-4 overflow-y-auto">
+          <aside className="w-64 bg-surface-hover border-r border-border p-4 overflow-y-auto">
             <div className="space-y-3">
               {questions.map((q, idx) => (
                 <QuestionSlide
@@ -358,10 +339,9 @@ export default function CreatePoll() {
                 />
               ))}
               
-              {/* Add Question Button */}
               <button
                 onClick={addQuestion}
-                className="w-full p-3 rounded-xl border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1] transition-colors flex items-center justify-center gap-2"
+                className="w-full p-3 rounded-xl border-2 border-dashed border-border text-text-secondary hover:border-primary hover:text-primary transition-colors flex items-center justify-center gap-2"
               >
                 <Plus className="w-4 h-4" />
                 Add Question
@@ -381,31 +361,28 @@ export default function CreatePoll() {
                     value={activeQuestion?.text || ""}
                     onChange={(e) => updateQuestionText(e.target.value)}
                     placeholder="Type your question here..."
-                    className="w-full text-2xl md:text-3xl font-bold text-center text-[#1E293B] bg-transparent border-none focus:outline-none focus:ring-0 placeholder-[#94A3B8]"
+                    className="w-full text-2xl md:text-3xl font-bold text-center text-text bg-transparent border-none focus:outline-none focus:ring-0 placeholder-text-muted"
                   />
-                  <div className="text-sm text-[#64748B] mt-2">
+                  <div className="text-sm text-text-secondary mt-2">
                     Question {activeQuestionIndex + 1} of {questions.length}
                   </div>
                 </div>
 
                 {/* Vertical Bar Chart Preview */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E2E8F0]">
-                  <VerticalBarChart
-                    options={activeQuestion?.options.map(o => ({ text: o })) || []}
-                    showSampleData={true}
-                  />
+                <div className="bg-surface rounded-2xl shadow-lg p-6 border border-border">
+                  <VerticalBarChart options={activeQuestion?.options || []} />
                 </div>
               </div>
             </div>
 
             {/* Bottom Option Editor */}
-            <div className="bg-white border-t border-[#E2E8F0] p-4">
+            <div className="bg-surface border-t border-border p-4">
               <div className="max-w-4xl mx-auto">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm font-semibold text-[#64748B]">Options</span>
+                  <span className="text-sm font-semibold text-text-secondary">Options</span>
                   <button
                     onClick={addOption}
-                    className="text-sm text-[#6366F1] hover:text-[#4F46E5] font-medium flex items-center gap-1"
+                    className="text-sm text-primary hover:text-primary-hover font-medium flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add Option
@@ -416,7 +393,7 @@ export default function CreatePoll() {
                   {activeQuestion?.options.map((option, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-2 bg-[#F8FAFC] rounded-lg px-3 py-2 border border-[#E2E8F0] group"
+                      className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border group"
                     >
                       <div
                         className="w-3 h-3 rounded-full"
@@ -427,12 +404,12 @@ export default function CreatePoll() {
                         value={option}
                         onChange={(e) => updateOption(idx, e.target.value)}
                         placeholder={`Option ${idx + 1}`}
-                        className="bg-transparent border-none focus:outline-none text-[#1E293B] w-32"
+                        className="bg-transparent border-none focus:outline-none text-text w-32"
                       />
                       {activeQuestion.options.length > 2 && (
                         <button
                           onClick={() => removeOption(idx)}
-                          className="p-1 rounded text-[#94A3B8] hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="p-1 rounded text-text-muted hover:text-error hover:bg-error/10 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-3.5 h-3.5" />
                         </button>

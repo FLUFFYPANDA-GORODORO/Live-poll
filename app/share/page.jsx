@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Copy, QrCode, Home, Check, Share2, Link as LinkIcon, Users, ArrowRight, ExternalLink, CheckCircle, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -297,7 +297,6 @@ export default function SharePage() {
 }
 
 function ShareContentWithParams() {
-  const { useSearchParams } = require("next/navigation");
   const searchParams = useSearchParams();
   const pollId = searchParams.get("pollId");
 

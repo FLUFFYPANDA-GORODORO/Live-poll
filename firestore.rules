@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ========================
+    // POLLS COLLECTION
+    // ========================
+    match /polls/{pollId} {
+      
+      // Anyone can read poll data (questions, results, etc.)
+      allow read: if true;
+      
+      // Only authenticated users can CREATE polls
+      allow create: if request.auth != null;
+      
+      // Only the poll creator can DELETE their poll
+      allow delete: if request.auth != null && 
+                      resource.data.createdBy == request.auth.uid;
+      
+      // UPDATE rules:
+      // 1. Poll creator can update anything
+      // 2. Participants can ONLY update voteCounts (for atomic increment)
+      allow update: if request.auth != null && resource.data.createdBy == request.auth.uid
+        || (
+          // Allow anonymous/participant updates ONLY to voteCounts
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voteCounts'])
+        );
+
+      // ========================
+      // VOTES SUBCOLLECTION
+      // ========================
+      match /votes/{voteId} {
+        
+        // Anyone can read votes (for transparency)
+        allow read: if true;
+        
+        // Anyone can CREATE a vote (anonymous voting allowed)
+        // But they can only create it ONCE (the voteId includes sessionId)
+        allow create: if true;
+        
+        // Only authenticated poll creator can delete votes (for restart)
+        allow delete: if request.auth != null && 
+          get(/databases/$(database)/documents/polls/$(pollId)).data.createdBy == request.auth.uid;
+        
+        // No updates to votes - votes are immutable once cast
+        allow update: if false;
+      }
+    }
+  }
+}

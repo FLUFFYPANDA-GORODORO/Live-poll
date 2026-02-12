@@ -10,10 +10,11 @@ import {
   Play, 
   ChevronLeft, 
   Loader2, 
-  GripVertical,
   Edit3,
   Check,
-  X
+  X,
+  AlignLeft,
+  Settings
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -22,16 +23,14 @@ import toast from "react-hot-toast";
 const generatePollId = () =>
   Math.random().toString(36).substring(2, 8).toUpperCase();
 
-// Chart colors for bars
+// Chart colors (Primary/Secondary based)
 const CHART_COLORS = [
-  "#6366F1", // Indigo
-  "#8B5CF6", // Violet
-  "#EC4899", // Pink
-  "#F59E0B", // Amber
-  "#10B981", // Emerald
-  "#3B82F6", // Blue
-  "#EF4444", // Red
-  "#14B8A6", // Teal
+  "var(--color-primary)", 
+  "var(--color-secondary)",
+  "#0ea5e9", // Sky blue for variety
+  "#f59e0b", // Amber
+  "#ef4444", // Red
+  "#8b5cf6", // Violet
 ];
 
 // Vertical Bar Chart Component
@@ -59,18 +58,21 @@ function VerticalBarChart({ options, showSampleData = true }) {
   const maxVotes = Math.max(...sampleVotes, 1);
 
   return (
-    <div className="flex items-end justify-center gap-4 h-48 px-4">
+    <div className="flex items-end justify-center gap-4 h-64 px-4 w-full max-w-lg mx-auto">
       {options.map((option, idx) => {
         const votes = sampleVotes[idx] || 0;
         const percentage = Math.round((votes / totalVotes) * 100);
         const height = (votes / maxVotes) * 100;
 
         return (
-          <div key={idx} className="flex flex-col items-center gap-2">
+          <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+            {/* Value Label */}
+            <div className="text-xs font-bold text-slate-500 mb-1">{percentage}%</div>
+            
             {/* Bar */}
-            <div className="relative h-36 w-12 flex items-end">
-              <div
-                className="w-full rounded-t-lg transition-all duration-500"
+            <div className="relative w-full flex items-end h-full bg-slate-100 rounded-t-lg overflow-hidden">
+               <div
+                className="w-full transition-all duration-500 rounded-t-lg"
                 style={{
                   height: `${height}%`,
                   backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
@@ -78,12 +80,12 @@ function VerticalBarChart({ options, showSampleData = true }) {
                 }}
               />
             </div>
+            
             {/* Label */}
-            <div className="text-center">
-              <div className="text-sm font-semibold text-[#1E293B] truncate max-w-[60px]">
+            <div className="text-center w-full">
+              <div className="text-sm font-semibold text-slate-700 truncate w-full" title={option.text}>
                 {option.text || `Opt ${idx + 1}`}
               </div>
-              <div className="text-xs text-[#64748B]">{percentage}%</div>
             </div>
           </div>
         );
@@ -99,49 +101,44 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
   return (
     <div
       onClick={onClick}
-      className={`relative p-3 rounded-xl cursor-pointer transition-all ${
+      className={`relative p-4 rounded-xl cursor-pointer transition-all border ${
         isActive
-          ? "bg-[#6366F1] text-white shadow-lg shadow-[#6366F1]/25 scale-[1.02]"
-          : "bg-white hover:bg-[#F1F5F9] border border-[#E2E8F0]"
+          ? "bg-[var(--color-primary-light)] border-[var(--color-primary)] shadow-sm"
+          : "bg-white hover:bg-slate-50 border-slate-200"
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-          isActive ? "bg-white/20 text-white" : "bg-[#6366F1]/10 text-[#6366F1]"
+          isActive ? "bg-[var(--color-primary)] text-white" : "bg-slate-100 text-slate-500"
         }`}>
           Q{index + 1}
         </span>
         {canDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className={`ml-auto p-1 rounded hover:bg-red-500/20 ${
-              isActive ? "text-white/80 hover:text-white" : "text-[#94A3B8] hover:text-red-500"
-            }`}
+            className="ml-auto p-1 rounded text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
-      <p className={`text-sm font-medium truncate ${
-        isActive ? "text-white" : "text-[#1E293B]"
-      }`}>
+      <p className="text-sm font-bold text-slate-800 line-clamp-1 mb-1">
         {question.text || "Untitled Question"}
       </p>
-      <div className={`text-xs mt-1 ${
-        isActive ? "text-white/70" : "text-[#64748B]"
-      }`}>
+      <div className="text-xs text-slate-500">
         {optionCount} option{optionCount !== 1 ? "s" : ""}
       </div>
       
       {/* Mini bar preview */}
-      <div className="flex items-end gap-0.5 h-4 mt-2">
+      <div className="flex items-end gap-1 h-6 mt-3 opacity-60">
         {question.options.slice(0, 4).map((_, i) => (
           <div
             key={i}
-            className={`flex-1 rounded-t ${
-              isActive ? "bg-white/30" : "bg-[#6366F1]/30"
-            }`}
-            style={{ height: `${30 + (i * 20)}%` }}
+            className="flex-1 rounded-t"
+            style={{ 
+              height: `${30 + (i * 20)}%`,
+              backgroundColor: isActive ? 'var(--color-primary)' : '#cbd5e1'
+            }}
           />
         ))}
       </div>
@@ -205,7 +202,7 @@ export default function CreatePoll() {
   };
 
   // Create poll
-  const createPoll = async () => {
+  const createPoll = async (redirectPath = "present") => {
     if (!user) {
       toast.error("Please log in to create a poll");
       router.push("/login");
@@ -265,7 +262,11 @@ export default function CreatePoll() {
       });
 
       toast.success("Poll created successfully!");
-      router.push(`/present/${pollId}`);
+      if (redirectPath === "dashboard") {
+        router.push("/dashboard");
+      } else {
+        router.push(`/present/${pollId}`);
+      }
     } catch (err) {
       console.error("Error creating poll:", err);
       toast.error("Failed to create poll");
@@ -276,60 +277,66 @@ export default function CreatePoll() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
+      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
+        
         {/* Top Header */}
-        <header className="bg-white border-b border-[#E2E8F0] px-4 py-3">
-          <div className="flex items-center justify-between max-w-7xl mx-auto">
-            <div className="flex items-center gap-4">
-              <button
+        <header className="bg-white border-b border-slate-200 flex items-center justify-between shadow-sm z-20 relative h-16">
+          
+          {/* Left: Title Area (Matches Sidebar Width) */}
+          <div className="w-64 h-full border-r border-slate-200 flex items-center px-4 gap-3 bg-slate-50">
+             <button
                 onClick={() => router.push("/dashboard")}
-                className="p-2 rounded-lg hover:bg-[#F1F5F9] text-[#64748B]"
+                className="p-1.5 rounded-lg hover:bg-white text-slate-500 hover:text-slate-800 transition-all border border-transparent hover:border-slate-200"
+                title="Back to Dashboard"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
               
               {/* Editable Title */}
-              {editingTitle ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Poll Title"
-                    className="text-xl font-bold text-[#1E293B] bg-transparent border-b-2 border-[#6366F1] focus:outline-none px-1"
-                    autoFocus
-                    onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
-                  />
-                  <button
-                    onClick={() => setEditingTitle(false)}
-                    className="p-1 rounded bg-[#6366F1] text-white"
-                  >
-                    <Check className="w-4 h-4" />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setEditingTitle(true)}
-                  className="flex items-center gap-2 text-xl font-bold text-[#1E293B] hover:text-[#6366F1]"
-                >
-                  {title || "Untitled Poll"}
-                  <Edit3 className="w-4 h-4 text-[#94A3B8]" />
-                </button>
-              )}
-            </div>
+              <div className="flex-1 min-w-0">
+                 {editingTitle ? (
+                    <div className="flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Untitled Poll"
+                        className="w-full text-sm font-bold text-slate-900 bg-white border border-[var(--color-primary)] rounded px-1 focus:outline-none"
+                        autoFocus
+                        onBlur={() => setEditingTitle(false)}
+                        onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setEditingTitle(true)}
+                      className="flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-[var(--color-primary)] truncate w-full group"
+                    >
+                      <span className="truncate">{title || "Untitled Poll"}</span>
+                      <Edit3 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100" />
+                    </button>
+                  )}
+              </div>
+          </div>
 
-            <div className="flex items-center gap-3">
+          {/* Right: Actions */}
+          <div className="flex items-center gap-3 px-6">
               <button
-                onClick={addQuestion}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#F1F5F9] text-[#64748B] hover:bg-[#E2E8F0] transition-colors"
+                onClick={() => createPoll("dashboard")}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all text-sm font-medium disabled:opacity-50"
               >
-                <Plus className="w-4 h-4" />
-                Add Question
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Check className="w-4 h-4" />
+                )}
+                Create
               </button>
               <button
-                onClick={createPoll}
+                onClick={() => createPoll("present")}
                 disabled={isSaving}
-                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white font-semibold hover:shadow-lg hover:shadow-[#6366F1]/25 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--color-primary)] text-white font-semibold hover:bg-[var(--color-primary-hover)] transition-all shadow-lg shadow-[var(--color-primary)]/20 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSaving ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -338,14 +345,15 @@ export default function CreatePoll() {
                 )}
                 Start Presentation
               </button>
-            </div>
           </div>
         </header>
 
+        {/* Main Workspace (3-Column Layout) */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar - Question Slides */}
-          <aside className="w-64 bg-[#F1F5F9] border-r border-[#E2E8F0] p-4 overflow-y-auto">
-            <div className="space-y-3">
+          
+          {/* 1. Left Sidebar: Question Slides */}
+          <aside className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col h-full">
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
               {questions.map((q, idx) => (
                 <QuestionSlide
                   key={idx}
@@ -358,91 +366,127 @@ export default function CreatePoll() {
                 />
               ))}
               
-              {/* Add Question Button */}
               <button
                 onClick={addQuestion}
-                className="w-full p-3 rounded-xl border-2 border-dashed border-[#CBD5E1] text-[#64748B] hover:border-[#6366F1] hover:text-[#6366F1] transition-colors flex items-center justify-center gap-2"
+                className="w-full p-4 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary-light)] transition-all flex items-center justify-center gap-2 font-medium text-sm"
               >
                 <Plus className="w-4 h-4" />
-                Add Question
+                New Question
               </button>
+            </div>
+            
+            {/* Bottom Info */}
+            <div className="p-4 border-t border-slate-200 text-xs text-center text-slate-400">
+                {questions.length} slide{questions.length !== 1 ? 's' : ''} total
             </div>
           </aside>
 
-          {/* Main Content - Preview & Editor */}
-          <main className="flex-1 flex flex-col overflow-hidden">
-            {/* Preview Area */}
-            <div className="flex-1 p-8 flex items-center justify-center overflow-auto">
-              <div className="w-full max-w-2xl">
-                {/* Question Text */}
-                <div className="text-center mb-8">
-                  <input
+          {/* 2. Center: Canvas / Preview */}
+          <main className="flex-1 bg-slate-100 flex flex-col relative overflow-hidden">
+             
+             {/* Question Input Area */}
+             <div className="p-8 pb-4 flex justify-center">
+                <input
                     type="text"
                     value={activeQuestion?.text || ""}
                     onChange={(e) => updateQuestionText(e.target.value)}
                     placeholder="Type your question here..."
-                    className="w-full text-2xl md:text-3xl font-bold text-center text-[#1E293B] bg-transparent border-none focus:outline-none focus:ring-0 placeholder-[#94A3B8]"
-                  />
-                  <div className="text-sm text-[#64748B] mt-2">
-                    Question {activeQuestionIndex + 1} of {questions.length}
-                  </div>
-                </div>
+                    className="w-full max-w-3xl text-3xl md:text-4xl font-bold text-center text-slate-800 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-slate-300 transition-colors"
+                />
+             </div>
 
-                {/* Vertical Bar Chart Preview */}
-                <div className="bg-white rounded-2xl shadow-lg p-6 border border-[#E2E8F0]">
-                  <VerticalBarChart
-                    options={activeQuestion?.options.map(o => ({ text: o })) || []}
-                    showSampleData={true}
-                  />
+             {/* Chart Preview Area */}
+             <div className="flex-1 p-8 pt-4 flex items-center justify-center overflow-auto">
+                <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-8 border border-slate-200 aspect-video flex flex-col justify-center">
+                     {activeQuestion?.text ? (
+                        <>
+                           <h3 className="text-xl font-semibold text-center text-slate-700 mb-8">{activeQuestion.text}</h3>
+                           <VerticalBarChart
+                              options={activeQuestion?.options.map(o => ({ text: o })) || []}
+                              showSampleData={true}
+                           />
+                        </>
+                     ) : (
+                        <div className="text-center text-slate-400">
+                           <AlignLeft className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                           <p>Start typing your question and options...</p>
+                        </div>
+                     )}
                 </div>
-              </div>
-            </div>
-
-            {/* Bottom Option Editor */}
-            <div className="bg-white border-t border-[#E2E8F0] p-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-sm font-semibold text-[#64748B]">Options</span>
-                  <button
-                    onClick={addOption}
-                    className="text-sm text-[#6366F1] hover:text-[#4F46E5] font-medium flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Add Option
-                  </button>
-                </div>
-                
-                <div className="flex flex-wrap gap-3">
-                  {activeQuestion?.options.map((option, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-2 bg-[#F8FAFC] rounded-lg px-3 py-2 border border-[#E2E8F0] group"
-                    >
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
-                      />
-                      <input
-                        type="text"
-                        value={option}
-                        onChange={(e) => updateOption(idx, e.target.value)}
-                        placeholder={`Option ${idx + 1}`}
-                        className="bg-transparent border-none focus:outline-none text-[#1E293B] w-32"
-                      />
-                      {activeQuestion.options.length > 2 && (
-                        <button
-                          onClick={() => removeOption(idx)}
-                          className="p-1 rounded text-[#94A3B8] hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+             </div>
           </main>
+
+          {/* 3. Right Sidebar: Options Editor */}
+          <aside className="w-80 bg-white border-l border-slate-200 flex flex-col h-full shadow-lg z-10">
+              <div className="p-5 border-b border-slate-100 flex items-center gap-2">
+                 <Settings className="w-5 h-5 text-slate-400" />
+                 <h2 className="font-bold text-slate-700">Slide Settings</h2>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-5">
+                 
+                 {/* Option List */}
+                 <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Options</label>
+                        <span className="text-xs text-slate-400">{activeQuestion?.options.length} items</span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {activeQuestion?.options.map((option, idx) => (
+                            <div key={idx} className="flex items-center gap-2 group">
+                                <div className="w-1.5 h-8 rounded-full bg-slate-200 flex-shrink-0" 
+                                     style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                                />
+                                <div className="relative flex-1">
+                                    <input
+                                        type="text"
+                                        value={option}
+                                        onChange={(e) => updateOption(idx, e.target.value)}
+                                        placeholder={`Option ${idx + 1}`}
+                                        className="w-full pl-3 pr-8 py-2 rounded-lg border border-slate-200 text-sm focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] outline-none transition-all placeholder-slate-300"
+                                    />
+                                    {activeQuestion.options.length > 2 && (
+                                        <button
+                                            onClick={() => removeOption(idx)}
+                                            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <button
+                        onClick={addOption}
+                        className="mt-4 w-full py-2.5 rounded-lg border border-slate-200 text-slate-600 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-all text-sm font-medium flex items-center justify-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Add Option
+                    </button>
+                 </div>
+
+                 {/* Extra Settings (Visual Placeholder for now) */}
+                 <div className="pt-6 border-t border-slate-100">
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">Display</label>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-slate-600 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                            <div className="w-4 h-4 rounded border border-slate-300 bg-[var(--color-primary)] flex items-center justify-center">
+                                <Check className="w-3 h-3 text-white" />
+                            </div>
+                            Show results in percentage
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-600 p-2 rounded hover:bg-slate-50 cursor-pointer">
+                             <div className="w-4 h-4 rounded border border-slate-300 flex items-center justify-center"></div>
+                             Hide results initially
+                        </div>
+                    </div>
+                 </div>
+
+              </div>
+          </aside>
         </div>
       </div>
     </ProtectedRoute>

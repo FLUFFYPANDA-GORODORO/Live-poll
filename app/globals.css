@@ -2,15 +2,15 @@
 
 @theme inline {
   /* ===== MAIN COLOR PALETTE ===== */
-  /* Primary - Indigo */
-  --color-primary: #6366F1;
-  --color-primary-hover: #4F46E5;
-  --color-primary-light: #E0E7FF;
+  /* Primary - Deep Green (from image) */
+  --color-primary: #022c22;
+  --color-primary-hover: #064e3b;
+  --color-primary-light: #ecfdf5;
 
-  /* Secondary - Violet */
-  --color-secondary: #8B5CF6;
-  --color-secondary-hover: #7C3AED;
-  --color-secondary-light: #EDE9FE;
+  /* Secondary - Lime/Acid Green (from image underline) */
+  --color-secondary: #bef264;
+  --color-secondary-hover: #a3e635;
+  --color-secondary-light: #f7fee7;
 
   /* ===== NEUTRAL COLORS ===== */
   --color-background: #F8FAFC;

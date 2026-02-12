@@ -11,7 +11,9 @@ service cloud.firestore {
       allow read: if true;
       
       // Only authenticated users can CREATE polls
-      allow create: if request.auth != null;
+      // TEMPORARY: Allow load-test polls to be created without auth
+      allow create: if request.auth != null || 
+                       request.resource.data.createdBy.matches("^load-test.*");
       
       // Only the poll creator can DELETE their poll
       allow delete: if request.auth != null && 

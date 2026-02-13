@@ -2,10 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc, writeBatch, updateDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, deleteDoc, doc, writeBatch } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
 import { QRCodeSVG } from "qrcode.react";
 import { 
@@ -16,14 +15,12 @@ import {
   Copy,
   Check,
   Download,
-  LayoutGrid,
   List,
   RefreshCw,
   FolderOpen
 } from "lucide-react";
 
 // New Components
-import Sidebar from "@/components/Dashboard/Sidebar";
 import StatsCard from "@/components/Dashboard/StatsCard";
 import PollCard from "@/components/Dashboard/PollCard";
 
@@ -125,7 +122,7 @@ function ShareModal({ poll, onClose }) {
 
 export default function Dashboard() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [shareModal, setShareModal] = useState(null);
@@ -210,117 +207,105 @@ export default function Dashboard() {
   const totalVotesAll = polls.reduce((sum, poll) => {
      return sum + (poll.voteCounts ? Object.values(poll.voteCounts).reduce((a, b) => a + b, 0) : 0);
   }, 0);
-  const activePolls = polls.filter(p => p.status === 'live').length;
+
   // Dummy stat for engagement
   const avgEngagement = totalPolls > 0 ? Math.round(totalVotesAll / totalPolls) : 0; 
 
 
   return (
-    <ProtectedRoute>
-      <div className="flex min-h-screen bg-slate-50">
-        
-        {/* Sidebar */}
-        <Sidebar user={user} logout={logout} />
+    <>
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+          
+          {/* Navbar */}
+          <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
+              <div>
+                 <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+                 <p className="text-sm text-slate-500 mt-1">Manage your live polls and view real-time results</p>
+              </div>
+              <div className="flex items-center gap-4">
+                  <button 
+                     onClick={fetchPolls}
+                     className="p-2 text-slate-400 hover:text-[var(--color-primary)] transition-colors"
+                     title="Refresh Data"
+                  >
+                       <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button 
+                      onClick={() => router.push("/dashboard/create")}
+                      className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] transition-all flex items-center gap-2"
+                  >
+                      <Plus className="w-5 h-5" />
+                      Create Poll
+                  </button>
+              </div>
+          </header>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col h-screen overflow-hidden">
-            
-            {/* Navbar */}
-            <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
-                <div>
-                   <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-                   <p className="text-sm text-slate-500 mt-1">Manage your live polls and view real-time results</p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <button 
-                       onClick={fetchPolls}
-                       className="p-2 text-slate-400 hover:text-[var(--color-primary)] transition-colors"
-                       title="Refresh Data"
-                    >
-                         <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                    <button 
+          {/* Scrollable Content Area */}
+          <main className="flex-1 overflow-auto p-8">
+              
+              {/* Stats Row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                   <StatsCard 
+                      label="Total Polls" 
+                      value={totalPolls}
+                      icon={FolderOpen}
+                      subtext="Total created polls"
+                   />
+                   <StatsCard 
+                      label="Total Votes" 
+                      value={totalVotesAll} 
+                      icon={BarChart3}
+                      subtext="Across all sessions"
+                   />
+
+                   <StatsCard 
+                      label="Avg. Engagement" 
+                      value={avgEngagement} 
+                      icon={List}
+                      subtext="Votes per poll"
+                   />
+              </div>
+
+              {/* Polls Grid */}
+              <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-slate-900">Your Polls</h2>
+              </div>
+
+              {loading ? (
+                  <div className="flex justify-center py-20">
+                  <Loader2 className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
+                  </div>
+              ) : polls.length === 0 ? (
+                  <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+                      <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-slate-700">No polls yet</h3>
+                      <p className="text-slate-500 mb-6">Create your first poll to get started</p>
+                      <button
                         onClick={() => router.push("/dashboard/create")}
-                        className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] transition-all flex items-center gap-2"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Create Poll
-                    </button>
-                </div>
-            </header>
+                        className="text-[var(--color-primary)] font-bold hover:underline"
+                      >
+                        Create New Poll
+                      </button>
+                  </div>
+              ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
+                  {polls.map(poll => (
+                      <PollCard 
+                          key={poll.id} 
+                          poll={poll} 
+                          onDelete={deletePoll} 
+                          onRestart={restartPoll} 
+                          onShare={(p) => setShareModal(p)}
+                      />
+                  ))}
+                  </div>
+              )}
 
-            {/* Scrollable Content Area */}
-            <main className="flex-1 overflow-auto p-8">
-                
-                {/* Stats Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                     <StatsCard 
-                        label="Total Polls" 
-                        value={totalPolls}
-                        icon={FolderOpen}
-                        subtext="Total created polls"
-                     />
-                     <StatsCard 
-                        label="Total Votes" 
-                        value={totalVotesAll} 
-                        icon={BarChart3}
-                        subtext="Across all sessions"
-                     />
-                     <StatsCard 
-                        label="Active Sessions" 
-                        value={activePolls} 
-                        icon={LayoutGrid}
-                        subtext="Currently live"
-                     />
-                     <StatsCard 
-                        label="Avg. Engagement" 
-                        value={avgEngagement} 
-                        icon={List}
-                        subtext="Votes per poll"
-                     />
-                </div>
-
-                {/* Polls Grid */}
-                <div className="mb-6 flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-slate-900">Your Polls</h2>
-                </div>
-
-                {loading ? (
-                    <div className="flex justify-center py-20">
-                    <Loader2 className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
-                    </div>
-                ) : polls.length === 0 ? (
-                    <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-                        <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-slate-700">No polls yet</h3>
-                        <p className="text-slate-500 mb-6">Create your first poll to get started</p>
-                        <button
-                          onClick={() => router.push("/dashboard/create")}
-                          className="text-[var(--color-primary)] font-bold hover:underline"
-                        >
-                          Create New Poll
-                        </button>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
-                    {polls.map(poll => (
-                        <PollCard 
-                            key={poll.id} 
-                            poll={poll} 
-                            onDelete={deletePoll} 
-                            onRestart={restartPoll} 
-                            onShare={(p) => setShareModal(p)}
-                        />
-                    ))}
-                    </div>
-                )}
-
-            </main>
-        </div>
-
-        {/* Share Modal */}
-        {shareModal && <ShareModal poll={shareModal} onClose={() => setShareModal(null)} />}
+          </main>
       </div>
-    </ProtectedRoute>
+
+      {/* Share Modal */}
+      {shareModal && <ShareModal poll={shareModal} onClose={() => setShareModal(null)} />}
+    </>
   );
 }

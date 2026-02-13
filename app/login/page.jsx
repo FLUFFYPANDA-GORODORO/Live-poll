@@ -93,6 +93,8 @@ export default function Login() {
       <div className="lg:w-1/2 flex items-center justify-center p-6 lg:p-12 bg-white">
         <div className="w-full max-w-md space-y-8">
           
+
+
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-bold tracking-tight text-slate-900">Welcome back</h2>
             <p className="mt-2 text-slate-500">
@@ -185,6 +187,16 @@ export default function Login() {
                 Sign up for free
               </Link>
             </p>
+
+            <div className="text-center">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
+               >
+                <ArrowRight className="w-4 h-4 rotate-180" />
+                Back to Home
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -75,7 +75,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("authUser");
       localStorage.removeItem("votedPolls");
       localStorage.removeItem("sessionId");
-      router.push("/login");
+      router.push("/");
     } catch (error) {
       console.error("Logout error:", error);
     }

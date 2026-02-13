@@ -14,7 +14,7 @@ export default function Login() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.push("/dashboard");
+      router.push("/dashboard/my-polls");
     }
   }, [user, loading, router]);
 

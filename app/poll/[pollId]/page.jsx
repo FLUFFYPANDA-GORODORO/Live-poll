@@ -24,15 +24,12 @@ import {
 import toast from "react-hot-toast";
 
 // Chart colors
+// Chart colors
 const CHART_COLORS = [
-  "#6366F1",
-  "#8B5CF6",
-  "#EC4899",
-  "#F59E0B",
-  "#10B981",
-  "#3B82F6",
-  "#EF4444",
-  "#14B8A6",
+  "var(--color-primary)",
+  "var(--color-secondary)",
+  "var(--color-primary)",
+  "var(--color-secondary)",
 ];
 
 // Generate a unique session ID for vote tracking
@@ -228,7 +225,7 @@ export default function PollRoom() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-[#6366F1] animate-spin mx-auto mb-4" />
+          <Loader2 className="w-12 h-12 text-[var(--color-primary)] animate-spin mx-auto mb-4" />
           <p className="text-[#64748B]">Loading poll...</p>
         </div>
       </div>
@@ -249,7 +246,7 @@ export default function PollRoom() {
           </p>
           <button
             onClick={() => router.push("/join")}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] px-6 py-3 rounded-xl font-semibold text-white mx-auto"
+            className="flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors"
           >
             <ArrowRight className="w-5 h-5" />
             Join Another Poll
@@ -275,15 +272,15 @@ export default function PollRoom() {
           </code>
           
           <div className="bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-sm">
-            <div className="w-16 h-16 rounded-full bg-[#6366F1]/10 flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-8 h-8 text-[#6366F1]" />
+            <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-6">
+              <Lock className="w-8 h-8 text-[var(--color-primary)]" />
             </div>
             <h2 className="text-xl font-bold mb-3 text-[#1E293B]">Waiting for Host</h2>
             <p className="text-[#64748B] mb-6">The poll will begin shortly...</p>
             <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-[#6366F1] rounded-full animate-pulse" />
-              <div className="w-2 h-2 bg-[#6366F1] rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-              <div className="w-2 h-2 bg-[#6366F1] rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" />
+              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
+              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
             </div>
           </div>
         </div>
@@ -303,7 +300,7 @@ export default function PollRoom() {
           <p className="text-[#64748B] mb-6">Thank you for participating!</p>
           <button
             onClick={() => router.push("/")}
-            className="flex items-center justify-center gap-2 bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] px-6 py-3 rounded-xl font-semibold text-white mx-auto"
+            className="flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors"
           >
             <Home className="w-5 h-5" />
             Return Home
@@ -385,7 +382,7 @@ export default function PollRoom() {
                   disabled={!poll.currentQuestionActive || voting}
                   className={`w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 ${
                     poll.currentQuestionActive && !voting
-                      ? "bg-[#F8FAFC] hover:bg-[#E0E7FF] border-2 border-transparent hover:border-[#6366F1] cursor-pointer active:scale-[0.98]"
+                      ? "bg-[#F8FAFC] hover:bg-slate-100 border-2 border-transparent hover:border-[var(--color-primary)] cursor-pointer active:scale-[0.98]"
                       : "bg-[#F1F5F9] cursor-not-allowed opacity-60"
                   }`}
                 >
@@ -404,7 +401,7 @@ export default function PollRoom() {
           {/* Status bar */}
           <div className="px-4 pb-4">
             {voting ? (
-              <div className="flex items-center justify-center gap-2 p-4 bg-[#E0E7FF] rounded-xl text-[#6366F1]">
+              <div className="flex items-center justify-center gap-2 p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="font-medium">Recording vote...</span>
               </div>
@@ -419,7 +416,7 @@ export default function PollRoom() {
                 <span className="font-medium">Voting locked. Wait for host.</span>
               </div>
             ) : (
-              <div className="text-center p-4 bg-[#E0E7FF] rounded-xl text-[#6366F1]">
+              <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
                 <span className="font-medium">Tap an option to vote</span>
               </div>
             )}

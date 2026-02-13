@@ -60,7 +60,7 @@ export function AuthProvider({ children }) {
       };
       setUser(userData);
       localStorage.setItem("authUser", JSON.stringify(userData));
-      router.push("/dashboard");
+      router.push("/dashboard/my-polls");
       return { success: true };
     } catch (error) {
       console.error("Login error:", error);

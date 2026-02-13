@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MoreVertical, Play, Share2, Edit2, RotateCcw, Trash2, Calendar, BarChart3 } from "lucide-react";
+import { MoreVertical, Play, Share2, Edit2, RotateCcw, Trash2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function PollCard({ poll, onDelete, onRestart, onShare }) {
@@ -38,7 +38,10 @@ export default function PollCard({ poll, onDelete, onRestart, onShare }) {
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1 pr-4">
-          <div className="flex items-center gap-2 mb-2">
+          <h3 className="font-bold text-lg text-slate-900 line-clamp-1 mb-2" title={poll.title}>
+            {poll.title || "Untitled Poll"}
+          </h3>
+          <div className="flex items-center gap-2">
             <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full ${getStatusColor(poll.status)}`}>
               {poll.status || "Draft"}
             </span>
@@ -47,9 +50,6 @@ export default function PollCard({ poll, onDelete, onRestart, onShare }) {
                {createdDate}
             </span>
           </div>
-          <h3 className="font-bold text-lg text-slate-900 line-clamp-1" title={poll.title}>
-            {poll.title || "Untitled Poll"}
-          </h3>
         </div>
         
         {/* Action Menu Information */}
@@ -113,16 +113,7 @@ export default function PollCard({ poll, onDelete, onRestart, onShare }) {
          </div>
       </div>
 
-      {/* Quick Action visual */}
-      <div className="mt-2 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
-          <div className="flex items-center gap-1">
-             <BarChart3 className="w-4 h-4" />
-             View Analytics
-          </div>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--color-primary)] flex items-center gap-1">
-              Open <span aria-hidden="true">&rarr;</span>
-          </div>
-      </div>
+
 
     </div>
   );

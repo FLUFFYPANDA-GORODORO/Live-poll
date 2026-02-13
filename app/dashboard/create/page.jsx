@@ -26,11 +26,6 @@ const generatePollId = () =>
 // Chart colors (Primary/Secondary based)
 const CHART_COLORS = [
   "var(--color-primary)", 
-  "var(--color-secondary)",
-  "#0ea5e9", // Sky blue for variety
-  "#f59e0b", // Amber
-  "#ef4444", // Red
-  "#8b5cf6", // Violet
 ];
 
 // Vertical Bar Chart Component
@@ -65,12 +60,12 @@ function VerticalBarChart({ options, showSampleData = true }) {
         const height = (votes / maxVotes) * 100;
 
         return (
-          <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+          <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px] h-full">
             {/* Value Label */}
             <div className="text-xs font-bold text-slate-500 mb-1">{percentage}%</div>
             
             {/* Bar */}
-            <div className="relative w-full flex items-end h-full bg-slate-100 rounded-t-lg overflow-hidden">
+            <div className="relative w-full flex items-end flex-1 bg-slate-100 rounded-t-lg overflow-hidden">
                <div
                 className="w-full transition-all duration-500 rounded-t-lg"
                 style={{
@@ -155,7 +150,7 @@ export default function CreatePoll() {
   ]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingTitle, setEditingTitle] = useState(false);
+
 
   const activeQuestion = questions[activeQuestionIndex];
 
@@ -292,30 +287,14 @@ export default function CreatePoll() {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               
-              {/* Editable Title */}
               <div className="flex-1 min-w-0">
-                 {editingTitle ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="text"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Untitled Poll"
-                        className="w-full text-sm font-bold text-slate-900 bg-white border border-[var(--color-primary)] rounded px-1 focus:outline-none"
-                        autoFocus
-                        onBlur={() => setEditingTitle(false)}
-                        onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
-                      />
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setEditingTitle(true)}
-                      className="flex items-center gap-2 text-sm font-bold text-slate-900 hover:text-[var(--color-primary)] truncate w-full group"
-                    >
-                      <span className="truncate">{title || "Untitled Poll"}</span>
-                      <Edit3 className="w-3 h-3 text-slate-400 opacity-0 group-hover:opacity-100" />
-                    </button>
-                  )}
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Untitled Poll"
+                    className="w-full text-lg font-bold text-slate-900 bg-white border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] placeholder-slate-400 transition-all"
+                  />
               </div>
           </div>
 
@@ -375,9 +354,8 @@ export default function CreatePoll() {
               </button>
             </div>
             
-            {/* Bottom Info */}
             <div className="p-4 border-t border-slate-200 text-xs text-center text-slate-400">
-                {questions.length} slide{questions.length !== 1 ? 's' : ''} total
+                {questions.length} question{questions.length !== 1 ? 's' : ''} total
             </div>
           </aside>
 
@@ -402,9 +380,13 @@ export default function CreatePoll() {
                         <>
                            <h3 className="text-xl font-semibold text-center text-slate-700 mb-8">{activeQuestion.text}</h3>
                            <VerticalBarChart
+                              key={activeQuestionIndex}
                               options={activeQuestion?.options.map(o => ({ text: o })) || []}
                               showSampleData={true}
                            />
+                           <p className="text-xs text-slate-400 text-center mt-6 italic">
+                              * Random data for visual representation only
+                           </p>
                         </>
                      ) : (
                         <div className="text-center text-slate-400">
@@ -420,7 +402,7 @@ export default function CreatePoll() {
           <aside className="w-80 bg-white border-l border-slate-200 flex flex-col h-full shadow-lg z-10">
               <div className="p-5 border-b border-slate-100 flex items-center gap-2">
                  <Settings className="w-5 h-5 text-slate-400" />
-                 <h2 className="font-bold text-slate-700">Slide Settings</h2>
+                 <h2 className="font-bold text-slate-700">Question Settings</h2>
               </div>
               
               <div className="flex-1 overflow-y-auto p-5">
@@ -468,22 +450,7 @@ export default function CreatePoll() {
                     </button>
                  </div>
 
-                 {/* Extra Settings (Visual Placeholder for now) */}
-                 <div className="pt-6 border-t border-slate-100">
-                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 block">Display</label>
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-slate-600 p-2 rounded hover:bg-slate-50 cursor-pointer">
-                            <div className="w-4 h-4 rounded border border-slate-300 bg-[var(--color-primary)] flex items-center justify-center">
-                                <Check className="w-3 h-3 text-white" />
-                            </div>
-                            Show results in percentage
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-600 p-2 rounded hover:bg-slate-50 cursor-pointer">
-                             <div className="w-4 h-4 rounded border border-slate-300 flex items-center justify-center"></div>
-                             Hide results initially
-                        </div>
-                    </div>
-                 </div>
+
 
               </div>
           </aside>

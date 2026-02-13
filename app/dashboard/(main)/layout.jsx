@@ -11,7 +11,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-slate-50">
+      <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row">
         <Sidebar user={user} logout={logout} />
         {children}
       </div>

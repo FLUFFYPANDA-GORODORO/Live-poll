@@ -21,11 +21,11 @@ export default function Sidebar({ user, logout }) {
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-50">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-lg">
-            D
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-sm">
+            RP
           </div>
           <span className="font-bold text-xl tracking-tight text-slate-900">
-            DummyName
+            Rapid Polls
           </span>
         </Link>
         <button 
@@ -107,11 +107,11 @@ export default function Sidebar({ user, logout }) {
       <aside className="group hidden md:flex flex-col w-20 hover:w-64 transition-all duration-300 bg-slate-900 h-screen text-white sticky top-0 left-0 z-50 overflow-hidden shadow-xl">
         {/* Logo Area */}
         <div className="p-6 border-b border-slate-800 flex items-center gap-4 whitespace-nowrap h-[88px]">
-          <div className="w-8 h-8 min-w-[32px] rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-lg">
-            D
+          <div className="w-8 h-8 min-w-[32px] rounded-lg bg-[var(--color-primary)] flex items-center justify-center text-white font-bold text-sm">
+            RP
           </div>
           <span className="font-bold text-xl tracking-tight opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100 transform translate-x-[-10px] group-hover:translate-x-0">
-            DummyName
+            Rapid Polls
           </span>
         </div>
 

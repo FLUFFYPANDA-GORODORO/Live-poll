@@ -35,8 +35,13 @@ export default function Home() {
 
         {/* Navbar */}
         <nav className="relative z-50 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto w-full">
-          <Link href="/" className="flex items-center group">
-            <span className="text-3xl font-bold tracking-tighter text-[var(--color-primary)]">
+          <Link href="/" className="relative flex items-center group min-h-[80px] w-64">
+            <img
+              src="/logo1.gif"
+              alt="Logo"
+              className="absolute -left-16 top-1/2 -translate-y-1/2 w-52 h-52 object-contain"
+            />
+            <span className="absolute left-24 top-1/2 -translate-y-1/2 text-3xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
               Rapid poll
             </span>
           </Link>
@@ -293,8 +298,13 @@ export default function Home() {
       {/* Footer */}
       <footer className="relative z-10 bg-slate-900 text-white py-8 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center">
-            <span className="text-2xl font-bold tracking-tighter text-white">
+          <div className="relative flex items-center min-h-[80px] w-64">
+            <img
+              src="/logo1.gif"
+              alt="Logo"
+              className="absolute -left-16 top-1/2 -translate-y-1/2 w-48 h-48 object-contain"
+            />
+            <span className="absolute left-22 top-1/2 -translate-y-1/2 text-2xl font-bold tracking-tighter text-white whitespace-nowrap">
               Rapid poll
             </span>
           </div>

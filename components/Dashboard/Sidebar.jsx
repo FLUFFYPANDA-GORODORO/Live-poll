@@ -28,8 +28,13 @@ export default function Sidebar({ user, logout }) {
     <>
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-50">
-        <Link href="/dashboard" className="flex items-center">
-          <span className="text-2xl font-bold tracking-tighter text-[var(--color-primary)]">
+        <Link href="/dashboard" className="relative flex items-center min-h-[80px] w-64">
+          <img
+            src="/logo1.gif"
+            alt="Logo"
+            className="absolute -left-12 top-1/2 -translate-y-1/2 w-44 h-44 object-contain"
+          />
+          <span className="absolute left-18 top-1/2 -translate-y-1/2 text-2xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
             Rapid poll
           </span>
         </Link>
@@ -115,12 +120,14 @@ export default function Sidebar({ user, logout }) {
       {/* Desktop Sidebar (Unchanged logic, just keeping hidden md:flex) */}
       <aside className="group hidden md:flex flex-col w-20 hover:w-64 transition-all duration-300 bg-slate-900 h-screen text-white sticky top-0 left-0 z-50 overflow-hidden shadow-xl">
         {/* Logo Area */}
-        <div className="p-6 border-b border-slate-800 flex items-center whitespace-nowrap h-[88px]">
-          <span className="text-2xl font-bold tracking-tighter text-white">
-            <span className="inline-block min-w-[32px]">R</span>
-            <span className="opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100 transform translate-x-[-10px] group-hover:translate-x-0">
-              apid poll
-            </span>
+        <div className="relative p-4 border-b border-slate-800 flex items-center whitespace-nowrap h-[120px]">
+          <img
+            src="/logo1.gif"
+            alt="Logo"
+            className="absolute left-[-24px] top-1/2 -translate-y-1/2 w-48 h-48 object-contain"
+          />
+          <span className="absolute left-32 top-1/2 -translate-y-1/2 text-2xl font-bold tracking-tighter text-white opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100 whitespace-nowrap">
+            Rapid poll
           </span>
         </div>
 

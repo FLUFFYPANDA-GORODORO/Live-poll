@@ -32,9 +32,14 @@ export default function Login() {
           <div className="text-center space-y-4">
             <Link
               href="/"
-              className="inline-flex items-center justify-center mb-2"
+              className="relative inline-flex flex-col items-center justify-center min-h-[140px] w-full"
             >
-              <span className="text-4xl font-bold tracking-tighter text-[var(--color-primary)]">
+              <img
+                src="/logo1.gif"
+                alt="Logo"
+                className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-52 h-52 object-contain"
+              />
+              <span className="absolute top-[65%] left-1/2 -translate-x-1/2 text-4xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
                 Rapid poll
               </span>
             </Link>

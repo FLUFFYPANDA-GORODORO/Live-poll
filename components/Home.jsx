@@ -40,9 +40,9 @@ export default function Home() {
             className="relative flex items-center group min-h-[80px] w-64"
           >
             <img
-              src="/logo1.gif"
+              src="/logo2.png"
               alt="Logo"
-              className="absolute -left-16 top-1/2 -translate-y-1/2 w-52 h-52 object-contain"
+              className="absolute -left-14 top-1/2 -translate-y-1/2 w-42 h-42 object-contain"
             />
             <span className="absolute left-24 top-1/2 -translate-y-1/2 text-3xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
               Rapid poll

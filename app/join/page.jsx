@@ -3,8 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/firebase"; // Import db
-import { doc, getDoc } from "firebase/firestore"; // Import Firestore functions
+import { usePollStore } from "@/lib/store/usePollStore";
 import { Hash, Users, ArrowRight, Search, QrCode, Check, Info, X, Copy } from "lucide-react";
 
 export default function JoinPage() {
@@ -13,6 +12,8 @@ export default function JoinPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [copiedExample, setCopiedExample] = useState(null);
+  
+  const { fetchPollById } = usePollStore();
 
   const handleJoin = async (e) => {
     e.preventDefault();
@@ -31,17 +32,14 @@ export default function JoinPage() {
     setError("");
 
     try {
-      // Validate poll exists in Firestore
-      const pollRef = doc(db, "polls", pollId);
-      const pollSnap = await getDoc(pollRef);
+      // Validate poll exists using store action
+      const pollData = await fetchPollById(pollId);
       
-      if (!pollSnap.exists()) {
+      if (!pollData) {
         setError("Poll not found. Check the ID and try again.");
         setIsLoading(false);
         return;
       }
-
-      const pollData = pollSnap.data();
       
       // Optional: Check if poll is active
       if (pollData.status === "ended") {

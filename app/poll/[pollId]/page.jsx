@@ -1,15 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { db } from "@/lib/firebase";
-import { 
-  doc, 
-  onSnapshot, 
-  runTransaction, 
-  serverTimestamp,
-  getDoc,
-  increment
-} from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useParams, useRouter } from "next/navigation";
 import { 
   Loader2, 
@@ -23,7 +15,6 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// Chart colors
 // Chart colors
 const CHART_COLORS = [
   "var(--color-primary)",
@@ -88,8 +79,16 @@ function VerticalBarChart({ options, votes, totalVotes }) {
 export default function PollRoom() {
   const { pollId } = useParams();
   const router = useRouter();
-  const [poll, setPoll] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const {
+    currentPoll: poll,
+    loadingCurrent: loading,
+    error: storeError,
+    subscribeToPoll,
+    checkVoteStatus,
+    voteForOption
+  } = usePollStore();
+
   const [error, setError] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -97,16 +96,14 @@ export default function PollRoom() {
   const sessionId = getSessionId();
 
   // Check if user already voted on current question
-  const checkVoteStatus = useCallback(async () => {
+  const checkVote = useCallback(async () => {
     if (!pollId || !poll || poll.activeQuestionIndex < 0) return;
     
     try {
-      const voteRef = doc(db, "polls", pollId, "votes", `${sessionId}_${poll.activeQuestionIndex}`);
-      const voteDoc = await getDoc(voteRef);
-      
-      if (voteDoc.exists()) {
+      const votedOptionIndex = await checkVoteStatus(pollId, poll.activeQuestionIndex, sessionId);
+      if (votedOptionIndex !== null) {
         setHasVoted(true);
-        setSelectedOption(voteDoc.data().optionIndex);
+        setSelectedOption(votedOptionIndex);
       } else {
         setHasVoted(false);
         setSelectedOption(null);
@@ -114,43 +111,29 @@ export default function PollRoom() {
     } catch (err) {
       console.error("Error checking vote status:", err);
     }
-  }, [pollId, poll?.activeQuestionIndex, sessionId]);
+  }, [pollId, poll?.activeQuestionIndex, sessionId, checkVoteStatus]);
 
   useEffect(() => {
-    checkVoteStatus();
-  }, [checkVoteStatus]);
+    checkVote();
+  }, [checkVote]);
 
   // Subscribe to poll updates
   useEffect(() => {
     if (!pollId) {
       setError("No poll ID provided");
-      setLoading(false);
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      doc(db, "polls", pollId),
-      (snap) => {
-        if (!snap.exists()) {
-          setError("Poll not found");
-          setLoading(false);
-          return;
-        }
-        
-        const pollData = { id: snap.id, ...snap.data() };
-        setPoll(pollData);
-        setLoading(false);
-        setError("");
-      },
-      (err) => {
-        console.error("Error fetching poll:", err);
-        setError("Failed to load poll");
-        setLoading(false);
-      }
-    );
-
+    const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
-  }, [pollId]);
+  }, [pollId, subscribeToPoll]);
+
+  // Sync store errors to local error state
+  useEffect(() => {
+    if (storeError) {
+      setError(storeError);
+    }
+  }, [storeError]);
 
   // Get vote count for a specific option
   const getVoteCount = (questionIndex, optionIndex) => {
@@ -171,8 +154,8 @@ export default function PollRoom() {
     return getCurrentVotes().reduce((a, b) => a + b, 0);
   };
 
-  // Vote using atomic transaction
-  const voteForOption = async (optionIndex) => {
+  // Vote using store action
+  const voteForOptionHandler = async (optionIndex) => {
     if (!poll?.currentQuestionActive || hasVoted || voting) {
       if (!poll?.currentQuestionActive) {
         toast.error("Voting is not active yet. Please wait for the host.");
@@ -182,34 +165,15 @@ export default function PollRoom() {
 
     setVoting(true);
     const questionIndex = poll.activeQuestionIndex;
-    const voteRef = doc(db, "polls", pollId, "votes", `${sessionId}_${questionIndex}`);
-    const pollRef = doc(db, "polls", pollId);
 
     try {
-      await runTransaction(db, async (transaction) => {
-        const voteDoc = await transaction.get(voteRef);
-        if (voteDoc.exists()) {
-          throw new Error("You have already voted on this question");
-        }
-
-        transaction.set(voteRef, {
-          sessionId,
-          questionIndex,
-          optionIndex,
-          timestamp: serverTimestamp()
-        });
-
-        transaction.update(pollRef, {
-          [`voteCounts.${questionIndex}_${optionIndex}`]: increment(1)
-        });
-      });
-
+      await voteForOption(pollId, questionIndex, optionIndex, sessionId);
       setHasVoted(true);
       setSelectedOption(optionIndex);
       toast.success("Vote recorded!");
     } catch (err) {
       console.error("Error voting:", err);
-      if (err.message.includes("already voted")) {
+      if (err.message?.includes("already voted")) {
         toast.error("You have already voted on this question");
         setHasVoted(true);
       } else {
@@ -378,7 +342,7 @@ export default function PollRoom() {
               {activeQuestion.options.map((option, idx) => (
                 <button
                   key={idx}
-                  onClick={() => voteForOption(idx)}
+                  onClick={() => voteForOptionHandler(idx)}
                   disabled={!poll.currentQuestionActive || voting}
                   className={`w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 ${
                     poll.currentQuestionActive && !voting

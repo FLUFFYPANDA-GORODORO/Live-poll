@@ -2,8 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { 
@@ -17,31 +16,27 @@ export default function PollResults() {
   const { pollId } = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  const [poll, setPoll] = useState(null);
-  const [loading, setLoading] = useState(true);
+  
+  const {
+    fetchPollById,
+    currentPoll: poll,
+    loadingCurrent: loading,
+    error: storeError
+  } = usePollStore();
+
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchPoll = async () => {
-      if (!pollId) return;
-      
-      try {
-        const pollDoc = await getDoc(doc(db, "polls", pollId));
-        if (pollDoc.exists()) {
-          setPoll({ id: pollDoc.id, ...pollDoc.data() });
-        } else {
-          setError("Poll not found");
-        }
-      } catch (err) {
-        console.error("Error fetching poll:", err);
-        setError("Failed to load poll");
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (pollId) {
+      fetchPollById(pollId);
+    }
+  }, [pollId, fetchPollById]);
 
-    fetchPoll();
-  }, [pollId]);
+  useEffect(() => {
+    if (storeError) {
+      setError(storeError);
+    }
+  }, [storeError]);
 
   // Get votes for a specific question/option
   const getVoteCount = (questionIndex, optionIndex) => {

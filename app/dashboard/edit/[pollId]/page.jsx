@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter, useParams } from "next/navigation";
 import { 
   Plus, 
@@ -101,11 +100,17 @@ export default function EditPoll() {
   const router = useRouter();
   const { pollId } = useParams();
   const { user } = useAuth();
+  
+  const {
+    fetchPollById,
+    savePoll,
+    isSaving,
+    loadingCurrent: loading
+  } = usePollStore();
+
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [editingTitle, setEditingTitle] = useState(false);
 
   // Load poll data
@@ -114,14 +119,13 @@ export default function EditPoll() {
 
     const loadPoll = async () => {
       try {
-        const pollDoc = await getDoc(doc(db, "polls", pollId));
-        if (!pollDoc.exists()) {
+        const data = await fetchPollById(pollId);
+        if (!data) {
           toast.error("Poll not found");
           router.push("/dashboard");
           return;
         }
 
-        const data = pollDoc.data();
         if (data.createdBy !== user.uid) {
           toast.error("You don't have permission to edit this poll");
           router.push("/dashboard");
@@ -138,13 +142,11 @@ export default function EditPoll() {
       } catch (err) {
         console.error("Error loading poll:", err);
         toast.error("Failed to load poll");
-      } finally {
-        setLoading(false);
       }
     };
 
     loadPoll();
-  }, [pollId, user, router]);
+  }, [pollId, user, router, fetchPollById]);
 
   const activeQuestion = questions[activeQuestionIndex];
 
@@ -191,7 +193,7 @@ export default function EditPoll() {
   };
 
   // Save poll
-  const savePoll = async () => {
+  const handleSavePoll = async () => {
     if (!title.trim()) {
       toast.error("Please enter a poll title");
       return;
@@ -212,37 +214,13 @@ export default function EditPoll() {
       }
     }
 
-    setIsSaving(true);
     try {
-      const questionsData = questions.map((q) => ({
-        text: q.text.trim(),
-        options: q.options
-          .filter(opt => opt.trim() !== "")
-          .map((o) => ({ text: o.trim() })),
-      }));
-
-      // Rebuild voteCounts for new structure
-      const voteCounts = {};
-      questionsData.forEach((q, qIdx) => {
-        q.options.forEach((_, optIdx) => {
-          voteCounts[`${qIdx}_${optIdx}`] = 0;
-        });
-      });
-
-      await updateDoc(doc(db, "polls", pollId), {
-        title: title.trim(),
-        questions: questionsData,
-        voteCounts,
-        updatedAt: serverTimestamp(),
-      });
-
+      await savePoll(pollId, title, questions);
       toast.success("Poll saved!");
       router.push("/dashboard");
     } catch (err) {
       console.error("Error saving poll:", err);
       toast.error("Failed to save poll");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -308,7 +286,7 @@ export default function EditPoll() {
                 Add Question
               </button>
               <button
-                onClick={savePoll}
+                onClick={handleSavePoll}
                 disabled={isSaving}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-primary to-secondary text-white font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all disabled:opacity-50"
               >

@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { useEffect } from "react";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
@@ -26,29 +25,19 @@ import StatsCard from "@/components/Dashboard/StatsCard";
 export default function Dashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  const [polls, setPolls] = useState([]);
-  const [loading, setLoading] = useState(true);
+  
+  const {
+    polls,
+    loading,
+    fetchPolls
+  } = usePollStore();
 
   useEffect(() => {
-    if (user) fetchPolls();
-  }, [user]);
+    if (user) fetchPolls(user.uid);
+  }, [user, fetchPolls]);
 
-  const fetchPolls = async () => {
-    try {
-      const q = query(collection(db, "polls"), where("createdBy", "==", user.uid));
-      const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate() || new Date()
-      }));
-      data.sort((a, b) => b.createdAt - a.createdAt);
-      setPolls(data);
-    } catch (err) {
-      console.error("Error fetching polls:", err);
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = () => {
+    if (user) fetchPolls(user.uid);
   };
 
   // Calculate Stats
@@ -71,7 +60,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-4">
                 <button 
-                   onClick={fetchPolls}
+                   onClick={handleRefresh}
                    className="p-2 text-slate-400 hover:text-[var(--color-primary)] transition-colors"
                    title="Refresh Data"
                 >

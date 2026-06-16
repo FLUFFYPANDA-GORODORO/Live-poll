@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { 
   Plus, 
@@ -19,9 +18,6 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
-
-const generatePollId = () =>
-  Math.random().toString(36).substring(2, 8).toUpperCase();
 
 // Chart colors (Primary/Secondary based)
 const CHART_COLORS = [
@@ -149,8 +145,8 @@ export default function CreatePoll() {
     { text: "", options: ["", ""] },
   ]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
-
+  
+  const { createPoll, isSaving } = usePollStore();
 
   const activeQuestion = questions[activeQuestionIndex];
 
@@ -197,7 +193,7 @@ export default function CreatePoll() {
   };
 
   // Create poll
-  const createPoll = async (redirectPath = "present") => {
+  const handleCreatePoll = async (redirectPath = "present") => {
     if (!user) {
       toast.error("Please log in to create a poll");
       router.push("/login");
@@ -224,37 +220,14 @@ export default function CreatePoll() {
       }
     }
 
-    setIsSaving(true);
     try {
-      const pollId = generatePollId();
-
-      const questionsData = questions.map((q) => ({
-        text: q.text.trim(),
-        options: q.options
-          .filter(opt => opt.trim() !== "")
-          .map((o) => ({ text: o.trim() })),
-      }));
-
-      const voteCounts = {};
-      questionsData.forEach((q, qIdx) => {
-        q.options.forEach((_, optIdx) => {
-          voteCounts[`${qIdx}_${optIdx}`] = 0;
-        });
-      });
-
-      await setDoc(doc(db, "polls", pollId), {
-        title: title.trim(),
-        createdBy: user.uid,
-        createdByEmail: user.email,
-        createdByName: user.displayName || "Anonymous",
-        status: "draft",
-        activeQuestionIndex: -1,
-        currentQuestionActive: false,
-        questions: questionsData,
-        voteCounts,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+      const pollId = await createPoll(
+        title,
+        questions,
+        user.uid,
+        user.email,
+        user.displayName
+      );
 
       toast.success("Poll created successfully!");
       if (redirectPath === "dashboard") {
@@ -265,8 +238,6 @@ export default function CreatePoll() {
     } catch (err) {
       console.error("Error creating poll:", err);
       toast.error("Failed to create poll");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -301,7 +272,7 @@ export default function CreatePoll() {
           {/* Right: Actions */}
           <div className="flex items-center gap-3 px-6">
               <button
-                onClick={() => createPoll("dashboard")}
+                onClick={() => handleCreatePoll("dashboard")}
                 disabled={isSaving}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all text-sm font-medium disabled:opacity-50"
               >
@@ -313,7 +284,7 @@ export default function CreatePoll() {
                 Create
               </button>
               <button
-                onClick={() => createPoll("present")}
+                onClick={() => handleCreatePoll("present")}
                 disabled={isSaving}
                 className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[var(--color-primary)] text-white font-semibold hover:bg-[var(--color-primary-hover)] transition-all shadow-lg shadow-[var(--color-primary)]/20 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
               >

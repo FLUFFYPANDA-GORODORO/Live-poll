@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db, auth } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc, getDoc } from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useParams, useRouter } from "next/navigation";
 import { 
   Loader2, 
@@ -30,8 +29,16 @@ import {
 export default function PollRoom() {
   const { pollId } = useParams();
   const router = useRouter();
-  const [poll, setPoll] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const {
+    currentPoll: poll,
+    loadingCurrent: loading,
+    error: storeError,
+    subscribeToPoll,
+    fetchPollById,
+    voteForOptionLegacy
+  } = usePollStore();
+
   const [error, setError] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -63,65 +70,57 @@ export default function PollRoom() {
     }
   }, []);
 
+  // Subscribe to poll updates
   useEffect(() => {
     if (!pollId) {
       setError("No poll ID provided");
-      setLoading(false);
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      doc(db, "polls", pollId),
-      (snap) => {
-        if (!snap.exists()) {
-          setError("Poll not found");
-          setLoading(false);
-          return;
-        }
-        
-        const pollData = snap.data();
-        setPoll(pollData);
-        setLoading(false);
-        setError("");
-
-        // Calculate total votes for current question
-        if (pollData.activeQuestionIndex >= 0 && pollData.questions?.[pollData.activeQuestionIndex]) {
-          const currentQuestion = pollData.questions[pollData.activeQuestionIndex];
-          const votes = currentQuestion.options.reduce((sum, option) => sum + (option.votes || 0), 0);
-          setTotalVotes(votes);
-        }
-
-        // Store results of previous question when host moves to next question
-        if (pollData.activeQuestionIndex > 0 && !pollData.currentQuestionActive) {
-          const prevQuestionIndex = pollData.activeQuestionIndex - 1;
-          const prevQuestion = pollData.questions[prevQuestionIndex];
-          if (prevQuestion) {
-            const prevVotes = prevQuestion.options.reduce((sum, option) => sum + (option.votes || 0), 0);
-            setPreviousQuestionResults({
-              questionIndex: prevQuestionIndex,
-              questionText: prevQuestion.text,
-              totalVotes: prevVotes,
-              options: prevQuestion.options.map((opt, idx) => ({
-                ...opt,
-                percentage: prevVotes > 0 ? Math.round((opt.votes / prevVotes) * 100) : 0
-              }))
-            });
-          }
-        } else {
-          setPreviousQuestionResults(null);
-        }
-      },
-      (err) => {
-        console.error("Error fetching poll:", err);
-        setError("Failed to load poll");
-        setLoading(false);
-      }
-    );
-
+    const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
-  }, [pollId]);
+  }, [pollId, subscribeToPoll]);
 
-  const voteForOption = async (optionIndex) => {
+  // Sync store error to component error state
+  useEffect(() => {
+    if (storeError) {
+      setError(storeError);
+    }
+  }, [storeError]);
+
+  // Handle derived calculations when poll state changes
+  useEffect(() => {
+    if (!poll) return;
+
+    // Calculate total votes for current question
+    if (poll.activeQuestionIndex >= 0 && poll.questions?.[poll.activeQuestionIndex]) {
+      const currentQuestion = poll.questions[poll.activeQuestionIndex];
+      const votes = currentQuestion.options.reduce((sum, option) => sum + (option.votes || 0), 0);
+      setTotalVotes(votes);
+    }
+
+    // Store results of previous question when host moves to next question
+    if (poll.activeQuestionIndex > 0 && !poll.currentQuestionActive) {
+      const prevQuestionIndex = poll.activeQuestionIndex - 1;
+      const prevQuestion = poll.questions[prevQuestionIndex];
+      if (prevQuestion) {
+        const prevVotes = prevQuestion.options.reduce((sum, option) => sum + (option.votes || 0), 0);
+        setPreviousQuestionResults({
+          questionIndex: prevQuestionIndex,
+          questionText: prevQuestion.text,
+          totalVotes: prevVotes,
+          options: prevQuestion.options.map((opt, idx) => ({
+            ...opt,
+            percentage: prevVotes > 0 ? Math.round((opt.votes / prevVotes) * 100) : 0
+          }))
+        });
+      }
+    } else {
+      setPreviousQuestionResults(null);
+    }
+  }, [poll]);
+
+  const voteForOptionHandler = async (optionIndex) => {
     // Only allow voting if question is active AND user hasn't voted
     if (!poll?.currentQuestionActive || hasVoted || !poll || poll.activeQuestionIndex < 0) {
       if (!poll?.currentQuestionActive) {
@@ -131,44 +130,17 @@ export default function PollRoom() {
     }
 
     try {
-      const pollRef = doc(db, "polls", pollId);
-      const pollSnap = await getDoc(pollRef);
-      
-      if (!pollSnap.exists()) {
+      const latestPoll = await fetchPollById(pollId);
+      if (!latestPoll) {
         alert("Poll not found");
         return;
       }
 
-      const pollData = pollSnap.data();
-      const currentQuestion = pollData.questions[poll.activeQuestionIndex];
-      
-      if (!currentQuestion || !currentQuestion.options[optionIndex]) {
-        alert("Invalid option");
-        return;
-      }
-
-      // Update the vote count
-      const updatedOptions = [...currentQuestion.options];
-      updatedOptions[optionIndex] = {
-        ...updatedOptions[optionIndex],
-        votes: (updatedOptions[optionIndex].votes || 0) + 1
-      };
-
-      // Update the poll in Firestore
-      const updatedQuestions = [...pollData.questions];
-      updatedQuestions[poll.activeQuestionIndex] = {
-        ...currentQuestion,
-        options: updatedOptions
-      };
-
-      await updateDoc(pollRef, {
-        questions: updatedQuestions
-      });
+      await voteForOptionLegacy(pollId, poll.activeQuestionIndex, optionIndex, latestPoll.questions);
 
       // Update local state
       setHasVoted(true);
       setSelectedOption(optionIndex);
-      setTotalVotes(totalVotes + 1);
 
       // Save vote to localStorage
       const votedPolls = JSON.parse(localStorage.getItem("votedPolls") || "{}");
@@ -480,7 +452,7 @@ export default function PollRoom() {
               return (
                 <button
                   key={index}
-                  onClick={() => voteForOption(index)}
+                  onClick={() => voteForOptionHandler(index)}
                   disabled={!poll.currentQuestionActive || hasVoted}
                   className={`w-full relative overflow-hidden rounded-xl p-4 md:p-5 text-left transition-all duration-200 ${
                     poll.currentQuestionActive && !hasVoted 

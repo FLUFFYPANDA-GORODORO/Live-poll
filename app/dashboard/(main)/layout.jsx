@@ -6,15 +6,22 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
-  
-  if (!user) return null; // Let ProtectedRoute handle redirection
 
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row">
-        <Sidebar user={user} logout={logout} />
+      <DashboardContent user={user} logout={logout}>
         {children}
-      </div>
+      </DashboardContent>
     </ProtectedRoute>
   );
 }
+
+function DashboardContent({ user, logout, children }) {
+  return (
+    <div className="flex min-h-screen bg-slate-50 flex-col md:flex-row">
+      <Sidebar user={user} logout={logout} />
+      {children}
+    </div>
+  );
+}
+

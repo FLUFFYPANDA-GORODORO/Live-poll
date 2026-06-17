@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase";
-import { collection, query, where, getDocs, deleteDoc, doc, writeBatch } from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -117,43 +116,27 @@ function ShareModal({ poll, onClose }) {
 export default function MyPolls() {
   const router = useRouter();
   const { user } = useAuth();
-  const [polls, setPolls] = useState([]);
-  const [loading, setLoading] = useState(true);
+  
+  const {
+    polls,
+    loading,
+    fetchPolls,
+    deletePoll,
+    restartPoll
+  } = usePollStore();
+
   const [shareModal, setShareModal] = useState(null);
   const [processingPoll, setProcessingPoll] = useState(null);
 
   useEffect(() => {
-    if (user) fetchPolls();
-  }, [user]);
+    if (user) fetchPolls(user.uid);
+  }, [user, fetchPolls]);
 
-  const fetchPolls = async () => {
-    try {
-      const q = query(collection(db, "polls"), where("createdBy", "==", user.uid));
-      const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({
-        id: d.id,
-        ...d.data(),
-        createdAt: d.data().createdAt?.toDate() || new Date()
-      }));
-      data.sort((a, b) => b.createdAt - a.createdAt);
-      setPolls(data);
-    } catch (err) {
-      console.error("Error fetching polls:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const deletePoll = async (pollId) => {
+  const handleDeletePoll = async (pollId) => {
     if (!confirm("Delete this poll permanently?")) return;
     setProcessingPoll(pollId);
     try {
-      const votesSnap = await getDocs(collection(db, "polls", pollId, "votes"));
-      const batch = writeBatch(db);
-      votesSnap.forEach(v => batch.delete(v.ref));
-      await batch.commit();
-      await deleteDoc(doc(db, "polls", pollId));
-      setPolls(polls.filter(p => p.id !== pollId));
+      await deletePoll(pollId);
       toast.success("Poll deleted");
     } catch (err) {
       toast.error("Failed to delete");
@@ -162,30 +145,12 @@ export default function MyPolls() {
     }
   };
 
-  const restartPoll = async (poll) => {
+  const handleRestartPoll = async (poll) => {
     if (!confirm("Restart poll? This clears all votes.")) return;
     setProcessingPoll(poll.id);
     try {
-      const votesSnap = await getDocs(collection(db, "polls", poll.id, "votes"));
-      const batch = writeBatch(db);
-      votesSnap.forEach(v => batch.delete(v.ref));
-      
-      const resetCounts = {};
-      poll.questions?.forEach((q, qIdx) => {
-        q.options.forEach((_, optIdx) => {
-          resetCounts[`${qIdx}_${optIdx}`] = 0;
-        });
-      });
-      
-      batch.update(doc(db, "polls", poll.id), {
-        status: "draft",
-        activeQuestionIndex: -1,
-        currentQuestionActive: false,
-        voteCounts: resetCounts,
-      });
-      
-      await batch.commit();
-      fetchPolls();
+      await restartPoll(poll.id, poll);
+      fetchPolls(user.uid);
       toast.success("Poll restarted");
     } catch (err) {
       toast.error("Failed to restart");
@@ -236,8 +201,8 @@ export default function MyPolls() {
                 <PollCard 
                   key={poll.id} 
                   poll={poll} 
-                  onDelete={deletePoll} 
-                  onRestart={restartPoll} 
+                  onDelete={handleDeletePoll} 
+                  onRestart={handleRestartPoll} 
                   onShare={(p) => setShareModal(p)}
                 />
               ))}

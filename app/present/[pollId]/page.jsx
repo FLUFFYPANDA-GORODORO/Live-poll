@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { QRCodeSVG } from "qrcode.react";
@@ -37,8 +36,17 @@ export default function PresentationMode() {
   const { user } = useAuth();
   const containerRef = useRef(null);
 
-  const [poll, setPoll] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    currentPoll: poll,
+    loadingCurrent: loading,
+    subscribeToPoll,
+    startVoting,
+    stopVoting,
+    nextQuestion,
+    prevQuestion,
+    endPoll
+  } = usePollStore();
+
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showQR, setShowQR] = useState(true);
 
@@ -52,22 +60,9 @@ export default function PresentationMode() {
   useEffect(() => {
     if (!pollId) return;
 
-    const unsubscribe = onSnapshot(
-      doc(db, "polls", pollId),
-      (docSnap) => {
-        if (docSnap.exists()) {
-          setPoll({ id: docSnap.id, ...docSnap.data() });
-        }
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Error listening to poll:", error);
-        setLoading(false);
-      },
-    );
-
+    const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
-  }, [pollId]);
+  }, [pollId, subscribeToPoll]);
 
   // Fullscreen handlers
   useEffect(() => {
@@ -88,64 +83,48 @@ export default function PresentationMode() {
   };
 
   // Poll controls
-  const startVoting = async () => {
+  const handleStartVoting = async () => {
     try {
-      await updateDoc(doc(db, "polls", pollId), {
-        status: "live",
-        activeQuestionIndex:
-          currentQuestionIndex >= 0 ? currentQuestionIndex : 0,
-        currentQuestionActive: true,
-      });
+      await startVoting(pollId, currentQuestionIndex);
       toast.success("Voting started!");
     } catch (err) {
       toast.error("Failed to start voting");
     }
   };
 
-  const stopVoting = async () => {
+  const handleStopVoting = async () => {
     try {
-      await updateDoc(doc(db, "polls", pollId), {
-        currentQuestionActive: false,
-      });
+      await stopVoting(pollId);
       toast.success("Voting stopped");
     } catch (err) {
       toast.error("Failed to stop voting");
     }
   };
 
-  const nextQuestion = async () => {
+  const handleNextQuestion = async () => {
     if (currentQuestionIndex >= totalQuestions - 1) return;
     try {
-      await updateDoc(doc(db, "polls", pollId), {
-        activeQuestionIndex: currentQuestionIndex + 1,
-        currentQuestionActive: false,
-      });
+      await nextQuestion(pollId, currentQuestionIndex);
     } catch (err) {
       toast.error("Failed to go to next question");
     }
   };
 
-  const prevQuestion = async () => {
+  const handlePrevQuestion = async () => {
     if (currentQuestionIndex <= 0) return;
     try {
-      await updateDoc(doc(db, "polls", pollId), {
-        activeQuestionIndex: currentQuestionIndex - 1,
-        currentQuestionActive: false,
-      });
+      await prevQuestion(pollId, currentQuestionIndex);
     } catch (err) {
       toast.error("Failed to go to previous question");
     }
   };
 
-  const endPoll = async () => {
+  const handleEndPoll = async () => {
     if (
       confirm("End this poll? Participants will no longer be able to vote.")
     ) {
       try {
-        await updateDoc(doc(db, "polls", pollId), {
-          status: "ended",
-          currentQuestionActive: false,
-        });
+        await endPoll(pollId);
         toast.success("Poll ended");
         router.push("/dashboard");
       } catch (err) {
@@ -325,7 +304,7 @@ export default function PresentationMode() {
         <footer className="px-8 py-6 border-t border-slate-100 bg-white">
           <div className="flex items-center justify-center gap-4">
             <button
-              onClick={prevQuestion}
+              onClick={handlePrevQuestion}
               disabled={currentQuestionIndex <= 0}
               className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
@@ -335,7 +314,7 @@ export default function PresentationMode() {
 
             {isVotingActive ? (
               <button
-                onClick={stopVoting}
+                onClick={handleStopVoting}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-500 text-white font-semibold hover:bg-orange-600 shadow-lg shadow-orange-500/20 transition-all"
               >
                 <Square className="w-5 h-5" />
@@ -343,7 +322,7 @@ export default function PresentationMode() {
               </button>
             ) : (
               <button
-                onClick={startVoting}
+                onClick={handleStartVoting}
                 className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[var(--color-secondary)] text-slate-900 font-bold hover:bg-[var(--color-secondary-hover)] transition-all shadow-lg shadow-[var(--color-secondary)]/20"
               >
                 Start Voting
@@ -351,7 +330,7 @@ export default function PresentationMode() {
             )}
 
             <button
-              onClick={nextQuestion}
+              onClick={handleNextQuestion}
               disabled={currentQuestionIndex >= totalQuestions - 1}
               className="flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
@@ -362,7 +341,7 @@ export default function PresentationMode() {
             <div className="w-px h-8 bg-slate-200 mx-2" />
 
             <button
-              onClick={endPoll}
+              onClick={handleEndPoll}
               className="px-5 py-3 rounded-xl bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
             >
               End Poll

@@ -1,13 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect } from "react";
-import { auth } from "@/lib/firebase";
-import { 
-  GoogleAuthProvider, 
-  signInWithPopup, 
-  signOut, 
-  onAuthStateChanged 
-} from "firebase/auth";
+import { api } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 const AuthContext = createContext(null);
@@ -18,71 +12,69 @@ export function AuthProvider({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    // Check localStorage first for instant UI update
+    // Restore session from localStorage
+    const token = localStorage.getItem("authToken");
     const cachedUser = localStorage.getItem("authUser");
-    if (cachedUser) {
+    if (token && cachedUser) {
       try {
         setUser(JSON.parse(cachedUser));
-      } catch (e) {
+      } catch {
+        localStorage.removeItem("authToken");
         localStorage.removeItem("authUser");
       }
     }
-
-    // Then verify with Firebase (source of truth)
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        const userData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-        };
-        setUser(userData);
-        localStorage.setItem("authUser", JSON.stringify(userData));
-      } else {
-        setUser(null);
-        localStorage.removeItem("authUser");
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    setLoading(false);
   }, []);
 
-  const login = async () => {
+  const login = async (email, password) => {
     try {
-      const result = await signInWithPopup(auth, new GoogleAuthProvider());
+      const data = await api.login({ email, password });
+      localStorage.setItem("authToken", data.token);
       const userData = {
-        uid: result.user.uid,
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
+        uid: data.userId,
+        email: data.email,
+        displayName: data.name,
       };
-      setUser(userData);
       localStorage.setItem("authUser", JSON.stringify(userData));
+      setUser(userData);
       router.push("/dashboard/my-polls");
       return { success: true };
     } catch (error) {
-      console.error("Login error:", error);
-      return { success: false, error: error.message };
+      return { success: false, error: error.data?.error || "Login failed" };
     }
   };
 
-  const logout = async () => {
+  const register = async (name, email, password) => {
     try {
-      await signOut(auth);
-      setUser(null);
-      localStorage.removeItem("authUser");
-      localStorage.removeItem("votedPolls");
-      localStorage.removeItem("sessionId");
-      router.push("/");
+      const data = await api.register({ name, email, password });
+      localStorage.setItem("authToken", data.token);
+      const userData = {
+        uid: data.userId,
+        email: data.email,
+        displayName: data.name,
+      };
+      localStorage.setItem("authUser", JSON.stringify(userData));
+      setUser(userData);
+      router.push("/dashboard/my-polls");
+      return { success: true };
     } catch (error) {
-      console.error("Logout error:", error);
+      return {
+        success: false,
+        error: error.data?.error || "Registration failed",
+      };
     }
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authUser");
+    localStorage.removeItem("votedPolls");
+    router.push("/");
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

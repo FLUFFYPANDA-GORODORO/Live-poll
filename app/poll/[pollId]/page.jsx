@@ -1,29 +1,20 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { db } from "@/lib/firebase";
-import { 
-  doc, 
-  onSnapshot, 
-  runTransaction, 
-  serverTimestamp,
-  getDoc,
-  increment
-} from "firebase/firestore";
+import { usePollStore } from "@/lib/store/usePollStore";
 import { useParams, useRouter } from "next/navigation";
-import { 
-  Loader2, 
-  Home, 
-  Check, 
-  Lock, 
-  AlertCircle, 
-  ArrowRight, 
-  Users, 
-  Clock
+import {
+  Loader2,
+  Home,
+  Check,
+  Lock,
+  AlertCircle,
+  ArrowRight,
+  Users,
+  Clock,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-// Chart colors
 // Chart colors
 const CHART_COLORS = [
   "var(--color-primary)",
@@ -35,10 +26,11 @@ const CHART_COLORS = [
 // Generate a unique session ID for vote tracking
 const getSessionId = () => {
   if (typeof window === "undefined") return "";
-  let sessionId = localStorage.getItem("sessionId");
+  // Use sessionStorage so each browser window/tab gets its own unique ID
+  let sessionId = sessionStorage.getItem("sessionId");
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    localStorage.setItem("sessionId", sessionId);
+    sessionStorage.setItem("sessionId", sessionId);
   }
   return sessionId;
 };
@@ -51,14 +43,18 @@ function VerticalBarChart({ options, votes, totalVotes }) {
     <div className="flex items-end justify-center gap-4 md:gap-6 h-48 md:h-56 px-4">
       {options.map((option, idx) => {
         const voteCount = votes[idx] || 0;
-        const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
+        const percentage =
+          totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
         const height = maxVotes > 0 ? (voteCount / maxVotes) * 100 : 0;
 
         return (
-          <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
+          <div
+            key={idx}
+            className="flex flex-col items-center gap-2 flex-1 max-w-[80px]"
+          >
             {/* Vote count */}
             <div className="text-sm font-bold text-[#1E293B]">{voteCount}</div>
-            
+
             {/* Bar */}
             <div className="relative h-32 md:h-40 w-full flex items-end justify-center">
               <div
@@ -70,7 +66,7 @@ function VerticalBarChart({ options, votes, totalVotes }) {
                 }}
               />
             </div>
-            
+
             {/* Label */}
             <div className="text-center">
               <div className="text-xs md:text-sm font-semibold text-[#1E293B] truncate max-w-[70px]">
@@ -88,8 +84,16 @@ function VerticalBarChart({ options, votes, totalVotes }) {
 export default function PollRoom() {
   const { pollId } = useParams();
   const router = useRouter();
-  const [poll, setPoll] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  const {
+    currentPoll: poll,
+    loadingCurrent: loading,
+    error: storeError,
+    subscribeToPoll,
+    checkVoteStatus,
+    voteForOption,
+  } = usePollStore();
+
   const [error, setError] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -97,16 +101,18 @@ export default function PollRoom() {
   const sessionId = getSessionId();
 
   // Check if user already voted on current question
-  const checkVoteStatus = useCallback(async () => {
+  const checkVote = useCallback(async () => {
     if (!pollId || !poll || poll.activeQuestionIndex < 0) return;
-    
+
     try {
-      const voteRef = doc(db, "polls", pollId, "votes", `${sessionId}_${poll.activeQuestionIndex}`);
-      const voteDoc = await getDoc(voteRef);
-      
-      if (voteDoc.exists()) {
+      const votedOptionIndex = await checkVoteStatus(
+        pollId,
+        poll.activeQuestionIndex,
+        sessionId,
+      );
+      if (votedOptionIndex !== null) {
         setHasVoted(true);
-        setSelectedOption(voteDoc.data().optionIndex);
+        setSelectedOption(votedOptionIndex);
       } else {
         setHasVoted(false);
         setSelectedOption(null);
@@ -114,43 +120,29 @@ export default function PollRoom() {
     } catch (err) {
       console.error("Error checking vote status:", err);
     }
-  }, [pollId, poll?.activeQuestionIndex, sessionId]);
+  }, [pollId, poll?.activeQuestionIndex, sessionId, checkVoteStatus]);
 
   useEffect(() => {
-    checkVoteStatus();
-  }, [checkVoteStatus]);
+    checkVote();
+  }, [checkVote]);
 
   // Subscribe to poll updates
   useEffect(() => {
     if (!pollId) {
       setError("No poll ID provided");
-      setLoading(false);
       return;
     }
 
-    const unsubscribe = onSnapshot(
-      doc(db, "polls", pollId),
-      (snap) => {
-        if (!snap.exists()) {
-          setError("Poll not found");
-          setLoading(false);
-          return;
-        }
-        
-        const pollData = { id: snap.id, ...snap.data() };
-        setPoll(pollData);
-        setLoading(false);
-        setError("");
-      },
-      (err) => {
-        console.error("Error fetching poll:", err);
-        setError("Failed to load poll");
-        setLoading(false);
-      }
-    );
-
+    const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
-  }, [pollId]);
+  }, [pollId, subscribeToPoll]);
+
+  // Sync store errors to local error state
+  useEffect(() => {
+    if (storeError) {
+      setError(storeError);
+    }
+  }, [storeError]);
 
   // Get vote count for a specific option
   const getVoteCount = (questionIndex, optionIndex) => {
@@ -161,8 +153,8 @@ export default function PollRoom() {
   // Get all votes for current question
   const getCurrentVotes = () => {
     if (!poll?.questions?.[poll.activeQuestionIndex]) return [];
-    return poll.questions[poll.activeQuestionIndex].options.map((_, idx) => 
-      getVoteCount(poll.activeQuestionIndex, idx)
+    return poll.questions[poll.activeQuestionIndex].options.map((_, idx) =>
+      getVoteCount(poll.activeQuestionIndex, idx),
     );
   };
 
@@ -171,8 +163,8 @@ export default function PollRoom() {
     return getCurrentVotes().reduce((a, b) => a + b, 0);
   };
 
-  // Vote using atomic transaction
-  const voteForOption = async (optionIndex) => {
+  // Vote using store action
+  const voteForOptionHandler = async (optionIndex) => {
     if (!poll?.currentQuestionActive || hasVoted || voting) {
       if (!poll?.currentQuestionActive) {
         toast.error("Voting is not active yet. Please wait for the host.");
@@ -182,34 +174,15 @@ export default function PollRoom() {
 
     setVoting(true);
     const questionIndex = poll.activeQuestionIndex;
-    const voteRef = doc(db, "polls", pollId, "votes", `${sessionId}_${questionIndex}`);
-    const pollRef = doc(db, "polls", pollId);
 
     try {
-      await runTransaction(db, async (transaction) => {
-        const voteDoc = await transaction.get(voteRef);
-        if (voteDoc.exists()) {
-          throw new Error("You have already voted on this question");
-        }
-
-        transaction.set(voteRef, {
-          sessionId,
-          questionIndex,
-          optionIndex,
-          timestamp: serverTimestamp()
-        });
-
-        transaction.update(pollRef, {
-          [`voteCounts.${questionIndex}_${optionIndex}`]: increment(1)
-        });
-      });
-
+      await voteForOption(pollId, questionIndex, optionIndex, sessionId);
       setHasVoted(true);
       setSelectedOption(optionIndex);
       toast.success("Vote recorded!");
     } catch (err) {
       console.error("Error voting:", err);
-      if (err.message.includes("already voted")) {
+      if (err.message?.includes("already voted")) {
         toast.error("You have already voted on this question");
         setHasVoted(true);
       } else {
@@ -240,7 +213,9 @@ export default function PollRoom() {
           <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center mx-auto mb-6">
             <AlertCircle className="w-10 h-10 text-red-500" />
           </div>
-          <h1 className="text-2xl font-bold mb-4 text-[#1E293B]">Poll Not Found</h1>
+          <h1 className="text-2xl font-bold mb-4 text-[#1E293B]">
+            Poll Not Found
+          </h1>
           <p className="text-[#64748B] mb-6">
             {error || "The poll you're trying to access doesn't exist."}
           </p>
@@ -257,8 +232,11 @@ export default function PollRoom() {
   }
 
   // Poll not started
-  const pollNotStarted = poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined;
-  const activeQuestion = pollNotStarted ? null : poll.questions?.[poll.activeQuestionIndex];
+  const pollNotStarted =
+    poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined;
+  const activeQuestion = pollNotStarted
+    ? null
+    : poll.questions?.[poll.activeQuestionIndex];
   const totalVotes = getTotalVotes();
   const currentVotes = getCurrentVotes();
 
@@ -266,21 +244,33 @@ export default function PollRoom() {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
         <div className="max-w-lg text-center">
-          <h1 className="text-3xl font-bold mb-3 text-[#1E293B]">{poll.title}</h1>
+          <h1 className="text-3xl font-bold mb-3 text-[#1E293B]">
+            {poll.title}
+          </h1>
           <code className="text-sm bg-[#E2E8F0] px-3 py-1 rounded-lg text-[#64748B] mb-8 inline-block">
             {pollId}
           </code>
-          
+
           <div className="bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-sm">
             <div className="w-16 h-16 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-6">
               <Lock className="w-8 h-8 text-[var(--color-primary)]" />
             </div>
-            <h2 className="text-xl font-bold mb-3 text-[#1E293B]">Waiting for Host</h2>
-            <p className="text-[#64748B] mb-6">The poll will begin shortly...</p>
+            <h2 className="text-xl font-bold mb-3 text-[#1E293B]">
+              Waiting for Host
+            </h2>
+            <p className="text-[#64748B] mb-6">
+              The poll will begin shortly...
+            </p>
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" />
-              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-              <div className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+              <div
+                className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"
+                style={{ animationDelay: "0.2s" }}
+              />
+              <div
+                className="w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse"
+                style={{ animationDelay: "0.4s" }}
+              />
             </div>
           </div>
         </div>
@@ -316,16 +306,20 @@ export default function PollRoom() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-xl md:text-2xl font-bold text-[#1E293B] mb-2">{poll.title}</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-[#1E293B] mb-2">
+            {poll.title}
+          </h1>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <span className="text-sm bg-[#E2E8F0] px-3 py-1 rounded-full text-[#64748B]">
               Q{poll.activeQuestionIndex + 1}/{poll.questions?.length}
             </span>
-            <span className={`text-sm px-3 py-1 rounded-full flex items-center gap-1.5 ${
-              poll.currentQuestionActive
-                ? "bg-green-100 text-green-700"
-                : "bg-yellow-100 text-yellow-700"
-            }`}>
+            <span
+              className={`text-sm px-3 py-1 rounded-full flex items-center gap-1.5 ${
+                poll.currentQuestionActive
+                  ? "bg-green-100 text-green-700"
+                  : "bg-yellow-100 text-yellow-700"
+              }`}
+            >
               {poll.currentQuestionActive ? (
                 <>
                   <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -378,7 +372,7 @@ export default function PollRoom() {
               {activeQuestion.options.map((option, idx) => (
                 <button
                   key={idx}
-                  onClick={() => voteForOption(idx)}
+                  onClick={() => voteForOptionHandler(idx)}
                   disabled={!poll.currentQuestionActive || voting}
                   className={`w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 ${
                     poll.currentQuestionActive && !voting
@@ -388,11 +382,15 @@ export default function PollRoom() {
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0"
-                    style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                    style={{
+                      backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
+                    }}
                   >
                     {String.fromCharCode(65 + idx)}
                   </div>
-                  <span className="text-[#1E293B] font-medium">{option.text}</span>
+                  <span className="text-[#1E293B] font-medium">
+                    {option.text}
+                  </span>
                 </button>
               ))}
             </div>
@@ -408,12 +406,16 @@ export default function PollRoom() {
             ) : hasVoted ? (
               <div className="flex items-center justify-center gap-2 p-4 bg-green-100 rounded-xl text-green-700">
                 <Check className="w-5 h-5" />
-                <span className="font-medium">Your vote is in! Results update live.</span>
+                <span className="font-medium">
+                  Your vote is in! Results update live.
+                </span>
               </div>
             ) : !poll.currentQuestionActive ? (
               <div className="flex items-center justify-center gap-2 p-4 bg-yellow-100 rounded-xl text-yellow-700">
                 <Lock className="w-5 h-5" />
-                <span className="font-medium">Voting locked. Wait for host.</span>
+                <span className="font-medium">
+                  Voting locked. Wait for host.
+                </span>
               </div>
             ) : (
               <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">

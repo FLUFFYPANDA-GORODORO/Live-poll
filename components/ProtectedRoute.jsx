@@ -2,18 +2,32 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
 import { Loader2 } from "lucide-react";
 
 export default function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
+
+    const handleUnauthorized = (e) => {
+      setAuthError(e.detail || new Error("Session expired"));
+    };
+    
+    if (typeof window !== "undefined") {
+      window.addEventListener("api-unauthorized", handleUnauthorized);
+      return () => {
+        window.removeEventListener("api-unauthorized", handleUnauthorized);
+      };
     }
-  }, [user, loading, router]);
+  }, []);
+
+  if (authError) {
+    throw authError;
+  }
 
   if (loading) {
     return (
@@ -27,8 +41,11 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user) {
-    return null;
+    const error = new Error("Unauthenticated");
+    error.status = 401;
+    throw error;
   }
 
   return children;
 }
+

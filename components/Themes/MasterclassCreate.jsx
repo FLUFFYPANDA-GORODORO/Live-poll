@@ -52,9 +52,9 @@ function VerticalBarChart({ options, showSampleData = true }) {
             className="flex flex-col items-center gap-2 flex-1 max-w-[80px] h-full"
           >
             <div className="text-xs font-bold text-emerald-500 mb-1">{percentage}%</div>
-            <div className="relative w-full flex items-end flex-1 bg-emerald-50 rounded-t-lg overflow-hidden border border-emerald-100">
+            <div className="relative w-full flex items-end flex-1 bg-emerald-50 rounded-t-md overflow-hidden border border-emerald-100">
               <div
-                className="w-full transition-all duration-500 rounded-t-lg bg-gradient-to-t from-emerald-700 to-green-400"
+                className="w-full transition-all duration-500 rounded-t-md bg-gradient-to-t from-emerald-700 to-green-400"
                 style={{
                   height: `${height}%`,
                   minHeight: votes > 0 ? "8px" : "0",

@@ -106,8 +106,13 @@ export default function StandardPoll({
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-6">
-      <div className="max-w-2xl mx-auto">
+    <div className="h-screen max-h-screen bg-[#F8FAFC] p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative">
+      {/* Top Left Logo */}
+      <div className="absolute top-4 left-4 z-20">
+        <img src="/GryphonBlack.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+      </div>
+
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
         <div className="text-center mb-6">
           <h1 className="text-xl md:text-2xl font-bold text-[#1E293B] mb-2">{cleanTitle}</h1>
           <div className="flex items-center justify-center gap-3 flex-wrap">

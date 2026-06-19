@@ -22,7 +22,7 @@ function VerticalBarChart({ options }) {
           <div key={idx} className="flex flex-col items-center gap-2">
             <div className="relative h-36 w-12 flex items-end">
               <div
-                className="w-full rounded-t-lg transition-all duration-500 bg-gradient-to-t from-emerald-700 to-green-400"
+                className="w-full rounded-t-md transition-all duration-500 bg-gradient-to-t from-emerald-700 to-green-400"
                 style={{
                   height: `${height}%`,
                   minHeight: "8px",
@@ -175,7 +175,6 @@ export default function MasterclassEdit({
                 onClick={() => setEditingTitle(true)}
                 className="text-xl font-bold text-emerald-950 hover:text-emerald-500 flex items-center gap-1.5"
               >
-                <GraduationCap className="w-4 h-4 text-emerald-500" />
                 {title || "Untitled Poll"}
               </button>
             )}

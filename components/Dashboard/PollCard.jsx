@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { MoreVertical, Play, Share2, Edit2, RotateCcw, Trash2, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { parseTheme } from "@/lib/themeHelper";
 
 export default function PollCard({ poll, onDelete, onRestart, onShare }) {
   const router = useRouter();
@@ -32,19 +33,32 @@ export default function PollCard({ poll, onDelete, onRestart, onShare }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const { cleanTitle, theme } = parseTheme(poll.title || "");
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition-all group relative">
       
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1 pr-4">
-          <h3 className="font-bold text-lg text-slate-900 line-clamp-1 mb-2" title={poll.title}>
-            {poll.title || "Untitled Poll"}
+          <h3 className="font-bold text-lg text-slate-900 line-clamp-1 mb-2" title={cleanTitle}>
+            {cleanTitle || "Untitled Poll"}
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full ${getStatusColor(poll.status)}`}>
               {poll.status || "Draft"}
             </span>
+            {theme === "synergy_sphere" && (
+              <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full bg-rose-100 text-rose-700">
+                Synergy Sphere
+              </span>
+            )}
+            {theme === "masterclass" && (
+              <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700">
+                Masterclass
+              </span>
+            )}
+
             <span className="text-xs text-slate-400 flex items-center gap-1">
                <Calendar className="w-3 h-3" />
                {createdDate}

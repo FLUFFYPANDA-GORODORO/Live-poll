@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
-// Inject global styles once — avoids React removeChild crash from re-mounting <style> inside JSX
+// ── Inject global styles once into <head> ──────────────────────────────────────
+// Avoids React removeChild crash that happens when <style> is rendered inside JSX.
 const GLOBAL_STYLE_ID = "masterclass-present-styles";
 function injectGlobalStyles() {
   if (typeof document === "undefined") return;
@@ -21,23 +22,43 @@ function injectGlobalStyles() {
   style.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
     .font-baskerville { font-family: 'Libre Baskerville', serif; }
-    .font-epilogue { font-family: 'Epilogue', sans-serif; }
+    .font-epilogue    { font-family: 'Epilogue', sans-serif; }
 
-    @keyframes mc-floatUp {
-      0%   { opacity: 0; transform: translateY(0px) translateX(0px) scale(0.5); }
-      12%  { opacity: 1; transform: translateY(-18px) translateX(var(--rx, 0px)) scale(1.25); }
-      100% { opacity: 0; transform: translateY(-130px) translateX(var(--rx, 0px)) scale(0.75); }
+    /* ── Three drift paths, matching the classic hearts animation ── */
+    @keyframes mc-flowOne {
+      0%   { opacity: 0; bottom: 0;   left: 35%; }
+      40%  { opacity: .8; }
+      50%  { opacity: 1;  left: 45%; }
+      60%  { opacity: .2; }
+      80%  { bottom: 80%; }
+      100% { opacity: 0;  bottom: 100%; left: 68%; }
     }
-    .mc-float-emoji {
-      animation: mc-floatUp 2.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    @keyframes mc-flowTwo {
+      0%   { opacity: 0; bottom: 0;  left: 45%; }
+      40%  { opacity: .8; }
+      50%  { opacity: 1;  left: 61%; }
+      60%  { opacity: .2; }
+      80%  { bottom: 60%; }
+      100% { opacity: 0;  bottom: 80%; left: 45%; }
     }
+    @keyframes mc-flowThree {
+      0%   { opacity: 0; bottom: 0;  left: 45%; }
+      40%  { opacity: .8; }
+      50%  { opacity: 1;  left: 25%; }
+      60%  { opacity: .2; }
+      80%  { bottom: 70%; }
+      100% { opacity: 0;  bottom: 90%; left: 45%; }
+    }
+    .mc-flow-one   { animation: mc-flowOne   linear forwards; }
+    .mc-flow-two   { animation: mc-flowTwo   linear forwards; }
+    .mc-flow-three { animation: mc-flowThree linear forwards; }
 
     @keyframes mc-scaleIn {
       0%   { transform: scale(0); opacity: 0; }
       70%  { transform: scale(1.1); }
-      100% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1);   opacity: 1; }
     }
-    .animate-word-pop { animation: mc-scaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .animate-word-pop { animation: mc-scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
   `;
   document.head.appendChild(style);
 }
@@ -50,6 +71,17 @@ const CHART_COLORS = [
   "linear-gradient(to top, #cd5c5c, #f08080)",
 ];
 
+const BASIC_EMOJIS = [
+  { emoji: "❤️",  label: "Love"       },
+  { emoji: "🔥",  label: "Fire"       },
+  { emoji: "👏",  label: "Clap"       },
+  { emoji: "😂",  label: "Laugh"      },
+  { emoji: "🤯",  label: "Mind blown" },
+];
+
+const FLOWS = ["one", "two", "three"];
+
+// ── Confetti burst ─────────────────────────────────────────────────────────────
 function ConfettiBurst({ active, onComplete }) {
   const canvasRef = useRef(null);
 
@@ -61,16 +93,10 @@ function ConfettiBurst({ active, onComplete }) {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    let confetti = [];
-    let sequins = [];
-    const confettiCount = 40;
-    const sequinCount = 20;
-    const gravityConfetti = 0.6;
-    const gravitySequins = 0.8;
-    const dragConfetti = 0.075;
-    const dragSequins = 0.02;
+    let confetti = [], sequins = [];
+    const gravityConfetti = 0.6, gravitySequins = 0.8;
+    const dragConfetti = 0.075, dragSequins = 0.02;
     const terminalVelocity = 12;
-
     const colors = [
       { front: "#7b5cff", back: "#6245e0" },
       { front: "#b3c7ff", back: "#8fa5e5" },
@@ -79,24 +105,23 @@ function ConfettiBurst({ active, onComplete }) {
       { front: "#fbbf24", back: "#d97706" },
       { front: "#ff5a5f", back: "#e03e42" },
     ];
-
-    const randomRange = (min, max) => Math.random() * (max - min) + min;
-    const initConfettoVelocity = (xRange, yRange) => {
-      const x = randomRange(xRange[0], xRange[1]);
-      const range = yRange[1] - yRange[0] + 1;
-      let y = yRange[1] - Math.abs(randomRange(0, range) + randomRange(0, range) - range);
-      if (y >= yRange[1] - 1) y += Math.random() < 0.25 ? randomRange(1, 3) : 0;
+    const rng = (a, b) => Math.random() * (b - a) + a;
+    const initV = (xR, yR) => {
+      const x = rng(xR[0], xR[1]);
+      const range = yR[1] - yR[0] + 1;
+      let y = yR[1] - Math.abs(rng(0, range) + rng(0, range) - range);
+      if (y >= yR[1] - 1) y += Math.random() < 0.25 ? rng(1, 3) : 0;
       return { x, y: -y };
     };
 
     function Confetto() {
-      this.randomModifier = randomRange(0, 99);
-      this.color = colors[Math.floor(randomRange(0, colors.length))];
-      this.dimensions = { x: randomRange(5, 9), y: randomRange(8, 15) };
+      this.randomModifier = rng(0, 99);
+      this.color = colors[Math.floor(rng(0, colors.length))];
+      this.dimensions = { x: rng(5, 9), y: rng(8, 15) };
       this.position = { x: canvas.width / 2, y: canvas.height / 2 };
-      this.rotation = randomRange(0, 2 * Math.PI);
+      this.rotation = rng(0, 2 * Math.PI);
       this.scale = { x: 1, y: 1 };
-      this.velocity = initConfettoVelocity([-12, 12], [10, 18]);
+      this.velocity = initV([-12, 12], [10, 18]);
     }
     Confetto.prototype.update = function () {
       this.velocity.x -= this.velocity.x * dragConfetti;
@@ -108,10 +133,10 @@ function ConfettiBurst({ active, onComplete }) {
     };
 
     function Sequin() {
-      this.color = colors[Math.floor(randomRange(0, colors.length))].back;
-      this.radius = randomRange(1.5, 3);
+      this.color = colors[Math.floor(rng(0, colors.length))].back;
+      this.radius = rng(1.5, 3);
       this.position = { x: canvas.width / 2, y: canvas.height / 2 };
-      this.velocity = { x: randomRange(-10, 10), y: randomRange(-12, -20) };
+      this.velocity = { x: rng(-10, 10), y: rng(-12, -20) };
     }
     Sequin.prototype.update = function () {
       this.velocity.x -= this.velocity.x * dragSequins;
@@ -120,35 +145,32 @@ function ConfettiBurst({ active, onComplete }) {
       this.position.y += this.velocity.y;
     };
 
-    for (let i = 0; i < confettiCount; i++) confetti.push(new Confetto());
-    for (let i = 0; i < sequinCount; i++) sequins.push(new Sequin());
+    for (let i = 0; i < 40; i++) confetti.push(new Confetto());
+    for (let i = 0; i < 20; i++) sequins.push(new Sequin());
 
-    let animationFrame;
-    let elapsedFrames = 0;
-
+    let animationFrame, elapsedFrames = 0;
     const renderLoop = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      confetti.forEach((confetto) => {
-        let width = confetto.dimensions.x * confetto.scale.x;
-        let height = confetto.dimensions.y * confetto.scale.y;
-        ctx.translate(confetto.position.x, confetto.position.y);
-        ctx.rotate(confetto.rotation);
-        confetto.update();
-        ctx.fillStyle = confetto.scale.y > 0 ? confetto.color.front : confetto.color.back;
-        ctx.fillRect(-width / 2, -height / 2, width, height);
+      confetti.forEach((c) => {
+        const w = c.dimensions.x * c.scale.x, h = c.dimensions.y * c.scale.y;
+        ctx.translate(c.position.x, c.position.y);
+        ctx.rotate(c.rotation);
+        c.update();
+        ctx.fillStyle = c.scale.y > 0 ? c.color.front : c.color.back;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       });
-      sequins.forEach((sequin) => {
-        ctx.translate(sequin.position.x, sequin.position.y);
-        sequin.update();
-        ctx.fillStyle = sequin.color;
+      sequins.forEach((s) => {
+        ctx.translate(s.position.x, s.position.y);
+        s.update();
+        ctx.fillStyle = s.color;
         ctx.beginPath();
-        ctx.arc(0, 0, sequin.radius, 0, 2 * Math.PI);
+        ctx.arc(0, 0, s.radius, 0, 2 * Math.PI);
         ctx.fill();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       });
       confetti = confetti.filter((c) => c.position.y < canvas.height + 20);
-      sequins = sequins.filter((s) => s.position.y < canvas.height + 20);
+      sequins  = sequins.filter((s) => s.position.y < canvas.height + 20);
       elapsedFrames++;
       if ((confetti.length === 0 && sequins.length === 0) || elapsedFrames > 180) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -157,13 +179,12 @@ function ConfettiBurst({ active, onComplete }) {
         animationFrame = requestAnimationFrame(renderLoop);
       }
     };
-
     animationFrame = requestAnimationFrame(renderLoop);
-    const handleResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
-    window.addEventListener("resize", handleResize);
+    const onResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    window.addEventListener("resize", onResize);
     return () => {
       cancelAnimationFrame(animationFrame);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", onResize);
       if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [active, onComplete]);
@@ -171,14 +192,7 @@ function ConfettiBurst({ active, onComplete }) {
   return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50 w-full h-full" />;
 }
 
-const BASIC_EMOJIS = [
-  { emoji: "❤️",  label: "Love" },
-  { emoji: "🔥",  label: "Fire" },
-  { emoji: "👏",  label: "Clap" },
-  { emoji: "😂",  label: "Laugh" },
-  { emoji: "🤯",  label: "Mind blown" },
-];
-
+// ── Main component ─────────────────────────────────────────────────────────────
 export default function MasterclassPresent({
   poll,
   cleanTitle,
@@ -207,7 +221,6 @@ export default function MasterclassPresent({
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
 
-  // Inject styles once into <head> to avoid React removeChild crash
   useEffect(() => { injectGlobalStyles(); }, []);
 
   const isWordCloud =
@@ -243,10 +256,10 @@ export default function MasterclassPresent({
     const loadScript = (src) => new Promise((resolve, reject) => {
       if (typeof window === "undefined") return resolve();
       if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-      const script = document.createElement("script");
-      script.src = src; script.async = false;
-      script.onload = () => resolve(); script.onerror = () => reject();
-      document.body.appendChild(script);
+      const s = document.createElement("script");
+      s.src = src; s.async = false;
+      s.onload = () => resolve(); s.onerror = () => reject();
+      document.body.appendChild(s);
     });
 
     const initChart = async () => {
@@ -255,8 +268,7 @@ export default function MasterclassPresent({
         await loadScript("https://cdn.amcharts.com/lib/4/charts.js");
         await loadScript("https://cdn.amcharts.com/lib/4/plugins/wordCloud.js");
         await loadScript("https://cdn.amcharts.com/lib/4/themes/animated.js");
-        if (disposed) return;
-        if (!window.am4core || !window.am4plugins_wordCloud) return;
+        if (disposed || !window.am4core || !window.am4plugins_wordCloud) return;
         if (window.am4themes_animated) window.am4core.useTheme(window.am4themes_animated.default || window.am4themes_animated);
         setTimeout(() => {
           if (disposed) return;
@@ -295,24 +307,26 @@ export default function MasterclassPresent({
   }, [wordsList]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
-      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) handleNextQuestion();
+    const onKey = (e) => {
+      if      (e.key === "ArrowLeft"  && currentQuestionIndex > 0)                handlePrevQuestion();
+      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions-1) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
       else if (e.key.toLowerCase() === "c") setConfettiActive(true);
       else if (e.key.toLowerCase() === "q") setShowQR(!showQR);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR]);
 
-  // Launch a floating emoji — slight random X drift, floats straight up
+  // Spawn a floating emoji with random flow path + random timing + random size
   const launchEmoji = (emoji) => {
     if (addReaction) addReaction(emoji);
     const id = Date.now() + Math.random();
-    const rx = (Math.random() * 40 - 20).toFixed(1); // -20..+20px drift
-    setFloatingEmojis((prev) => [...prev, { id, emoji, rx }]);
-    setTimeout(() => setFloatingEmojis((prev) => prev.filter((r) => r.id !== id)), 2400);
+    const flow   = FLOWS[Math.floor(Math.random() * 3)];
+    const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
+    const size   = Math.floor(Math.random() * (30 - 22) + 22);
+    setFloatingEmojis((prev) => [...prev, { id, emoji, flow, timing, size }]);
+    setTimeout(() => setFloatingEmojis((prev) => prev.filter((r) => r.id !== id)), timing * 1000 + 200);
   };
 
   return (
@@ -320,31 +334,49 @@ export default function MasterclassPresent({
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/40 z-0" />
 
-      {/* ── Floating Emojis — fixed bottom-right corner ── */}
-      <div className="fixed bottom-20 right-8 pointer-events-none z-40 w-20 h-52 overflow-visible flex justify-center items-end">
-        {floatingEmojis.map((r) => (
-          <span
-            key={r.id}
-            className="mc-float-emoji absolute text-3xl select-none"
-            style={{ "--rx": `${r.rx}px`, bottom: 0, left: "50%" }}
-          />
-        ))}
-        {floatingEmojis.map((r) => (
-          <span
-            key={"e" + r.id}
-            className="mc-float-emoji absolute text-3xl select-none"
-            style={{ "--rx": `${r.rx}px`, bottom: 0, left: "50%" }}
-          >
-            {r.emoji}
-          </span>
-        ))}
+      {/* ── Emoji Panel — fixed bottom-right, separate from controls ── */}
+      <div className="fixed bottom-6 right-6 z-30 flex flex-col items-center gap-1 pointer-events-none">
+        {/* Float zone: emojis drift upward through here */}
+        <div
+          className="relative overflow-visible"
+          style={{ width: 64, height: 180 }}
+        >
+          {floatingEmojis.map((r) => (
+            <span
+              key={r.id}
+              className={`mc-flow-${r.flow} absolute select-none pointer-events-none`}
+              style={{
+                animationDuration: `${r.timing}s`,
+                fontSize: `${r.size}px`,
+                bottom: 0,
+              }}
+            >
+              {r.emoji}
+            </span>
+          ))}
+        </div>
+
+        {/* Stacked emoji buttons — small, overlapping vertically */}
+        <div className="pointer-events-auto flex flex-col items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-1.5 py-1 shadow-2xl">
+          {BASIC_EMOJIS.map((item, idx) => (
+            <button
+              key={idx}
+              onClick={() => launchEmoji(item.emoji)}
+              title={item.label}
+              className="w-7 h-7 rounded-full flex items-center justify-center text-base hover:scale-125 active:scale-90 transition-transform duration-100 select-none bg-white/10 hover:bg-white/20"
+              style={{ marginTop: idx === 0 ? 0 : -6 }}
+            >
+              {item.emoji}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 w-auto object-contain" /></div>
-          <div><img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" /></div>
+          <div><img src="/GryphonWhite.png" alt="Gryphon Logo"    className="h-16 w-auto object-contain" /></div>
+          <div><img src="/mc01.png"          alt="Masterclass Logo" className="h-12 w-auto object-contain" /></div>
         </div>
       </header>
 
@@ -372,8 +404,8 @@ export default function MasterclassPresent({
           <div className="w-full flex-1 flex flex-col justify-end mb-6">
             <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
               {currentQuestion?.options?.map((option, idx) => {
-                const votes = getVoteCount(idx);
-                const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
+                const votes    = getVoteCount(idx);
+                const height   = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
                 const gradient = CHART_COLORS[idx % CHART_COLORS.length];
                 return (
                   <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
@@ -419,11 +451,10 @@ export default function MasterclassPresent({
 
       {/* ── Bottom Controls Bar ── */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-7xl px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
-
         {/* Left: Poll controls */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
           {isVotingActive ? (
-            <button onClick={handleStopVoting} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Stop</button>
+            <button onClick={handleStopVoting}  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Stop</button>
           ) : (
             <button onClick={handleStartVoting} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Start</button>
           )}
@@ -439,37 +470,14 @@ export default function MasterclassPresent({
           <button onClick={() => setConfettiActive(true)} className="text-slate-400 hover:text-white transition-colors px-1 text-base active:scale-95 duration-100" title="Confetti Burst (C)">🎉</button>
         </div>
 
-        {/* Right: Emoji reactions + stats + QR + fullscreen */}
+        {/* Right: Stats + QR + fullscreen */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto">
-
-          {/* Emoji buttons — tight cluster */}
-          <div className="flex items-center gap-0.5">
-            {BASIC_EMOJIS.map((item, idx) => (
-              <button
-                key={idx}
-                onClick={() => launchEmoji(item.emoji)}
-                title={item.label}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-base hover:scale-125 active:scale-90 transition-transform duration-100 select-none bg-white/10 hover:bg-white/20"
-              >
-                {item.emoji}
-              </button>
-            ))}
-          </div>
-
-          <div className="w-px h-4 bg-white/20" />
-
-          {/* Vote count */}
           <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
             <Users className="w-3.5 h-3.5 text-emerald-400" />
             <span>{totalVotes}</span>
           </div>
-
           <div className="w-px h-4 bg-white/20" />
-
-          {/* QR toggle */}
           <button onClick={() => setShowQR(!showQR)} className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQR ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"}`} title="Toggle QR Code">QR</button>
-
-          {/* Fullscreen */}
           <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5" title="Toggle Fullscreen">
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>

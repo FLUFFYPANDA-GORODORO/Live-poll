@@ -29,11 +29,29 @@ export default function PresentationMode() {
     stopVoting,
     nextQuestion,
     prevQuestion,
-    endPoll
+    endPoll,
+    subscribeToPresenter
   } = usePollStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showQR, setShowQR] = useState(true);
+  const [reactions, setReactions] = useState([]);
+
+  const addReaction = (emoji) => {
+    const id = Date.now() + Math.random();
+    setReactions((prev) => [
+      ...prev,
+      {
+        id,
+        emoji,
+        left: Math.random() * 80 - 40,
+        rotate: Math.random() * 30 - 15,
+      },
+    ]);
+    setTimeout(() => {
+      setReactions((prev) => prev.filter((r) => r.id !== id));
+    }, 2000);
+  };
 
   // Get current question index
   const currentQuestionIndex = poll?.activeQuestionIndex ?? 0;
@@ -48,6 +66,15 @@ export default function PresentationMode() {
     const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
   }, [pollId, subscribeToPoll]);
+
+  // Subscribe to presenter real-time emojis
+  useEffect(() => {
+    if (!pollId) return;
+    const unsubscribe = subscribeToPresenter(pollId, (emoji) => {
+      addReaction(emoji);
+    });
+    return () => unsubscribe();
+  }, [pollId, subscribeToPresenter]);
 
   // Fullscreen handlers
   useEffect(() => {
@@ -188,7 +215,7 @@ export default function PresentationMode() {
   if (theme === "synergy_sphere") {
     return (
       <ProtectedRoute>
-        <div ref={containerRef} className="w-full h-full">
+        <div ref={containerRef} className="w-full h-full relative">
           <SynergySpherePresent
             poll={poll}
             cleanTitle={cleanTitle}
@@ -211,7 +238,43 @@ export default function PresentationMode() {
             handleEndPoll={handleEndPoll}
             pollUrl={pollUrl}
             router={router}
+            reactions={reactions}
+            addReaction={addReaction}
           />
+          {/* Floating Emojis Container */}
+          <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
+            {reactions.map((r) => (
+              <span
+                key={r.id}
+                className="absolute pointer-events-none animate-float-emoji text-3xl select-none"
+                style={{
+                  left: `calc(50% + ${r.left}px)`,
+                  transform: `rotate(${r.rotate}deg)`,
+                }}
+              >
+                {r.emoji}
+              </span>
+            ))}
+          </div>
+          <style>{`
+            @keyframes floatUp {
+              0% {
+                transform: translateY(0) scale(0.6);
+                opacity: 0;
+              }
+              15% {
+                opacity: 1;
+                transform: translateY(-30px) scale(1.2);
+              }
+              100% {
+                transform: translateY(-240px) scale(0.7);
+                opacity: 0;
+              }
+            }
+            .animate-float-emoji {
+              animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            }
+          `}</style>
         </div>
       </ProtectedRoute>
     );
@@ -220,7 +283,7 @@ export default function PresentationMode() {
   if (theme === "masterclass") {
     return (
       <ProtectedRoute>
-        <div ref={containerRef} className="w-full h-full">
+        <div ref={containerRef} className="w-full h-full relative">
           <MasterclassPresent
             poll={poll}
             cleanTitle={cleanTitle}
@@ -243,7 +306,43 @@ export default function PresentationMode() {
             handleEndPoll={handleEndPoll}
             pollUrl={pollUrl}
             router={router}
+            reactions={reactions}
+            addReaction={addReaction}
           />
+          {/* Floating Emojis Container */}
+          <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
+            {reactions.map((r) => (
+              <span
+                key={r.id}
+                className="absolute pointer-events-none animate-float-emoji text-3xl select-none"
+                style={{
+                  left: `calc(50% + ${r.left}px)`,
+                  transform: `rotate(${r.rotate}deg)`,
+                }}
+              >
+                {r.emoji}
+              </span>
+            ))}
+          </div>
+          <style>{`
+            @keyframes floatUp {
+              0% {
+                transform: translateY(0) scale(0.6);
+                opacity: 0;
+              }
+              15% {
+                opacity: 1;
+                transform: translateY(-30px) scale(1.2);
+              }
+              100% {
+                transform: translateY(-240px) scale(0.7);
+                opacity: 0;
+              }
+            }
+            .animate-float-emoji {
+              animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            }
+          `}</style>
         </div>
       </ProtectedRoute>
     );
@@ -252,7 +351,7 @@ export default function PresentationMode() {
   // Default Standard Present
   return (
     <ProtectedRoute>
-      <div ref={containerRef} className="w-full h-full">
+      <div ref={containerRef} className="w-full h-full relative">
         <StandardPresent
           poll={poll}
           cleanTitle={cleanTitle}
@@ -275,7 +374,43 @@ export default function PresentationMode() {
           handleEndPoll={handleEndPoll}
           pollUrl={pollUrl}
           router={router}
+          reactions={reactions}
+          addReaction={addReaction}
         />
+        {/* Floating Emojis Container */}
+        <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
+          {reactions.map((r) => (
+            <span
+              key={r.id}
+              className="absolute pointer-events-none animate-float-emoji text-3xl select-none"
+              style={{
+                left: `calc(50% + ${r.left}px)`,
+                transform: `rotate(${r.rotate}deg)`,
+              }}
+            >
+              {r.emoji}
+            </span>
+          ))}
+        </div>
+        <style>{`
+          @keyframes floatUp {
+            0% {
+              transform: translateY(0) scale(0.6);
+              opacity: 0;
+            }
+            15% {
+              opacity: 1;
+              transform: translateY(-30px) scale(1.2);
+            }
+            100% {
+              transform: translateY(-240px) scale(0.7);
+              opacity: 0;
+            }
+          }
+          .animate-float-emoji {
+            animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+          }
+        `}</style>
       </div>
     </ProtectedRoute>
   );

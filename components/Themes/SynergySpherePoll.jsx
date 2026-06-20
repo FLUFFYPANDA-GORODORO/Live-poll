@@ -52,7 +52,8 @@ export default function SynergySpherePoll({
   currentVotes,
   pollNotStarted,
   activeQuestion,
-  router
+  router,
+  handleSendEmoji
 }) {
   const [wordInput, setWordInput] = useState("");
   const [localSubmitting, setLocalSubmitting] = useState(false);
@@ -69,7 +70,7 @@ export default function SynergySpherePoll({
     setLocalSubmitting(true);
     try {
       await voteForOptionHandler(trimmedWord);
-    } catch (err) {
+    } finally {
       setLocalSubmitting(false);
     }
   };
@@ -228,8 +229,8 @@ export default function SynergySpherePoll({
                   type="text"
                   value={wordInput}
                   onChange={(e) => setWordInput(e.target.value)}
-                  placeholder="Type your response (max 200 characters)..."
-                  maxLength={200}
+                  placeholder="Type your response (max 50 characters)..."
+                  maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border border-rose-100 rounded-xl text-sm focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 text-slate-800 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
                 />
@@ -273,6 +274,21 @@ export default function SynergySpherePoll({
             )}
           </div>
         </div>
+
+        {/* Emoji Reactions Panel */}
+        {poll.status === "live" && (
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-rose-100 shadow-md p-4 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in">
+            {["❤️", "😮", "👍", "😢", "😆"].map((emoji, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSendEmoji(emoji)}
+                className="text-2xl hover:scale-125 active:scale-90 transition-all duration-150 cursor-pointer"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

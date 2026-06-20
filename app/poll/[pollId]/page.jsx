@@ -35,6 +35,7 @@ export default function PollRoom() {
     subscribeToPoll,
     checkVoteStatus,
     voteForOption,
+    sendEmoji
   } = usePollStore();
 
   const [error, setError] = useState("");
@@ -187,6 +188,10 @@ export default function PollRoom() {
   const totalVotes = getTotalVotes();
   const currentVotes = getCurrentVotes();
 
+  const handleSendEmoji = (emoji) => {
+    sendEmoji(pollId, emoji);
+  };
+
   // Render correct theme layout
   if (theme === "synergy_sphere") {
     return (
@@ -202,6 +207,7 @@ export default function PollRoom() {
         pollNotStarted={pollNotStarted}
         activeQuestion={activeQuestion}
         router={router}
+        handleSendEmoji={handleSendEmoji}
       />
     );
   }
@@ -220,6 +226,7 @@ export default function PollRoom() {
         pollNotStarted={pollNotStarted}
         activeQuestion={activeQuestion}
         router={router}
+        handleSendEmoji={handleSendEmoji}
       />
     );
   }
@@ -238,6 +245,7 @@ export default function PollRoom() {
       pollNotStarted={pollNotStarted}
       activeQuestion={activeQuestion}
       router={router}
+      handleSendEmoji={handleSendEmoji}
     />
   );
 }

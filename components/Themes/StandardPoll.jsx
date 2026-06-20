@@ -55,7 +55,8 @@ export default function StandardPoll({
   currentVotes,
   pollNotStarted,
   activeQuestion,
-  router
+  router,
+  handleSendEmoji
 }) {
   const [wordInput, setWordInput] = useState("");
   const [localSubmitting, setLocalSubmitting] = useState(false);
@@ -72,7 +73,7 @@ export default function StandardPoll({
     setLocalSubmitting(true);
     try {
       await voteForOptionHandler(trimmedWord);
-    } catch (err) {
+    } finally {
       setLocalSubmitting(false);
     }
   };
@@ -219,8 +220,8 @@ export default function StandardPoll({
                   type="text"
                   value={wordInput}
                   onChange={(e) => setWordInput(e.target.value)}
-                  placeholder="Type your response (max 200 characters)..."
-                  maxLength={200}
+                  placeholder="Type your response (max 50 characters)..."
+                  maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-slate-800 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
                 />
@@ -263,6 +264,21 @@ export default function StandardPoll({
             )}
           </div>
         </div>
+
+        {/* Emoji Reactions Panel */}
+        {poll.status === "live" && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] shadow-sm p-4 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in">
+            {["❤️", "😮", "👍", "😢", "😆"].map((emoji, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSendEmoji(emoji)}
+                className="text-2xl hover:scale-125 active:scale-90 transition-all duration-150 cursor-pointer"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -52,7 +52,8 @@ export default function MasterclassPoll({
   currentVotes,
   pollNotStarted,
   activeQuestion,
-  router
+  router,
+  handleSendEmoji
 }) {
   const [wordInput, setWordInput] = useState("");
   const [localSubmitting, setLocalSubmitting] = useState(false);
@@ -69,8 +70,7 @@ export default function MasterclassPoll({
     setLocalSubmitting(true);
     try {
       await voteForOptionHandler(trimmedWord);
-    } catch (err) {
-      // Re-enable on failure, keep text populated
+    } finally {
       setLocalSubmitting(false);
     }
   };
@@ -200,8 +200,8 @@ export default function MasterclassPoll({
                   type="text"
                   value={wordInput}
                   onChange={(e) => setWordInput(e.target.value)}
-                  placeholder="Type your response (max 200 characters)..."
-                  maxLength={200}
+                  placeholder="Type your response (max 50 characters)..."
+                  maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border border-emerald-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-805 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
                 />
@@ -245,6 +245,21 @@ export default function MasterclassPoll({
             )}
           </div>
         </div>
+
+        {/* Emoji Reactions Panel */}
+        {poll.status === "live" && (
+          <div className="bg-white/80 backdrop-blur-[1px] rounded-2xl border border-emerald-100 shadow-md p-3.5 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in">
+            {["❤️", "😮", "👍", "😢", "😆"].map((emoji, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSendEmoji(emoji)}
+                className="text-2xl hover:scale-125 active:scale-90 transition-all duration-150 cursor-pointer"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

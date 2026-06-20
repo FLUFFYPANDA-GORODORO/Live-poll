@@ -30,11 +30,12 @@ export default function PresentationMode() {
     nextQuestion,
     prevQuestion,
     endPoll,
-    subscribeToPresenter
+    subscribeToPresenter,
+    simulateWordCloud
   } = usePollStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [showQR, setShowQR] = useState(true);
+  const [showQR, setShowQR] = useState(false);
   const [reactions, setReactions] = useState([]);
 
   const addReaction = (emoji) => {
@@ -75,6 +76,21 @@ export default function PresentationMode() {
     });
     return () => unsubscribe();
   }, [pollId, subscribeToPresenter]);
+
+  // Bind simulateWordCloud to window for console execution
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.simulateWordCloud = () => {
+        simulateWordCloud(pollId, currentQuestionIndex);
+        toast.success("Simulated 200 word cloud submissions!");
+      };
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        delete window.simulateWordCloud;
+      }
+    };
+  }, [pollId, currentQuestionIndex, simulateWordCloud]);
 
   // Fullscreen handlers
   useEffect(() => {
@@ -256,25 +272,7 @@ export default function PresentationMode() {
               </span>
             ))}
           </div>
-          <style>{`
-            @keyframes floatUp {
-              0% {
-                transform: translateY(0) scale(0.6);
-                opacity: 0;
-              }
-              15% {
-                opacity: 1;
-                transform: translateY(-30px) scale(1.2);
-              }
-              100% {
-                transform: translateY(-240px) scale(0.7);
-                opacity: 0;
-              }
-            }
-            .animate-float-emoji {
-              animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-            }
-          `}</style>
+
         </div>
       </ProtectedRoute>
     );
@@ -324,25 +322,7 @@ export default function PresentationMode() {
               </span>
             ))}
           </div>
-          <style>{`
-            @keyframes floatUp {
-              0% {
-                transform: translateY(0) scale(0.6);
-                opacity: 0;
-              }
-              15% {
-                opacity: 1;
-                transform: translateY(-30px) scale(1.2);
-              }
-              100% {
-                transform: translateY(-240px) scale(0.7);
-                opacity: 0;
-              }
-            }
-            .animate-float-emoji {
-              animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-            }
-          `}</style>
+
         </div>
       </ProtectedRoute>
     );
@@ -392,25 +372,7 @@ export default function PresentationMode() {
             </span>
           ))}
         </div>
-        <style>{`
-          @keyframes floatUp {
-            0% {
-              transform: translateY(0) scale(0.6);
-              opacity: 0;
-            }
-            15% {
-              opacity: 1;
-              transform: translateY(-30px) scale(1.2);
-            }
-            100% {
-              transform: translateY(-240px) scale(0.7);
-              opacity: 0;
-            }
-          }
-          .animate-float-emoji {
-            animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-          }
-        `}</style>
+
       </div>
     </ProtectedRoute>
   );

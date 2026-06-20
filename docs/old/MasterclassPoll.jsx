@@ -203,7 +203,7 @@ export default function MasterclassPoll({
                   placeholder="Type your response (max 50 characters)..."
                   maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
-                  className="w-full p-3 border border-emerald-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-805 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
+                  className="w-full p-3 border border-emerald-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-850 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
                 />
               </div>
               <button

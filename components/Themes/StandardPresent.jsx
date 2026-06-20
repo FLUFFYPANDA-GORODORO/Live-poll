@@ -55,6 +55,8 @@ export default function StandardPresent({
         } else {
           handleStartVoting();
         }
+      } else if (e.key.toLowerCase() === "q") {
+        setShowQR(!showQR);
       }
     };
 
@@ -70,6 +72,8 @@ export default function StandardPresent({
     handleNextQuestion,
     handleStartVoting,
     handleStopVoting,
+    showQR,
+    setShowQR
   ]);
 
   return (
@@ -108,11 +112,14 @@ export default function StandardPresent({
       <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-4 pb-20 z-10 relative max-w-7xl w-full mx-auto bg-black/20 backdrop-blur-[1px] rounded-3xl border border-white/5 shadow-2xl my-4">
         {/* QR Code */}
         {showQR && (
-          <div className="absolute top-4 right-12 bg-black/80 backdrop-blur-md p-3 rounded-2xl shadow-2xl border border-white/10 flex flex-col items-center z-10">
-            <div className="bg-white p-1.5 rounded-xl">
-              <QRCodeSVG value={pollUrl} size={90} />
+          <div className="absolute top-4 right-12 bg-black/90 backdrop-blur-md p-5 rounded-2xl shadow-2xl border border-white/10 flex flex-col items-center z-30 max-w-[240px]">
+            <div className="bg-white p-2 rounded-xl mb-2">
+              <QRCodeSVG value={pollUrl} size={180} />
             </div>
-            <p className="text-[10px] text-center mt-1.5 text-zinc-300 font-mono font-bold tracking-wider">{pollId}</p>
+            <p className="text-xs text-center mt-1 text-emerald-400 font-mono font-bold tracking-wider select-all">{pollId}</p>
+            <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 hover:underline mt-2 text-[11px] font-semibold break-all text-center">
+              {pollUrl}
+            </a>
           </div>
         )}
 

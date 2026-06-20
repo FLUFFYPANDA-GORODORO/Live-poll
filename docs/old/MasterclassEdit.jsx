@@ -120,7 +120,7 @@ function QuestionSlide({
       <p className="text-sm font-bold text-emerald-950 line-clamp-1 mb-1">
         {question.text || "Untitled Question"}
       </p>
-      <div className="text-xs text-emerald-550">
+      <div className="text-xs text-emerald-555">
         {question.type === "WordCloud" ? "Word Cloud" : `${optionCount} option${optionCount !== 1 ? "s" : ""}`}
       </div>
       {question.type !== "WordCloud" && question.options ? (
@@ -137,7 +137,7 @@ function QuestionSlide({
           ))}
         </div>
       ) : (
-        <div className="flex items-center justify-center gap-1.5 h-6 mt-3 opacity-60 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded py-0.5">
+        <div className="flex items-center justify-center gap-1.5 h-6 mt-3 opacity-60 text-[10px] font-bold text-emerald-650 bg-emerald-50 rounded py-0.5">
           ☁️ Word Cloud
         </div>
       )}
@@ -306,7 +306,7 @@ export default function MasterclassEdit({
                     <div className="flex flex-wrap gap-4 items-center justify-center p-6 text-emerald-500 min-h-[180px]">
                       <span className="text-4xl font-extrabold opacity-95">Interactive</span>
                       <span className="text-2xl font-bold opacity-65">Word</span>
-                      <span className="text-5xl font-black text-emerald-650 animate-pulse">Cloud</span>
+                      <span className="text-5xl font-black text-emerald-655 animate-pulse">Cloud</span>
                       <span className="text-xl font-medium opacity-55">Realtime</span>
                       <span className="text-3xl font-semibold opacity-75">Live</span>
                     </div>
@@ -319,7 +319,7 @@ export default function MasterclassEdit({
                       showSampleData={true}
                     />
                   )}
-                  <p className="text-xs text-emerald-450 text-center mt-6 italic">
+                  <p className="text-xs text-emerald-455 text-center mt-6 italic">
                     * Masterclass preview mode
                   </p>
                 </>
@@ -358,7 +358,7 @@ export default function MasterclassEdit({
                   }
                   setQuestions(newQuestions);
                 }}
-                className="w-full p-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-slate-700 bg-white"
+                className="w-full p-2 rounded-lg border border-emerald-205 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-slate-700 bg-white"
               >
                 <option value="MultipleChoice">Multiple Choice</option>
                 <option value="WordCloud">Word Cloud</option>
@@ -391,7 +391,7 @@ export default function MasterclassEdit({
                           value={typeof option === "string" ? option : option.text || ""}
                           onChange={(e) => updateOption(idx, e.target.value)}
                           placeholder={`Option ${idx + 1}`}
-                          className="w-full pl-3 pr-8 py-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-emerald-200"
+                          className="w-full pl-3 pr-8 py-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-505 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-emerald-200"
                         />
                         {activeQuestion.options.length > 2 && (
                           <button
@@ -408,7 +408,7 @@ export default function MasterclassEdit({
 
                 <button
                   onClick={addOption}
-                  className="mt-4 w-full py-2.5 rounded-lg border border-emerald-200 text-emerald-600 hover:border-emerald-500 hover:text-emerald-600 transition-all text-sm font-medium flex items-center justify-center gap-2"
+                  className="mt-4 w-full py-2.5 rounded-lg border border-emerald-200 text-emerald-600 hover:border-emerald-555 hover:text-emerald-600 transition-all text-sm font-medium flex items-center justify-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Add Option

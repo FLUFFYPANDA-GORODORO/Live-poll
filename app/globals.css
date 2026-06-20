@@ -104,3 +104,23 @@ body {
   border-color: var(--color-border-hover);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
+
+/* ===== FLOATING EMOJI ANIMATION ===== */
+@keyframes floatUp {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-30px) scale(1.2);
+  }
+  100% {
+    transform: translateY(-240px) scale(0.7);
+    opacity: 0;
+  }
+}
+
+.animate-float-emoji {
+  animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}

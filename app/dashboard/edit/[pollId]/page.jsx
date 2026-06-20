@@ -9,9 +9,7 @@ import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import { parseTheme } from "@/lib/themeHelper";
 
-import StandardEdit from "@/components/Themes/StandardEdit";
-import SynergySphereEdit from "@/components/Themes/SynergySphereEdit";
-import MasterclassEdit from "@/components/Themes/MasterclassEdit";
+import EditScreen from "@/components/Themes/StandardEdit";
 
 export default function EditPoll() {
   const router = useRouter();
@@ -153,53 +151,10 @@ export default function EditPoll() {
     </div>
   );
 
-  // Render correct theme edit layout
-  if (selectedTheme === "synergy_sphere") {
-    return (
-      <ProtectedRoute>
-        <SynergySphereEdit
-          title={title}
-          setTitle={setTitle}
-          questions={questions}
-          setQuestions={setQuestions}
-          activeQuestionIndex={activeQuestionIndex}
-          setActiveQuestionIndex={setActiveQuestionIndex}
-          editingTitle={editingTitle}
-          setEditingTitle={setEditingTitle}
-          isSaving={isSaving}
-          handleSavePoll={handleSavePoll}
-          router={router}
-          themeDropdown={themeDropdown}
-        />
-      </ProtectedRoute>
-    );
-  }
-
-  if (selectedTheme === "masterclass") {
-    return (
-      <ProtectedRoute>
-        <MasterclassEdit
-          title={title}
-          setTitle={setTitle}
-          questions={questions}
-          setQuestions={setQuestions}
-          activeQuestionIndex={activeQuestionIndex}
-          setActiveQuestionIndex={setActiveQuestionIndex}
-          editingTitle={editingTitle}
-          setEditingTitle={setEditingTitle}
-          isSaving={isSaving}
-          handleSavePoll={handleSavePoll}
-          router={router}
-          themeDropdown={themeDropdown}
-        />
-      </ProtectedRoute>
-    );
-  }
-
-  // Default Standard layout
+  // Render layout using the merged component
   return (
     <ProtectedRoute>
-      <StandardEdit
+      <EditScreen
         title={title}
         setTitle={setTitle}
         questions={questions}
@@ -212,6 +167,7 @@ export default function EditPoll() {
         handleSavePoll={handleSavePoll}
         router={router}
         themeDropdown={themeDropdown}
+        theme={selectedTheme}
       />
     </ProtectedRoute>
   );

@@ -8,14 +8,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
 
 import StandardCreate from "@/components/Themes/StandardCreate";
-import SynergySphereCreate from "@/components/Themes/SynergySphereCreate";
-import MasterclassCreate from "@/components/Themes/MasterclassCreate";
 
 export default function CreatePoll() {
   const router = useRouter();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState([{ text: "", options: ["", ""] }]);
+  const [questions, setQuestions] = useState([{ text: "", type: "MultipleChoice", options: ["", ""] }]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [selectedTheme, setSelectedTheme] = useState("standard");
 
@@ -98,46 +96,6 @@ export default function CreatePoll() {
     </div>
   );
 
-  // Render the selected theme layout component
-  if (selectedTheme === "synergy_sphere") {
-    return (
-      <ProtectedRoute>
-        <SynergySphereCreate
-          title={title}
-          setTitle={setTitle}
-          questions={questions}
-          setQuestions={setQuestions}
-          activeQuestionIndex={activeQuestionIndex}
-          setActiveQuestionIndex={setActiveQuestionIndex}
-          isSaving={isSaving}
-          handleCreatePoll={handleCreatePoll}
-          router={router}
-          themeDropdown={themeDropdown}
-        />
-      </ProtectedRoute>
-    );
-  }
-
-  if (selectedTheme === "masterclass") {
-    return (
-      <ProtectedRoute>
-        <MasterclassCreate
-          title={title}
-          setTitle={setTitle}
-          questions={questions}
-          setQuestions={setQuestions}
-          activeQuestionIndex={activeQuestionIndex}
-          setActiveQuestionIndex={setActiveQuestionIndex}
-          isSaving={isSaving}
-          handleCreatePoll={handleCreatePoll}
-          router={router}
-          themeDropdown={themeDropdown}
-        />
-      </ProtectedRoute>
-    );
-  }
-
-  // Default Standard layout
   return (
     <ProtectedRoute>
       <StandardCreate
@@ -151,6 +109,7 @@ export default function CreatePoll() {
         handleCreatePoll={handleCreatePoll}
         router={router}
         themeDropdown={themeDropdown}
+        theme={selectedTheme}
       />
     </ProtectedRoute>
   );

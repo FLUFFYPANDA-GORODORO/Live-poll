@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -222,10 +222,12 @@ export default function SynergySpherePresent({
   });
 
   // Get word cloud list sorted
-  const wordsData = poll.wordCloudCounts?.[currentQuestionIndex.toString()] || {};
-  const wordsList = Object.entries(wordsData)
-    .map(([text, count]) => ({ text, count }))
-    .sort((a, b) => b.count - a.count);
+  const wordsList = useMemo(() => {
+    const wordsData = poll.wordCloudCounts?.[currentQuestionIndex.toString()] || {};
+    return Object.entries(wordsData)
+      .map(([text, count]) => ({ text, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [poll.wordCloudCounts, currentQuestionIndex]);
 
   const chartInstance = useRef(null);
 
@@ -306,8 +308,8 @@ export default function SynergySpherePresent({
           series.labels.template.tooltipText = "{word}: {value}";
 
           series.fontFamily = "Libre Baskerville";
-          series.maxFontSize = window.am4core.percent(25);
-          series.minFontSize = window.am4core.percent(8);
+          series.maxFontSize = window.am4core.percent(45);
+          series.minFontSize = window.am4core.percent(6);
 
           series.dataFields.word = "word";
           series.dataFields.value = "count";
@@ -373,6 +375,8 @@ export default function SynergySpherePresent({
         }
       } else if (e.key.toLowerCase() === "c") {
         setConfettiActive(true);
+      } else if (e.key.toLowerCase() === "q") {
+        setShowQR(!showQR);
       }
     };
 
@@ -388,6 +392,8 @@ export default function SynergySpherePresent({
     handleNextQuestion,
     handleStartVoting,
     handleStopVoting,
+    showQR,
+    setShowQR
   ]);
 
   const basicEmojis = [
@@ -572,19 +578,22 @@ export default function SynergySpherePresent({
       {/* QR Code Modal Overlay */}
       {showQR && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300">
-          <div className="bg-black/90 border border-white/15 p-8 rounded-3xl flex flex-col items-center max-w-xs w-full shadow-2xl relative">
+          <div className="bg-black/90 border border-white/15 p-8 rounded-3xl flex flex-col items-center max-w-md w-full shadow-2xl relative mx-4">
             <button
               onClick={() => setShowQR(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
-            <h3 className="text-white font-bold text-lg mb-4 text-center">Join the Poll</h3>
-            <div className="bg-white p-3 rounded-2xl mb-4">
-              <QRCodeSVG value={pollUrl} size={180} />
+            <h3 className="text-white font-bold text-xl mb-4 text-center">Join the Poll</h3>
+            <div className="bg-white p-4 rounded-2xl mb-4">
+              <QRCodeSVG value={pollUrl} size={320} />
             </div>
-            <p className="text-emerald-350 font-mono font-bold tracking-wider text-sm select-all">{pollId}</p>
-            <p className="text-slate-400 text-xs text-center mt-2">Scan the QR code to participate</p>
+            <p className="text-emerald-350 font-mono font-bold tracking-wider text-base select-all">{pollId}</p>
+            <p className="text-slate-400 text-xs text-center mt-2">Scan the QR code or click the link below to participate:</p>
+            <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-rose-400 hover:text-rose-300 hover:underline mt-4 text-sm font-semibold break-all text-center">
+              {pollUrl}
+            </a>
           </div>
         </div>
       )}

@@ -7,9 +7,7 @@ import { Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { parseTheme } from "@/lib/themeHelper";
 
-import StandardPoll from "@/components/Themes/StandardPoll";
-import SynergySpherePoll from "@/components/Themes/SynergySpherePoll";
-import MasterclassPoll from "@/components/Themes/MasterclassPoll";
+import PollScreen from "@/components/Themes/StandardPoll";
 
 // Generate a unique session ID for vote tracking
 const getSessionId = () => {
@@ -192,48 +190,9 @@ export default function PollRoom() {
     sendEmoji(pollId, emoji);
   };
 
-  // Render correct theme layout
-  if (theme === "synergy_sphere") {
-    return (
-      <SynergySpherePoll
-        poll={poll}
-        cleanTitle={cleanTitle}
-        pollId={pollId}
-        hasVoted={hasVoted}
-        voting={voting}
-        voteForOptionHandler={voteForOptionHandler}
-        totalVotes={totalVotes}
-        currentVotes={currentVotes}
-        pollNotStarted={pollNotStarted}
-        activeQuestion={activeQuestion}
-        router={router}
-        handleSendEmoji={handleSendEmoji}
-      />
-    );
-  }
-
-  if (theme === "masterclass") {
-    return (
-      <MasterclassPoll
-        poll={poll}
-        cleanTitle={cleanTitle}
-        pollId={pollId}
-        hasVoted={hasVoted}
-        voting={voting}
-        voteForOptionHandler={voteForOptionHandler}
-        totalVotes={totalVotes}
-        currentVotes={currentVotes}
-        pollNotStarted={pollNotStarted}
-        activeQuestion={activeQuestion}
-        router={router}
-        handleSendEmoji={handleSendEmoji}
-      />
-    );
-  }
-
-  // Default Standard layout
+  // Render layout using the merged component
   return (
-    <StandardPoll
+    <PollScreen
       poll={poll}
       cleanTitle={cleanTitle}
       pollId={pollId}
@@ -246,6 +205,7 @@ export default function PollRoom() {
       activeQuestion={activeQuestion}
       router={router}
       handleSendEmoji={handleSendEmoji}
+      theme={theme}
     />
   );
 }

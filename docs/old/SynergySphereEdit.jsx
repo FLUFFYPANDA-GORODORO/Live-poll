@@ -30,7 +30,7 @@ function VerticalBarChart({ options }) {
               />
             </div>
             <div className="text-center">
-              <div className="text-sm font-semibold text-rose-950 truncate max-w-[60px]">
+              <div className="text-sm font-semibold text-rose-955 truncate max-w-[60px]">
                 {option || `Opt ${idx + 1}`}
               </div>
             </div>
@@ -49,7 +49,7 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
       onClick={onClick}
       className={`relative p-3 rounded-xl cursor-pointer transition-all ${
         isActive
-          ? "bg-rose-500 text-white shadow-lg shadow-rose-500/25 scale-[1.02]"
+          ? "bg-rose-505 text-white shadow-lg shadow-rose-500/25 scale-[1.02]"
           : "bg-white hover:bg-rose-50/30 border border-rose-100"
       }`}
     >
@@ -71,7 +71,7 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
         )}
       </div>
       <p className={`text-sm font-medium truncate ${
-        isActive ? "text-white" : "text-rose-950"
+        isActive ? "text-white" : "text-rose-955"
       }`}>
         {question.text || "Untitled Question"}
       </p>
@@ -165,7 +165,7 @@ export default function SynergySphereEdit({
                 />
                 <button
                   onClick={() => setEditingTitle(false)}
-                  className="p-1 rounded bg-rose-500 text-white"
+                  className="p-1 rounded bg-rose-505 text-white"
                 >
                   <Check className="w-4 h-4" />
                 </button>
@@ -223,7 +223,7 @@ export default function SynergySphereEdit({
             
             <button
               onClick={addQuestion}
-              className="w-full p-3 rounded-xl border-2 border-dashed border-rose-250 text-rose-500 hover:border-rose-500 hover:text-rose-600 transition-colors flex items-center justify-center gap-2"
+              className="w-full p-3 rounded-xl border-2 border-dashed border-rose-250 text-rose-500 hover:border-rose-505 hover:text-rose-600 transition-colors flex items-center justify-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Add Question
@@ -240,7 +240,7 @@ export default function SynergySphereEdit({
                   value={activeQuestion?.text || ""}
                   onChange={(e) => updateQuestionText(e.target.value)}
                   placeholder="Type your red question here..."
-                  className="w-full text-2xl md:text-3xl font-bold text-center text-rose-950 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-rose-200"
+                  className="w-full text-2xl md:text-3xl font-bold text-center text-rose-955 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-rose-200"
                 />
                 <div className="text-sm text-rose-500 mt-2">
                   Question {activeQuestionIndex + 1} of {questions.length}
@@ -281,12 +281,12 @@ export default function SynergySphereEdit({
                       value={option}
                       onChange={(e) => updateOption(idx, e.target.value)}
                       placeholder={`Option ${idx + 1}`}
-                      className="bg-transparent border-none focus:outline-none text-rose-950 w-32"
+                      className="bg-transparent border-none focus:outline-none text-rose-955 w-32"
                     />
                     {activeQuestion.options.length > 2 && (
                       <button
                         onClick={() => removeOption(idx)}
-                        className="p-1 rounded text-rose-400 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="p-1 rounded text-rose-450 hover:text-rose-600 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>

@@ -72,11 +72,11 @@ const CHART_COLORS = [
 ];
 
 const BASIC_EMOJIS = [
-  { emoji: "❤️",  label: "Love"       },
-  { emoji: "🔥",  label: "Fire"       },
-  { emoji: "👏",  label: "Clap"       },
-  { emoji: "😂",  label: "Laugh"      },
-  { emoji: "🤯",  label: "Mind blown" },
+  { emoji: "❤️", label: "Love" },
+  { emoji: "🔥", label: "Fire" },
+  { emoji: "👏", label: "Clap" },
+  { emoji: "😂", label: "Laugh" },
+  { emoji: "🤯", label: "Mind blown" },
 ];
 
 const FLOWS = ["one", "two", "three"];
@@ -170,7 +170,7 @@ function ConfettiBurst({ active, onComplete }) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       });
       confetti = confetti.filter((c) => c.position.y < canvas.height + 20);
-      sequins  = sequins.filter((s) => s.position.y < canvas.height + 20);
+      sequins = sequins.filter((s) => s.position.y < canvas.height + 20);
       elapsedFrames++;
       if ((confetti.length === 0 && sequins.length === 0) || elapsedFrames > 180) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -243,7 +243,7 @@ export default function MasterclassPresent({
 
   const chartInstance = useRef(null);
 
-  const WORD_COLORS = ["#60a5fa","#34d399","#fbbf24","#f87171","#a78bfa","#2dd4bf","#f472b6"];
+  const WORD_COLORS = ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa", "#2dd4bf", "#f472b6"];
   const getWordColor = (word) => {
     if (!word) return "#60a5fa";
     let hash = 0;
@@ -308,8 +308,8 @@ export default function MasterclassPresent({
 
   useEffect(() => {
     const onKey = (e) => {
-      if      (e.key === "ArrowLeft"  && currentQuestionIndex > 0)                handlePrevQuestion();
-      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions-1) handleNextQuestion();
+      if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
+      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
       else if (e.key.toLowerCase() === "c") setConfettiActive(true);
       else if (e.key.toLowerCase() === "q") setShowQR(!showQR);
@@ -322,9 +322,9 @@ export default function MasterclassPresent({
   const launchEmoji = (emoji) => {
     if (addReaction) addReaction(emoji);
     const id = Date.now() + Math.random();
-    const flow   = FLOWS[Math.floor(Math.random() * 3)];
+    const flow = FLOWS[Math.floor(Math.random() * 3)];
     const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
-    const size   = Math.floor(Math.random() * (30 - 22) + 22);
+    const size = Math.floor(Math.random() * (30 - 22) + 22);
     setFloatingEmojis((prev) => [...prev, { id, emoji, flow, timing, size }]);
     setTimeout(() => setFloatingEmojis((prev) => prev.filter((r) => r.id !== id)), timing * 1000 + 200);
   };
@@ -337,8 +337,8 @@ export default function MasterclassPresent({
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div><img src="/GryphonWhite.png" alt="Gryphon Logo"    className="h-16 w-auto object-contain" /></div>
-          <div><img src="/mc01.png"          alt="Masterclass Logo" className="h-12 w-auto object-contain" /></div>
+          <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 w-auto object-contain" /></div>
+          <div><img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" /></div>
         </div>
       </header>
 
@@ -366,8 +366,8 @@ export default function MasterclassPresent({
           <div className="w-full flex-1 flex flex-col justify-end mb-6">
             <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
               {currentQuestion?.options?.map((option, idx) => {
-                const votes    = getVoteCount(idx);
-                const height   = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
+                const votes = getVoteCount(idx);
+                const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
                 const gradient = CHART_COLORS[idx % CHART_COLORS.length];
                 return (
                   <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
@@ -416,7 +416,7 @@ export default function MasterclassPresent({
         {/* Left: Poll controls */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
           {isVotingActive ? (
-            <button onClick={handleStopVoting}  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Stop</button>
+            <button onClick={handleStopVoting} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Stop</button>
           ) : (
             <button onClick={handleStartVoting} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Start</button>
           )}

@@ -211,9 +211,10 @@ export default function MasterclassPresent({
   handleStopVoting,
   handleEndPoll,
   pollUrl,
-  router
+  router,
+  reactions = [],
+  addReaction
 }) {
-  const [reactions, setReactions] = useState([]);
   const [confettiActive, setConfettiActive] = useState(false);
 
   const isWordCloud = currentQuestion?.type === "WordCloud" || currentQuestion?.type === 1 || String(currentQuestion?.type).toLowerCase() === "wordcloud" || !currentQuestion?.options || currentQuestion.options.length === 0 || currentQuestion.options.every(opt => {
@@ -262,6 +263,7 @@ export default function MasterclassPresent({
         }
         const script = document.createElement("script");
         script.src = src;
+        script.async = false;
         script.onload = () => resolve();
         script.onerror = () => reject();
         document.body.appendChild(script);
@@ -270,10 +272,10 @@ export default function MasterclassPresent({
 
     const initChart = async () => {
       try {
-        await loadScript("https://www.amcharts.com/lib/4/core.js");
-        await loadScript("https://www.amcharts.com/lib/4/charts.js");
-        await loadScript("https://www.amcharts.com/lib/4/plugins/wordCloud.js");
-        await loadScript("https://www.amcharts.com/lib/4/themes/animated.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/core.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/charts.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/plugins/wordCloud.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/themes/animated.js");
 
         if (disposed) return;
         if (!window.am4core || !window.am4plugins_wordCloud) return;
@@ -398,42 +400,10 @@ export default function MasterclassPresent({
     { emoji: '😆', bg: 'bg-[#ffb400]' }
   ];
 
-  const addReaction = (emoji) => {
-    const id = Date.now() + Math.random();
-    setReactions((prev) => [
-      ...prev,
-      {
-        id,
-        emoji,
-        left: Math.random() * 80 - 40,
-        rotate: Math.random() * 30 - 15,
-      },
-    ]);
-    setTimeout(() => {
-      setReactions((prev) => prev.filter((r) => r.id !== id));
-    }, 2000);
-  };
-
   return (
     <div className="h-screen max-h-screen bg-[url('/MCbackground.jpg')] bg-cover bg-center bg-no-repeat flex flex-col text-emerald-50 font-epilogue font-light overflow-hidden relative select-none">
       {/* Dark overlay for better contrast and legibility without blurring the background */}
       <div className="absolute inset-0 bg-black/40 z-0" />
-
-      {/* Floating Emojis Container */}
-      <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
-        {reactions.map((r) => (
-          <span
-            key={r.id}
-            className="absolute pointer-events-none animate-float-emoji text-3xl select-none"
-            style={{
-              left: `calc(50% + ${r.left}px)`,
-              transform: `rotate(${r.rotate}deg)`,
-            }}
-          >
-            {r.emoji}
-          </span>
-        ))}
-      </div>
 
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
@@ -443,24 +413,6 @@ export default function MasterclassPresent({
         }
         .font-epilogue {
           font-family: 'Epilogue', sans-serif;
-        }
-
-        @keyframes floatUp {
-          0% {
-            transform: translateY(0) scale(0.6);
-            opacity: 0;
-          }
-          15% {
-            opacity: 1;
-            transform: translateY(-30px) scale(1.2);
-          }
-          100% {
-            transform: translateY(-240px) scale(0.7);
-            opacity: 0;
-          }
-        }
-        .animate-float-emoji {
-          animation: floatUp 2s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
         @keyframes scaleIn {

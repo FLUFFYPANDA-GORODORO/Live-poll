@@ -124,15 +124,30 @@ export default function PresentationMode() {
     return poll.voteCounts[`${currentQuestionIndex}_${optionIndex}`] || 0;
   };
 
-  const totalVotes =
-    currentQuestion?.options?.reduce(
-      (sum, _, idx) => sum + getVoteCount(idx),
-      0,
-    ) || 0;
+  const isWordCloud =
+    currentQuestion?.type === "WordCloud" ||
+    currentQuestion?.type === 1 ||
+    String(currentQuestion?.type).toLowerCase() === "wordcloud" ||
+    !currentQuestion?.options ||
+    currentQuestion.options.length === 0 ||
+    currentQuestion.options.every((opt) => {
+      const txt = typeof opt === "string" ? opt : opt.text || "";
+      return !txt.trim();
+    });
+
+  const totalVotes = isWordCloud
+    ? Object.values(poll?.wordCloudCounts?.[currentQuestionIndex.toString()] || {}).reduce(
+        (sum, count) => sum + count,
+        0
+      )
+    : currentQuestion?.options?.reduce(
+        (sum, _, idx) => sum + getVoteCount(idx),
+        0
+      ) || 0;
 
   const maxVotes = Math.max(
     ...(currentQuestion?.options?.map((_, idx) => getVoteCount(idx)) || [1]),
-    1,
+    1
   );
 
   if (loading) {
@@ -167,7 +182,7 @@ export default function PresentationMode() {
       : "";
 
   // Parse title and theme from title suffix
-  const { theme, cleanTitle } = parseTheme(poll.title, urlTheme);
+  const { theme, cleanTitle } = parseTheme(poll.title, urlTheme, poll.theme);
 
   // Render correct theme layout
   if (theme === "synergy_sphere") {

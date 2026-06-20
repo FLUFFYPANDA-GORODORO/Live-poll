@@ -121,20 +121,26 @@ function QuestionSlide({
         {question.text || "Untitled Question"}
       </p>
       <div className="text-xs text-emerald-500">
-        {optionCount} option{optionCount !== 1 ? "s" : ""}
+        {question.type === "WordCloud" ? "Word Cloud" : `${optionCount} option${optionCount !== 1 ? "s" : ""}`}
       </div>
-      <div className="flex items-end gap-1 h-6 mt-3 opacity-60">
-        {question.options.slice(0, 4).map((_, i) => (
-          <div
-            key={i}
-            className="flex-1 rounded-t"
-            style={{
-              height: `${30 + i * 20}%`,
-              backgroundColor: isActive ? "#10b981" : "#a7f3d0",
-            }}
-          />
-        ))}
-      </div>
+      {question.type !== "WordCloud" ? (
+        <div className="flex items-end gap-1 h-6 mt-3 opacity-60">
+          {question.options.slice(0, 4).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-t"
+              style={{
+                height: `${30 + i * 20}%`,
+                backgroundColor: isActive ? "#10b981" : "#a7f3d0",
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-1.5 h-6 mt-3 opacity-60 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded py-0.5">
+          ☁️ Word Cloud
+        </div>
+      )}
     </div>
   );
 }
@@ -305,13 +311,23 @@ export default function MasterclassCreate({
                   <h3 className="text-xl font-semibold text-center text-emerald-900 mb-8">
                     {activeQuestion.text}
                   </h3>
-                  <VerticalBarChart
-                    key={activeQuestionIndex}
-                    options={
-                      activeQuestion?.options.map((o) => ({ text: o })) || []
-                    }
-                    showSampleData={true}
-                  />
+                  {activeQuestion.type === "WordCloud" ? (
+                    <div className="flex flex-wrap gap-4 items-center justify-center p-6 text-emerald-500 min-h-[180px]">
+                      <span className="text-4xl font-extrabold opacity-95">Interactive</span>
+                      <span className="text-2xl font-bold opacity-65">Word</span>
+                      <span className="text-5xl font-black text-emerald-650 animate-pulse">Cloud</span>
+                      <span className="text-xl font-medium opacity-55">Realtime</span>
+                      <span className="text-3xl font-semibold opacity-75">Live</span>
+                    </div>
+                  ) : (
+                    <VerticalBarChart
+                      key={activeQuestionIndex}
+                      options={
+                        activeQuestion?.options.map((o) => ({ text: o })) || []
+                      }
+                      showSampleData={true}
+                    />
+                  )}
                   <p className="text-xs text-emerald-400 text-center mt-6 italic">
                     * Masterclass preview mode
                   </p>
@@ -334,54 +350,84 @@ export default function MasterclassCreate({
           </div>
 
           <div className="flex-1 overflow-y-auto p-5">
+            {/* Question Type Dropdown */}
             <div className="mb-6">
-              <div className="flex items-center justify-between mb-3">
-                <label className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
-                  Options
-                </label>
-                <span className="text-xs text-emerald-400 text-right">
-                  {activeQuestion?.options.length} items
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {activeQuestion?.options.map((option, idx) => (
-                  <div key={idx} className="flex items-center gap-2 group">
-                    <div
-                      className="w-1.5 h-8 rounded-full bg-emerald-200 flex-shrink-0"
-                      style={{
-                        backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
-                      }}
-                    />
-                    <div className="relative flex-1">
-                      <input
-                        type="text"
-                        value={option}
-                        onChange={(e) => updateOption(idx, e.target.value)}
-                        placeholder={`Option ${idx + 1}`}
-                        className="w-full pl-3 pr-8 py-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-emerald-200"
-                      />
-                      {activeQuestion.options.length > 2 && (
-                        <button
-                          onClick={() => removeOption(idx)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-300 hover:text-red-500 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                onClick={addOption}
-                className="mt-4 w-full py-2.5 rounded-lg border border-emerald-200 text-emerald-600 hover:border-emerald-500 hover:text-emerald-600 transition-all text-sm font-medium flex items-center justify-center gap-2"
+              <label className="text-xs font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                Question Type
+              </label>
+              <select
+                value={activeQuestion?.type || "MultipleChoice"}
+                onChange={(e) => {
+                  const newQuestions = [...questions];
+                  newQuestions[activeQuestionIndex].type = e.target.value;
+                  if (e.target.value === "WordCloud") {
+                    newQuestions[activeQuestionIndex].options = [];
+                  } else if (!newQuestions[activeQuestionIndex].options?.length) {
+                    newQuestions[activeQuestionIndex].options = ["", ""];
+                  }
+                  setQuestions(newQuestions);
+                }}
+                className="w-full p-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-slate-700 bg-white"
               >
-                <Plus className="w-4 h-4" />
-                Add Option
-              </button>
+                <option value="MultipleChoice">Multiple Choice</option>
+                <option value="WordCloud">Word Cloud</option>
+              </select>
             </div>
+
+            {activeQuestion?.type !== "WordCloud" ? (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                    Options
+                  </label>
+                  <span className="text-xs text-emerald-400 text-right">
+                    {activeQuestion?.options?.length || 0} items
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {activeQuestion?.options?.map((option, idx) => (
+                    <div key={idx} className="flex items-center gap-2 group">
+                      <div
+                        className="w-1.5 h-8 rounded-full bg-emerald-200 flex-shrink-0"
+                        style={{
+                          backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
+                        }}
+                      />
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={option}
+                          onChange={(e) => updateOption(idx, e.target.value)}
+                          placeholder={`Option ${idx + 1}`}
+                          className="w-full pl-3 pr-8 py-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-emerald-200"
+                        />
+                        {activeQuestion.options.length > 2 && (
+                          <button
+                            onClick={() => removeOption(idx)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-300 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={addOption}
+                  className="mt-4 w-full py-2.5 rounded-lg border border-emerald-200 text-emerald-600 hover:border-emerald-500 hover:text-emerald-600 transition-all text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Option
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl text-center text-xs text-emerald-700">
+                ☁️ <strong>Word Cloud Mode</strong> collects free-text answers from voters. No options are needed!
+              </div>
+            )}
           </div>
         </aside>
       </div>

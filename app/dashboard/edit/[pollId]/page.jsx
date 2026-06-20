@@ -56,10 +56,17 @@ export default function EditPoll() {
         setSelectedTheme(parsed.theme);
 
         setQuestions(
-          data.questions?.map(q => ({
-            text: q.text || "",
-            options: q.options?.map(o => o.text || "") || ["", ""]
-          })) || [{ text: "", options: ["", ""] }]
+          data.questions?.map(q => {
+            const isQWordCloud = q.type === "WordCloud" || q.type === 1 || String(q.type).toLowerCase() === "wordcloud" || !q.options || q.options.length === 0 || q.options.every(opt => {
+              const txt = typeof opt === "string" ? opt : (opt.text || "");
+              return !txt.trim();
+            });
+            return {
+              text: q.text || "",
+              type: isQWordCloud ? "WordCloud" : "MultipleChoice",
+              options: q.options?.map(o => typeof o === "string" ? o : (o.text || "")) || (isQWordCloud ? [] : ["", ""])
+            };
+          }) || [{ text: "", type: "MultipleChoice", options: ["", ""] }]
         );
       } catch (err) {
         console.error("Error loading poll:", err);
@@ -85,6 +92,7 @@ export default function EditPoll() {
       titleWithSuffix = `${titleWithSuffix} ~MC`;
     }
 
+    const cleanedQuestions = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.text.trim()) {
@@ -92,17 +100,22 @@ export default function EditPoll() {
         setActiveQuestionIndex(i);
         return;
       }
-      const validOptions = q.options.filter(opt => opt.trim() !== "");
-      if (validOptions.length < 2) {
-        toast.error(`Question ${i + 1} needs at least 2 options`);
-        setActiveQuestionIndex(i);
-        return;
+      if (q.type === "WordCloud") {
+        cleanedQuestions.push({ ...q, options: [] });
+      } else {
+        const validOptions = q.options.filter(opt => opt.trim() !== "");
+        if (validOptions.length < 2) {
+          toast.error(`Question ${i + 1} needs at least 2 options`);
+          setActiveQuestionIndex(i);
+          return;
+        }
+        cleanedQuestions.push({ ...q, options: validOptions });
       }
     }
 
     try {
       // Save title to backend with suffix to persist theme
-      await savePoll(pollId, titleWithSuffix, questions);
+      await savePoll(pollId, titleWithSuffix, cleanedQuestions, selectedTheme);
       toast.success("Poll saved!");
       router.push("/dashboard");
     } catch (err) {

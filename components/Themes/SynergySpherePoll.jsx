@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles } from "lucide-react";
 
 // Red/Rose Palette
@@ -53,6 +54,26 @@ export default function SynergySpherePoll({
   activeQuestion,
   router
 }) {
+  const [wordInput, setWordInput] = useState("");
+  const [localSubmitting, setLocalSubmitting] = useState(false);
+
+  const isWordCloud = activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || String(activeQuestion?.type).toLowerCase() === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
+    const txt = typeof opt === "string" ? opt : (opt.text || "");
+    return !txt.trim();
+  });
+
+  const handleSubmitWord = async () => {
+    const trimmedWord = wordInput.trim();
+    if (!trimmedWord || localSubmitting) return;
+
+    setLocalSubmitting(true);
+    try {
+      await voteForOptionHandler(trimmedWord);
+    } catch (err) {
+      setLocalSubmitting(false);
+    }
+  };
+
   if (pollNotStarted) {
     return (
       <div className="min-h-screen bg-stone-900 flex flex-col items-center justify-center p-6 text-rose-50">
@@ -72,7 +93,7 @@ export default function SynergySpherePoll({
             <h2 className="text-xl font-bold mb-3 text-white">Sphere Waiting Room</h2>
             <p className="text-stone-400 mb-6">The host is preparing the session...</p>
             <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-rose-505 bg-rose-500 rounded-full animate-bounce" />
+              <div className="w-2 h-2 bg-rose-500 rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
               <div className="w-2 h-2 bg-rose-500 rounded-full animate-bounce" style={{ animationDelay: "0.4s" }} />
             </div>
@@ -146,7 +167,7 @@ export default function SynergySpherePoll({
             <h2 className="text-xl md:text-2xl font-black text-stone-900 text-center mb-2 leading-snug">
               {activeQuestion.text}
             </h2>
-            {totalVotes > 0 && (
+            {totalVotes > 0 && !isWordCloud && (
               <div className="flex items-center justify-center gap-2 text-sm text-rose-600/80 font-medium">
                 <Users className="w-4 h-4" />
                 {totalVotes} response{totalVotes !== 1 ? "s" : ""}
@@ -155,14 +176,24 @@ export default function SynergySpherePoll({
           </div>
 
           {/* Results preview */}
-          {hasVoted && (
+          {hasVoted && !isWordCloud && (
             <div className="px-4 pb-6">
               <VerticalBarChart options={activeQuestion.options} votes={currentVotes} totalVotes={totalVotes} />
             </div>
           )}
 
+          {hasVoted && isWordCloud && (
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4 border border-rose-200">
+                <Check className="w-6 h-6 text-rose-600" />
+              </div>
+              <h3 className="text-lg font-bold text-stone-800 mb-1">Response Recorded!</h3>
+              <p className="text-xs text-stone-500">Wait for the presenter to show the results.</p>
+            </div>
+          )}
+
           {/* Answer options */}
-          {!hasVoted && (
+          {!hasVoted && !isWordCloud && (
             <div className="p-4 space-y-3">
               {activeQuestion.options.map((option, idx) => (
                 <button
@@ -187,9 +218,36 @@ export default function SynergySpherePoll({
             </div>
           )}
 
+          {!hasVoted && isWordCloud && (
+            <div className="p-4 space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-rose-600 uppercase tracking-wider">
+                  Your Answer
+                </label>
+                <input
+                  type="text"
+                  value={wordInput}
+                  onChange={(e) => setWordInput(e.target.value)}
+                  placeholder="Type your response (max 200 characters)..."
+                  maxLength={200}
+                  disabled={!poll.currentQuestionActive || localSubmitting}
+                  className="w-full p-3 border border-rose-100 rounded-xl text-sm focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 text-slate-800 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
+                />
+              </div>
+              <button
+                onClick={handleSubmitWord}
+                disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
+                className="w-full py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
+                Submit Answer
+              </button>
+            </div>
+          )}
+
           {/* Message bar */}
           <div className="px-4 pb-4">
-            {voting ? (
+            {voting || localSubmitting ? (
               <div className="flex items-center justify-center gap-2 p-4 bg-rose-50 rounded-xl text-rose-650">
                 <Loader2 className="w-5 h-5 animate-spin" />
                 <span className="font-semibold">Transmitting sphere response...</span>
@@ -203,6 +261,10 @@ export default function SynergySpherePoll({
               <div className="flex items-center justify-center gap-2 p-4 bg-stone-150 rounded-xl text-stone-600">
                 <Lock className="w-5 h-5" />
                 <span className="font-semibold">Voting is currently locked.</span>
+              </div>
+            ) : isWordCloud ? (
+              <div className="text-center p-4 bg-rose-50 rounded-xl text-rose-600 border border-rose-100/30">
+                <span className="font-semibold">Enter a word and tap submit to record your response</span>
               </div>
             ) : (
               <div className="text-center p-4 bg-rose-50 rounded-xl text-rose-600 border border-rose-100/30">

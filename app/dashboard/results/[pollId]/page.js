@@ -38,6 +38,21 @@ export default function PollResults() {
     }
   }, [storeError]);
 
+  const isQuestionWordCloud = (question) => {
+    if (!question) return false;
+    return (
+      question.type === "WordCloud" ||
+      question.type === 1 ||
+      String(question.type).toLowerCase() === "wordcloud" ||
+      !question.options ||
+      question.options.length === 0 ||
+      question.options.every((opt) => {
+        const txt = typeof opt === "string" ? opt : opt.text || "";
+        return !txt.trim();
+      })
+    );
+  };
+
   // Get votes for a specific question/option
   const getVoteCount = (questionIndex, optionIndex) => {
     if (!poll?.voteCounts) return 0;
@@ -46,8 +61,16 @@ export default function PollResults() {
 
   // Get total votes for a question
   const getTotalVotesForQuestion = (questionIndex) => {
-    if (!poll?.questions?.[questionIndex] || !poll.voteCounts) return 0;
-    return poll.questions[questionIndex].options.reduce((sum, _, optIdx) => {
+    const question = poll?.questions?.[questionIndex];
+    if (!question) return 0;
+
+    if (isQuestionWordCloud(question)) {
+      const wordsData = poll.wordCloudCounts?.[questionIndex.toString()] || {};
+      return Object.values(wordsData).reduce((sum, val) => sum + val, 0);
+    }
+
+    if (!poll.voteCounts) return 0;
+    return question.options.reduce((sum, _, optIdx) => {
       return sum + (poll.voteCounts[`${questionIndex}_${optIdx}`] || 0);
     }, 0);
   };
@@ -113,6 +136,7 @@ export default function PollResults() {
           <div className="space-y-6">
             {poll.questions?.map((question, qIndex) => {
               const totalVotes = getTotalVotesForQuestion(qIndex);
+              const isCloud = isQuestionWordCloud(question);
               
               return (
                 <div key={qIndex} className="bg-white/80 backdrop-blur-sm rounded-xl p-5 border border-silver-pink/30">
@@ -120,31 +144,46 @@ export default function PollResults() {
                     <span className="bg-light-taupe/10 text-light-taupe font-semibold px-3 py-1 rounded-lg">
                       Q{qIndex + 1}
                     </span>
-                    <span className="text-sm text-silver-pink">{totalVotes} vote{totalVotes !== 1 ? 's' : ''}</span>
+                    <span className="text-sm text-silver-pink">{totalVotes} response{totalVotes !== 1 ? 's' : ''}</span>
                   </div>
                   
                   <h3 className="text-lg font-semibold text-light-taupe mb-4">{question.text}</h3>
                   
                   <div className="space-y-3">
-                    {question.options?.map((option, optIndex) => {
-                      const votes = getVoteCount(qIndex, optIndex);
-                      const percentage = calculatePercentage(votes, totalVotes);
-                      
-                      return (
-                        <div key={optIndex} className="relative">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-medium text-light-taupe">{option.text}</span>
-                            <span className="text-sm text-silver-pink">{votes} ({percentage}%)</span>
+                    {!isCloud && question.options && question.options.length > 0 ? (
+                      question.options.map((option, optIndex) => {
+                        const votes = getVoteCount(qIndex, optIndex);
+                        const percentage = calculatePercentage(votes, totalVotes);
+                        
+                        return (
+                          <div key={optIndex} className="relative">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="font-medium text-light-taupe">{option.text}</span>
+                              <span className="text-sm text-silver-pink">{votes} ({percentage}%)</span>
+                            </div>
+                            <div className="w-full bg-white/30 rounded-full h-3">
+                              <div 
+                                className="h-3 rounded-full bg-gradient-to-r from-light-taupe to-silver-pink transition-all duration-500"
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
                           </div>
-                          <div className="w-full bg-white/30 rounded-full h-3">
-                            <div 
-                              className="h-3 rounded-full bg-gradient-to-r from-light-taupe to-silver-pink transition-all duration-500"
-                              style={{ width: `${percentage}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })
+                    ) : (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {Object.entries(poll.wordCloudCounts?.[qIndex.toString()] || {}).length > 0 ? (
+                          Object.entries(poll.wordCloudCounts?.[qIndex.toString()] || {}).map(([word, count]) => (
+                            <span key={word} className="bg-light-taupe/10 text-light-taupe px-3 py-1.5 rounded-xl text-sm flex items-center gap-2 font-medium border border-light-taupe/10">
+                              <span className="text-slate-800 font-bold">{word}</span>
+                              <span className="bg-light-taupe text-white px-2 py-0.5 rounded-lg text-xs font-bold">{count}</span>
+                            </span>
+                          ))
+                        ) : (
+                          <p className="text-sm text-slate-400 italic">No responses received yet.</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

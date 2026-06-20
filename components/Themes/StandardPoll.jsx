@@ -1,5 +1,4 @@
-"use client";
-
+import { useState } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock } from "lucide-react";
 
 const CHART_COLORS = [
@@ -58,6 +57,26 @@ export default function StandardPoll({
   activeQuestion,
   router
 }) {
+  const [wordInput, setWordInput] = useState("");
+  const [localSubmitting, setLocalSubmitting] = useState(false);
+
+  const isWordCloud = activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || String(activeQuestion?.type).toLowerCase() === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
+    const txt = typeof opt === "string" ? opt : (opt.text || "");
+    return !txt.trim();
+  });
+
+  const handleSubmitWord = async () => {
+    const trimmedWord = wordInput.trim();
+    if (!trimmedWord || localSubmitting) return;
+
+    setLocalSubmitting(true);
+    try {
+      await voteForOptionHandler(trimmedWord);
+    } catch (err) {
+      setLocalSubmitting(false);
+    }
+  };
+
   if (pollNotStarted) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
@@ -141,7 +160,7 @@ export default function StandardPoll({
             <h2 className="text-xl md:text-2xl font-bold text-[#1E293B] text-center mb-2">
               {activeQuestion.text}
             </h2>
-            {totalVotes > 0 && (
+            {totalVotes > 0 && !isWordCloud && (
               <div className="flex items-center justify-center gap-2 text-sm text-[#64748B]">
                 <Users className="w-4 h-4" />
                 {totalVotes} vote{totalVotes !== 1 ? "s" : ""}
@@ -149,13 +168,23 @@ export default function StandardPoll({
             )}
           </div>
 
-          {hasVoted && (
+          {hasVoted && !isWordCloud && (
             <div className="px-4 pb-6">
               <VerticalBarChart options={activeQuestion.options} votes={currentVotes} totalVotes={totalVotes} />
             </div>
           )}
 
-          {!hasVoted && (
+          {hasVoted && isWordCloud && (
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4 border border-green-200">
+                <Check className="w-6 h-6 text-green-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-805 mb-1 text-slate-800">Response Recorded!</h3>
+              <p className="text-xs text-slate-505 text-slate-500">Wait for the presenter to show the results.</p>
+            </div>
+          )}
+
+          {!hasVoted && !isWordCloud && (
             <div className="p-4 space-y-3">
               {activeQuestion.options.map((option, idx) => (
                 <button
@@ -180,21 +209,52 @@ export default function StandardPoll({
             </div>
           )}
 
+          {!hasVoted && isWordCloud && (
+            <div className="p-4 space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-[var(--color-primary)] uppercase tracking-wider">
+                  Your Answer
+                </label>
+                <input
+                  type="text"
+                  value={wordInput}
+                  onChange={(e) => setWordInput(e.target.value)}
+                  placeholder="Type your response (max 200 characters)..."
+                  maxLength={200}
+                  disabled={!poll.currentQuestionActive || localSubmitting}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] text-slate-800 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
+                />
+              </div>
+              <button
+                onClick={handleSubmitWord}
+                disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
+                className="w-full py-3 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
+                Submit Answer
+              </button>
+            </div>
+          )}
+
           <div className="px-4 pb-4">
-            {voting ? (
+            {voting || localSubmitting ? (
               <div className="flex items-center justify-center gap-2 p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="font-medium">Recording vote...</span>
+                <span className="font-medium">Recording response...</span>
               </div>
             ) : hasVoted ? (
               <div className="flex items-center justify-center gap-2 p-4 bg-green-100 rounded-xl text-green-700">
                 <Check className="w-5 h-5" />
-                <span className="font-medium">Your vote is in! Results update live.</span>
+                <span className="font-medium">Your response is in! Results update live.</span>
               </div>
             ) : !poll.currentQuestionActive ? (
               <div className="flex items-center justify-center gap-2 p-4 bg-yellow-100 rounded-xl text-yellow-700">
                 <Lock className="w-5 h-5" />
                 <span className="font-medium">Voting locked. Wait for host.</span>
+              </div>
+            ) : isWordCloud ? (
+              <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
+                <span className="font-medium">Enter a word and tap submit to record your response</span>
               </div>
             ) : (
               <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">

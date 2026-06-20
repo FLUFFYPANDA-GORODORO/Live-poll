@@ -107,7 +107,7 @@ export default function PollRoom() {
   };
 
   // Vote using store action
-  const voteForOptionHandler = async (optionIndex) => {
+  const voteForOptionHandler = async (voteData) => {
     if (!poll?.currentQuestionActive || hasVoted || voting) {
       if (!poll?.currentQuestionActive) {
         toast.error("Voting is not active yet. Please wait for the host.");
@@ -119,18 +119,23 @@ export default function PollRoom() {
     const questionIndex = poll.activeQuestionIndex;
 
     try {
-      await voteForOption(pollId, questionIndex, optionIndex, sessionId);
+      const payload = typeof voteData === "number"
+        ? { type: "choice", optionIndex: voteData }
+        : { type: "wordcloud", text: voteData };
+
+      await voteForOption(pollId, questionIndex, payload, sessionId);
       setHasVoted(true);
-      setSelectedOption(optionIndex);
-      toast.success("Vote recorded!");
+      setSelectedOption(voteData);
+      toast.success("Response recorded!");
     } catch (err) {
       console.error("Error voting:", err);
       if (err.message?.includes("already voted")) {
         toast.error("You have already voted on this question");
         setHasVoted(true);
       } else {
-        toast.error("Failed to vote. Please try again.");
+        toast.error("Failed to submit. Please try again.");
       }
+      throw err; // rethrow to let UI components know it failed
     } finally {
       setVoting(false);
     }
@@ -175,7 +180,7 @@ export default function PollRoom() {
   }
 
   // Determine theme from title suffix
-  const { theme, cleanTitle } = parseTheme(poll.title, urlTheme);
+  const { theme, cleanTitle } = parseTheme(poll.title, urlTheme, poll.theme);
 
   const pollNotStarted = poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined;
   const activeQuestion = pollNotStarted ? null : poll.questions?.[poll.activeQuestionIndex];

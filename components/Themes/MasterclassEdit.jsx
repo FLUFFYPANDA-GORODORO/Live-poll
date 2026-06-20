@@ -5,33 +5,68 @@ import {
   Trash2, 
   Save, 
   ChevronLeft, 
-  Loader2,
-  Check,
-  X,
+  Loader2, 
+  Check, 
+  X, 
+  AlignLeft, 
+  Settings,
   GraduationCap
 } from "lucide-react";
+import { useState, useEffect } from "react";
 
-const CHART_COLORS = ["#10b981"];
+// Masterclass Green Palette
+const CHART_COLORS = ["#10b981"]; // Emerald-500
 
-function VerticalBarChart({ options }) {
+function VerticalBarChart({ options, showSampleData = true }) {
+  const generateSampleVotes = () => {
+    if (!showSampleData) return options.map(() => 0);
+    const total = 100;
+    let remaining = total;
+    return options.map((_, idx) => {
+      if (idx === options.length - 1) return remaining;
+      const vote = Math.floor(Math.random() * remaining * 0.7);
+      remaining -= vote;
+      return vote;
+    });
+  };
+
+  const [sampleVotes, setSampleVotes] = useState([]);
+
+  useEffect(() => {
+    setSampleVotes(generateSampleVotes());
+  }, [options.length, showSampleData]);
+
+  const totalVotes = sampleVotes.reduce((a, b) => a + b, 0) || 1;
+  const maxVotes = Math.max(...sampleVotes, 1);
+
   return (
-    <div className="flex items-end justify-center gap-4 h-48 px-4">
+    <div className="flex items-end justify-center gap-4 h-64 px-4 w-full max-w-lg mx-auto">
       {options.map((option, idx) => {
-        const height = 30 + (idx * 15) % 70;
+        const votes = sampleVotes[idx] || 0;
+        const percentage = Math.round((votes / totalVotes) * 100);
+        const height = (votes / maxVotes) * 100;
+
         return (
-          <div key={idx} className="flex flex-col items-center gap-2">
-            <div className="relative h-36 w-12 flex items-end">
+          <div
+            key={idx}
+            className="flex flex-col items-center gap-2 flex-1 max-w-[80px] h-full"
+          >
+            <div className="text-xs font-bold text-emerald-500 mb-1">{percentage}%</div>
+            <div className="relative w-full flex items-end flex-1 bg-emerald-50 rounded-t-md overflow-hidden border border-emerald-100">
               <div
-                className="w-full rounded-t-md transition-all duration-500 bg-gradient-to-t from-emerald-700 to-green-400"
+                className="w-full transition-all duration-500 rounded-t-md bg-gradient-to-t from-emerald-700 to-green-400"
                 style={{
                   height: `${height}%`,
-                  minHeight: "8px",
+                  minHeight: votes > 0 ? "8px" : "0",
                 }}
               />
             </div>
-            <div className="text-center">
-              <div className="text-sm font-semibold text-emerald-950 truncate max-w-[60px]">
-                {option || `Opt ${idx + 1}`}
+            <div className="text-center w-full">
+              <div
+                className="text-sm font-semibold text-emerald-950 truncate w-full"
+                title={option.text}
+              >
+                {option.text || `Opt ${idx + 1}`}
               </div>
             </div>
           </div>
@@ -41,45 +76,71 @@ function VerticalBarChart({ options }) {
   );
 }
 
-function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete }) {
-  const optionCount = question.options.filter(o => o.trim()).length;
-  
+function QuestionSlide({
+  question,
+  index,
+  isActive,
+  onClick,
+  onDelete,
+  canDelete,
+}) {
+  const optionCount = question.options ? question.options.filter((o) => o.trim()).length : 0;
+
   return (
     <div
       onClick={onClick}
-      className={`relative p-3 rounded-xl cursor-pointer transition-all ${
+      className={`relative p-4 rounded-xl cursor-pointer transition-all border ${
         isActive
-          ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 scale-[1.02]"
-          : "bg-white hover:bg-emerald-50/30 border border-emerald-100"
+          ? "bg-emerald-50/80 border-emerald-500 shadow-sm"
+          : "bg-white hover:bg-emerald-50/30 border-slate-200"
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
-        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-          isActive ? "bg-white/20 text-white" : "bg-emerald-100 text-emerald-700"
-        }`}>
+        <span
+          className={`text-xs font-bold px-2 py-0.5 rounded ${
+            isActive
+              ? "bg-emerald-500 text-white"
+              : "bg-emerald-100/50 text-emerald-700"
+          }`}
+        >
           Q{index + 1}
         </span>
         {canDelete && (
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className={`ml-auto p-1 rounded hover:bg-red-500/20 ${
-              isActive ? "text-white/80 hover:text-white" : "text-emerald-400 hover:text-emerald-600"
-            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }}
+            className="ml-auto p-1 rounded text-emerald-400 hover:bg-emerald-55 hover:text-emerald-600 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
-      <p className={`text-sm font-medium truncate ${
-        isActive ? "text-white" : "text-emerald-950"
-      }`}>
+      <p className="text-sm font-bold text-emerald-950 line-clamp-1 mb-1">
         {question.text || "Untitled Question"}
       </p>
-      <div className={`text-xs mt-1 ${
-        isActive ? "text-white/70" : "text-emerald-400"
-      }`}>
-        {optionCount} option{optionCount !== 1 ? "s" : ""}
+      <div className="text-xs text-emerald-550">
+        {question.type === "WordCloud" ? "Word Cloud" : `${optionCount} option${optionCount !== 1 ? "s" : ""}`}
       </div>
+      {question.type !== "WordCloud" && question.options ? (
+        <div className="flex items-end gap-1 h-6 mt-3 opacity-60">
+          {question.options.slice(0, 4).map((_, i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-t"
+              style={{
+                height: `${30 + i * 20}%`,
+                backgroundColor: isActive ? "#10b981" : "#a7f3d0",
+              }}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-1.5 h-6 mt-3 opacity-60 text-[10px] font-bold text-emerald-600 bg-emerald-50 rounded py-0.5">
+          ☁️ Word Cloud
+        </div>
+      )}
     </div>
   );
 }
@@ -91,8 +152,6 @@ export default function MasterclassEdit({
   setQuestions,
   activeQuestionIndex,
   setActiveQuestionIndex,
-  editingTitle,
-  setEditingTitle,
   isSaving,
   handleSavePoll,
   router,
@@ -123,6 +182,9 @@ export default function MasterclassEdit({
 
   const addOption = () => {
     const newQuestions = [...questions];
+    if (!newQuestions[activeQuestionIndex].options) {
+      newQuestions[activeQuestionIndex].options = [];
+    }
     newQuestions[activeQuestionIndex].options.push("");
     setQuestions(newQuestions);
   };
@@ -141,73 +203,60 @@ export default function MasterclassEdit({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-emerald-950">
-      <header className="bg-white border-b border-emerald-100 px-4 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="p-2 rounded-lg hover:bg-emerald-50 text-emerald-600"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            
-            {editingTitle ? (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Poll Title"
-                  className="text-xl font-bold text-emerald-950 bg-transparent border-b-2 border-emerald-500 focus:outline-none px-1"
-                  autoFocus
-                  onKeyDown={(e) => e.key === "Enter" && setEditingTitle(false)}
-                />
-                <button
-                  onClick={() => setEditingTitle(false)}
-                  className="p-1 rounded bg-emerald-500 text-white"
-                >
-                  <Check className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setEditingTitle(true)}
-                className="text-xl font-bold text-emerald-950 hover:text-emerald-500 flex items-center gap-1.5"
-              >
-                {title || "Untitled Poll"}
-              </button>
-            )}
-          </div>
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden text-emerald-950">
+      {/* Top Header */}
+      <header className="bg-white border-b border-emerald-100 flex items-center justify-between shadow-sm z-20 relative h-16">
+        <div className="w-96 h-full border-r border-emerald-100 flex items-center px-4 gap-3 bg-emerald-50/20">
+          <button
+            onClick={() => router.push("/dashboard")}
+            className="p-1.5 rounded-lg hover:bg-white text-emerald-500 hover:text-emerald-800 transition-all border border-transparent hover:border-emerald-200"
+            title="Back to Dashboard"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
 
-          <div className="flex items-center gap-3">
-            {themeDropdown}
-            <button
-              onClick={addQuestion}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Add Question
-            </button>
-            <button
-              onClick={handleSavePoll}
-              disabled={isSaving}
-              className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90 transition-all disabled:opacity-50"
-            >
-              {isSaving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
-              Save Changes
-            </button>
+          <div className="flex-1 min-w-0">
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Masterclass Poll"
+              className="w-full text-lg font-bold text-emerald-950 bg-white border border-emerald-200 rounded-lg px-4 py-2 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 placeholder-emerald-300 transition-all"
+            />
           </div>
+        </div>
+
+        {/* Center: Dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
+            <GraduationCap className="w-3.5 h-3.5 text-emerald-500 animate-bounce" />
+            Masterclass Active
+          </span>
+          {themeDropdown}
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-3 px-6">
+          <button
+            onClick={handleSavePoll}
+            disabled={isSaving}
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold hover:opacity-90 transition-all shadow-lg shadow-emerald-500/20 text-sm disabled:opacity-75 disabled:cursor-not-allowed"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            Save Changes (MC)
+          </button>
         </div>
       </header>
 
+      {/* Main Workspace (3-Column Layout) */}
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 bg-emerald-50/10 border-r border-emerald-100 p-4 overflow-y-auto">
-          <div className="space-y-3">
+        {/* 1. Left Sidebar: Question Slides */}
+        <aside className="w-64 bg-emerald-50/10 border-r border-emerald-100 flex flex-col h-full">
+          <div className="p-4 overflow-y-auto flex-1 space-y-3">
             {questions.map((q, idx) => (
               <QuestionSlide
                 key={idx}
@@ -219,83 +268,159 @@ export default function MasterclassEdit({
                 canDelete={questions.length > 1}
               />
             ))}
-            
+
             <button
               onClick={addQuestion}
-              className="w-full p-3 rounded-xl border-2 border-dashed border-emerald-250 text-emerald-500 hover:border-emerald-500 hover:text-emerald-600 transition-colors flex items-center justify-center gap-2"
+              className="w-full p-4 rounded-xl border-2 border-dashed border-emerald-300 text-emerald-500 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-55 transition-all flex items-center justify-center gap-2 font-medium text-sm"
             >
               <Plus className="w-4 h-4" />
-              Add Question
+              Add Class Slide
             </button>
+          </div>
+
+          <div className="p-4 border-t border-emerald-100 text-xs text-center text-rose-400">
+            {questions.length} question{questions.length !== 1 ? "s" : ""} total
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 p-8 flex items-center justify-center overflow-auto">
-            <div className="w-full max-w-2xl">
-              <div className="text-center mb-8">
-                <input
-                  type="text"
-                  value={activeQuestion?.text || ""}
-                  onChange={(e) => updateQuestionText(e.target.value)}
-                  placeholder="Type your green question here..."
-                  className="w-full text-2xl md:text-3xl font-bold text-center text-emerald-950 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-emerald-200"
-                />
-                <div className="text-sm text-emerald-500 mt-2">
-                  Question {activeQuestionIndex + 1} of {questions.length}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-emerald-100">
-                <VerticalBarChart options={activeQuestion?.options || []} />
-              </div>
-            </div>
+        {/* 2. Center: Canvas / Preview */}
+        <main className="flex-1 bg-stone-100 flex flex-col relative overflow-hidden">
+          <div className="p-8 pb-4 flex justify-center">
+            <input
+              type="text"
+              value={activeQuestion?.text || ""}
+              onChange={(e) => updateQuestionText(e.target.value)}
+              placeholder="Type your green-theme question..."
+              className="w-full max-w-3xl text-3xl md:text-4xl font-bold text-center text-emerald-950 bg-transparent border-none focus:outline-none focus:ring-0 placeholder-emerald-200 transition-colors"
+            />
           </div>
 
-          <div className="bg-white border-t border-emerald-100 p-4">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-sm font-semibold text-emerald-500">Options</span>
-                <button
-                  onClick={addOption}
-                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Option
-                </button>
-              </div>
-              
-              <div className="flex flex-wrap gap-3">
-                {activeQuestion?.options.map((option, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-2 bg-stone-50 rounded-lg px-3 py-2 border border-emerald-100 group"
-                  >
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+          <div className="flex-1 p-8 pt-4 flex items-center justify-center overflow-auto">
+            <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-8 border border-emerald-100 aspect-video flex flex-col justify-center">
+              {activeQuestion?.text ? (
+                <>
+                  <h3 className="text-xl font-semibold text-center text-emerald-900 mb-8">
+                    {activeQuestion.text}
+                  </h3>
+                  {activeQuestion.type === "WordCloud" ? (
+                    <div className="flex flex-wrap gap-4 items-center justify-center p-6 text-emerald-500 min-h-[180px]">
+                      <span className="text-4xl font-extrabold opacity-95">Interactive</span>
+                      <span className="text-2xl font-bold opacity-65">Word</span>
+                      <span className="text-5xl font-black text-emerald-650 animate-pulse">Cloud</span>
+                      <span className="text-xl font-medium opacity-55">Realtime</span>
+                      <span className="text-3xl font-semibold opacity-75">Live</span>
+                    </div>
+                  ) : (
+                    <VerticalBarChart
+                      key={activeQuestionIndex}
+                      options={
+                        activeQuestion?.options ? activeQuestion.options.map((o) => typeof o === "string" ? { text: o } : o) : []
+                      }
+                      showSampleData={true}
                     />
-                    <input
-                      type="text"
-                      value={option}
-                      onChange={(e) => updateOption(idx, e.target.value)}
-                      placeholder={`Option ${idx + 1}`}
-                      className="bg-transparent border-none focus:outline-none text-emerald-950 w-32"
-                    />
-                    {activeQuestion.options.length > 2 && (
-                      <button
-                        onClick={() => removeOption(idx)}
-                        className="p-1 rounded text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  )}
+                  <p className="text-xs text-emerald-450 text-center mt-6 italic">
+                    * Masterclass preview mode
+                  </p>
+                </>
+              ) : (
+                <div className="text-center text-emerald-300">
+                  <AlignLeft className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p>Start typing your question and options...</p>
+                </div>
+              )}
             </div>
           </div>
         </main>
+
+        {/* 3. Right Sidebar: Options Editor */}
+        <aside className="w-80 bg-white border-l border-emerald-100 flex flex-col h-full shadow-lg z-10">
+          <div className="p-5 border-b border-emerald-50 flex items-center gap-2">
+            <Settings className="w-5 h-5 text-emerald-400" />
+            <h2 className="font-bold text-emerald-800">Class Settings</h2>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-5">
+            {/* Question Type Dropdown */}
+            <div className="mb-6">
+              <label className="text-xs font-bold text-emerald-500 uppercase tracking-wider block mb-2">
+                Question Type
+              </label>
+              <select
+                value={activeQuestion?.type || "MultipleChoice"}
+                onChange={(e) => {
+                  const newQuestions = [...questions];
+                  newQuestions[activeQuestionIndex].type = e.target.value;
+                  if (e.target.value === "WordCloud") {
+                    newQuestions[activeQuestionIndex].options = [];
+                  } else if (!newQuestions[activeQuestionIndex].options?.length) {
+                    newQuestions[activeQuestionIndex].options = ["", ""];
+                  }
+                  setQuestions(newQuestions);
+                }}
+                className="w-full p-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-slate-700 bg-white"
+              >
+                <option value="MultipleChoice">Multiple Choice</option>
+                <option value="WordCloud">Word Cloud</option>
+              </select>
+            </div>
+
+            {activeQuestion?.type !== "WordCloud" ? (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                    Options
+                  </label>
+                  <span className="text-xs text-emerald-450 text-right">
+                    {activeQuestion?.options?.length || 0} items
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {activeQuestion?.options?.map((option, idx) => (
+                    <div key={idx} className="flex items-center gap-2 group">
+                      <div
+                        className="w-1.5 h-8 rounded-full bg-emerald-200 flex-shrink-0"
+                        style={{
+                          backgroundColor: CHART_COLORS[idx % CHART_COLORS.length],
+                        }}
+                      />
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={typeof option === "string" ? option : option.text || ""}
+                          onChange={(e) => updateOption(idx, e.target.value)}
+                          placeholder={`Option ${idx + 1}`}
+                          className="w-full pl-3 pr-8 py-2 rounded-lg border border-emerald-200 text-sm focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-emerald-200"
+                        />
+                        {activeQuestion.options.length > 2 && (
+                          <button
+                            onClick={() => removeOption(idx)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-emerald-300 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={addOption}
+                  className="mt-4 w-full py-2.5 rounded-lg border border-emerald-200 text-emerald-600 hover:border-emerald-500 hover:text-emerald-600 transition-all text-sm font-medium flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Option
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl text-center text-xs text-emerald-700">
+                ☁️ <strong>Word Cloud Mode</strong> collects free-text answers from voters. No options are needed!
+              </div>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   );

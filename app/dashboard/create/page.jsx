@@ -42,6 +42,7 @@ export default function CreatePoll() {
       titleWithSuffix = `${titleWithSuffix} ~MC`;
     }
 
+    const cleanedQuestions = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.text.trim()) {
@@ -49,17 +50,22 @@ export default function CreatePoll() {
         setActiveQuestionIndex(i);
         return;
       }
-      const validOptions = q.options.filter((opt) => opt.trim() !== "");
-      if (validOptions.length < 2) {
-        toast.error(`Question ${i + 1} needs at least 2 options`);
-        setActiveQuestionIndex(i);
-        return;
+      if (q.type === "WordCloud") {
+        cleanedQuestions.push({ ...q, options: [] });
+      } else {
+        const validOptions = q.options.filter((opt) => opt.trim() !== "");
+        if (validOptions.length < 2) {
+          toast.error(`Question ${i + 1} needs at least 2 options`);
+          setActiveQuestionIndex(i);
+          return;
+        }
+        cleanedQuestions.push({ ...q, options: validOptions });
       }
     }
 
     try {
       // Send title to API with suffix to persist theme
-      const pollId = await createPoll(titleWithSuffix, questions);
+      const pollId = await createPoll(titleWithSuffix, cleanedQuestions, selectedTheme);
 
       toast.success("Poll created successfully!");
       if (redirectPath === "dashboard") {

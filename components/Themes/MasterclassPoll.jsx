@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, GraduationCap } from "lucide-react";
 
 // Green/Emerald Palette
@@ -53,6 +54,27 @@ export default function MasterclassPoll({
   activeQuestion,
   router
 }) {
+  const [wordInput, setWordInput] = useState("");
+  const [localSubmitting, setLocalSubmitting] = useState(false);
+
+  const isWordCloud = activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || String(activeQuestion?.type).toLowerCase() === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
+    const txt = typeof opt === "string" ? opt : (opt.text || "");
+    return !txt.trim();
+  });
+
+  const handleSubmitWord = async () => {
+    const trimmedWord = wordInput.trim();
+    if (!trimmedWord || localSubmitting) return;
+
+    setLocalSubmitting(true);
+    try {
+      await voteForOptionHandler(trimmedWord);
+    } catch (err) {
+      // Re-enable on failure, keep text populated
+      setLocalSubmitting(false);
+    }
+  };
+
   if (pollNotStarted) {
     return (
       <div className="min-h-screen bg-[url('/MCbackground.jpg')] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-6 text-emerald-50">
@@ -69,7 +91,7 @@ export default function MasterclassPoll({
               <Lock className="w-8 h-8 text-emerald-400" />
             </div>
             <h2 className="text-xl font-bold mb-3 text-white">Classroom Waiting Room</h2>
-            <p className="text-slate-350 mb-6">Waiting for the class lecture to begin...</p>
+            <p className="text-slate-355 mb-6">Waiting for the class lecture to begin...</p>
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />
@@ -111,13 +133,13 @@ export default function MasterclassPoll({
       </div>
 
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1">
-        {/* Question Panel - Reverted to Clean White Card with compact layout */}
+        {/* Question Panel */}
         <div className="bg-white rounded-2xl border border-emerald-100 shadow-xl overflow-hidden">
           <div className="p-4 bg-gradient-to-b from-emerald-50/50 to-transparent">
             <h2 className="text-sm md:text-base font-bold text-slate-900 text-center mb-1 leading-snug">
               {activeQuestion.text}
             </h2>
-            {totalVotes > 0 && (
+            {totalVotes > 0 && !isWordCloud && (
               <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-650 font-medium">
                 <Users className="w-3.5 h-3.5" />
                 {totalVotes} response{totalVotes !== 1 ? "s" : ""}
@@ -126,14 +148,24 @@ export default function MasterclassPoll({
           </div>
 
           {/* Results preview */}
-          {hasVoted && (
+          {hasVoted && !isWordCloud && (
             <div className="px-4 pb-4">
               <HorizontalBarChart options={activeQuestion.options} votes={currentVotes} totalVotes={totalVotes} />
             </div>
           )}
 
+          {hasVoted && isWordCloud && (
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4 border border-emerald-200">
+                <Check className="w-6 h-6 text-emerald-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-1">Response Recorded!</h3>
+              <p className="text-xs text-slate-505 text-slate-500">Wait for the presenter to show the results.</p>
+            </div>
+          )}
+
           {/* Answer options */}
-          {!hasVoted && (
+          {!hasVoted && !isWordCloud && (
             <div className="p-3 space-y-2">
               {activeQuestion.options.map((option, idx) => (
                 <button
@@ -158,9 +190,36 @@ export default function MasterclassPoll({
             </div>
           )}
 
+          {!hasVoted && isWordCloud && (
+            <div className="p-4 space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                  Your Answer
+                </label>
+                <input
+                  type="text"
+                  value={wordInput}
+                  onChange={(e) => setWordInput(e.target.value)}
+                  placeholder="Type your response (max 200 characters)..."
+                  maxLength={200}
+                  disabled={!poll.currentQuestionActive || localSubmitting}
+                  className="w-full p-3 border border-emerald-100 rounded-xl text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-slate-805 placeholder-slate-400 bg-slate-50 disabled:opacity-60"
+                />
+              </div>
+              <button
+                onClick={handleSubmitWord}
+                disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md shadow-emerald-500/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
+                Submit Answer
+              </button>
+            </div>
+          )}
+
           {/* Message bar */}
           <div className="px-3 pb-3">
-            {voting ? (
+            {(voting || localSubmitting) ? (
               <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 rounded-lg text-emerald-650 border border-emerald-100/20 text-xs font-semibold">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Transmitting response...</span>
@@ -174,6 +233,10 @@ export default function MasterclassPoll({
               <div className="flex items-center justify-center gap-2 p-2 bg-slate-100 rounded-lg text-slate-600 border border-slate-200 text-xs font-semibold">
                 <Lock className="w-4 h-4" />
                 <span>Voting is currently locked.</span>
+              </div>
+            ) : isWordCloud ? (
+              <div className="text-center p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100/30 text-xs font-semibold">
+                <span>Enter a word and tap submit to record your response</span>
               </div>
             ) : (
               <div className="text-center p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100/30 text-xs font-semibold">

@@ -125,51 +125,26 @@ export default function SynergySpherePoll({
   }
 
   return (
-    <div className="h-screen max-h-screen bg-stone-50 p-4 md:p-6 text-rose-950 font-sans flex flex-col justify-between overflow-y-auto relative">
-      {/* Top Left Logo */}
-      <div className="absolute top-4 left-4 z-20">
-        <img src="/GryphonBlack.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+    <div className="h-screen max-h-screen bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-rose-950 font-sans flex flex-col justify-between overflow-y-auto relative">
+      {/* Light overlay for background blending */}
+      <div className="absolute inset-0 bg-white/70 z-0" />
+
+      {/* Top Logo Header - Gryphon left, Synergy Sphere right */}
+      <div className="w-full flex items-center justify-between gap-3 mb-2 flex-shrink-0 z-10 relative">
+        <img src="/GryphonBlack.png" alt="Gryphon Logo" className="h-12 w-auto object-contain" />
+        <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-10 w-auto object-contain" />
       </div>
 
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
-        {/* Header */}
-        <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="w-5 h-5 text-rose-500" />
-            <h1 className="text-xl md:text-2xl font-bold text-rose-950">{cleanTitle}</h1>
-          </div>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <span className="text-sm bg-rose-100/50 border border-rose-200/50 px-3 py-1 rounded-full text-rose-700 font-semibold">
-              Slide {poll.activeQuestionIndex + 1}/{poll.questions?.length}
-            </span>
-            <span className={`text-sm px-3 py-1 rounded-full flex items-center gap-1.5 font-semibold ${
-              poll.currentQuestionActive 
-                ? "bg-rose-100 text-rose-700 border border-rose-200" 
-                : "bg-stone-200 text-stone-700 border border-stone-300"
-            }`}>
-              {poll.currentQuestionActive ? (
-                <><span className="w-2 h-2 bg-rose-500 rounded-full animate-ping" />Active</>
-              ) : (
-                <><Clock className="w-3.5 h-3.5" />Locked</>
-              )}
-            </span>
-            {hasVoted && (
-              <span className="text-sm px-3 py-1 rounded-full bg-red-100 text-rose-700 border border-rose-200 flex items-center gap-1 font-semibold">
-                <Check className="w-3.5 h-3.5 text-rose-600" />Submitted
-              </span>
-            )}
-          </div>
-        </div>
-
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1 z-10 relative">
         {/* Question Panel */}
         <div className="bg-white rounded-2xl border border-rose-100 shadow-xl overflow-hidden">
-          <div className="p-6 bg-gradient-to-b from-rose-50/50 to-transparent">
-            <h2 className="text-xl md:text-2xl font-black text-stone-900 text-center mb-2 leading-snug">
+          <div className="p-4 bg-gradient-to-b from-rose-50/50 to-transparent">
+            <h2 className="text-sm md:text-base font-bold text-stone-900 text-center mb-1 leading-snug">
               {activeQuestion.text}
             </h2>
             {totalVotes > 0 && !isWordCloud && (
-              <div className="flex items-center justify-center gap-2 text-sm text-rose-600/80 font-medium">
-                <Users className="w-4 h-4" />
+              <div className="flex items-center justify-center gap-1.5 text-xs text-rose-600/80 font-medium">
+                <Users className="w-3.5 h-3.5" />
                 {totalVotes} response{totalVotes !== 1 ? "s" : ""}
               </div>
             )}
@@ -177,7 +152,7 @@ export default function SynergySpherePoll({
 
           {/* Results preview */}
           {hasVoted && !isWordCloud && (
-            <div className="px-4 pb-6">
+            <div className="px-4 pb-4">
               <VerticalBarChart options={activeQuestion.options} votes={currentVotes} totalVotes={totalVotes} />
             </div>
           )}
@@ -194,25 +169,25 @@ export default function SynergySpherePoll({
 
           {/* Answer options */}
           {!hasVoted && !isWordCloud && (
-            <div className="p-4 space-y-3">
+            <div className="p-3 space-y-2">
               {activeQuestion.options.map((option, idx) => (
                 <button
                   key={idx}
                   onClick={() => voteForOptionHandler(idx)}
                   disabled={!poll.currentQuestionActive || voting}
-                  className={`w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 border ${
+                  className={`w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${
                     poll.currentQuestionActive && !voting
                       ? "bg-stone-50 hover:bg-rose-50/50 border-rose-100/50 hover:border-rose-400 cursor-pointer active:scale-[0.98]"
                       : "bg-stone-100 border-stone-200 cursor-not-allowed opacity-60"
                   }`}
                 >
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0 bg-gradient-to-br from-red-500 to-rose-600 shadow-md"
+                    className="w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 bg-gradient-to-br from-red-500 to-rose-600 shadow-md"
                     style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
                   >
                     {String.fromCharCode(65 + idx)}
                   </div>
-                  <span className="text-stone-900 font-semibold">{option.text}</span>
+                  <span className="text-stone-900 font-semibold text-xs md:text-sm">{option.text}</span>
                 </button>
               ))}
             </div>
@@ -237,7 +212,7 @@ export default function SynergySpherePoll({
               <button
                 onClick={handleSubmitWord}
                 disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
-                className="w-full py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-sm font-bold shadow-md shadow-rose-500/10 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               >
                 {(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Answer
@@ -246,29 +221,29 @@ export default function SynergySpherePoll({
           )}
 
           {/* Message bar */}
-          <div className="px-4 pb-4">
-            {voting || localSubmitting ? (
-              <div className="flex items-center justify-center gap-2 p-4 bg-rose-50 rounded-xl text-rose-650">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span className="font-semibold">Transmitting sphere response...</span>
+          <div className="px-3 pb-3">
+            {(voting || localSubmitting) ? (
+              <div className="flex items-center justify-center gap-2 p-2 bg-rose-50 rounded-lg text-rose-650 border border-rose-100/20 text-xs font-semibold">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Transmitting sphere response...</span>
               </div>
             ) : hasVoted ? (
-              <div className="flex items-center justify-center gap-2 p-4 bg-rose-50 rounded-xl text-rose-700 border border-rose-100/50">
-                <Check className="w-5 h-5" />
-                <span className="font-semibold">Response logged! Results updated live.</span>
+              <div className="flex items-center justify-center gap-2 p-2 bg-rose-50 rounded-lg text-rose-700 border border-rose-100/50 text-xs font-semibold">
+                <Check className="w-4 h-4" />
+                <span>Response logged! Results updated live.</span>
               </div>
             ) : !poll.currentQuestionActive ? (
-              <div className="flex items-center justify-center gap-2 p-4 bg-stone-150 rounded-xl text-stone-600">
-                <Lock className="w-5 h-5" />
-                <span className="font-semibold">Voting is currently locked.</span>
+              <div className="flex items-center justify-center gap-2 p-2 bg-stone-100 rounded-lg text-stone-600 border border-stone-200 text-xs font-semibold">
+                <Lock className="w-4 h-4" />
+                <span>Voting is currently locked.</span>
               </div>
             ) : isWordCloud ? (
-              <div className="text-center p-4 bg-rose-50 rounded-xl text-rose-600 border border-rose-100/30">
-                <span className="font-semibold">Enter a word and tap submit to record your response</span>
+              <div className="text-center p-2 bg-rose-50 rounded-lg text-rose-600 border border-rose-100/30 text-xs font-semibold">
+                <span>Enter a word and tap submit to record your response</span>
               </div>
             ) : (
-              <div className="text-center p-4 bg-rose-50 rounded-xl text-rose-600 border border-rose-100/30">
-                <span className="font-semibold">Tap an option to lock in your answer</span>
+              <div className="text-center p-2 bg-rose-50 rounded-lg text-rose-600 border border-rose-100/30 text-xs font-semibold">
+                <span>Tap an option to lock in your answer</span>
               </div>
             )}
           </div>

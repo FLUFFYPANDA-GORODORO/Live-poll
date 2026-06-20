@@ -305,7 +305,7 @@ export default function MasterclassPresent({
           series.minWordLength = 2;
           series.labels.template.tooltipText = "{word}: {value}";
           
-          series.fontFamily = "Fraunces";
+          series.fontFamily = "Libre Baskerville";
           series.maxFontSize = window.am4core.percent(25);
           series.minFontSize = window.am4core.percent(8);
 
@@ -416,8 +416,8 @@ export default function MasterclassPresent({
 
   return (
     <div className="h-screen max-h-screen bg-[url('/MCbackground.jpg')] bg-cover bg-center bg-no-repeat flex flex-col text-emerald-50 font-epilogue font-light overflow-hidden relative select-none">
-      {/* Dark overlay for better contrast and legibility */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] z-0" />
+      {/* Dark overlay for better contrast and legibility without blurring the background */}
+      <div className="absolute inset-0 bg-black/40 z-0" />
 
       {/* Floating Emojis Container */}
       <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
@@ -436,11 +436,10 @@ export default function MasterclassPresent({
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
         
-        .font-fraunces {
-          font-family: 'Fraunces', serif;
-          font-optical-sizing: auto;
+        .font-baskerville {
+          font-family: 'Libre Baskerville', serif;
         }
         .font-epilogue {
           font-family: 'Epilogue', sans-serif;
@@ -495,10 +494,10 @@ export default function MasterclassPresent({
       </header>
 
       {/* Main Content (Centered & Clear) */}
-      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-black/10 backdrop-blur-[0.5px] rounded-3xl border border-white/5 shadow-2xl my-4">
+      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-black/15 rounded-3xl border border-white/5 shadow-2xl my-4">
         {/* Question Title - Centered */}
         <div className="text-center w-full max-w-4xl mx-auto mb-6 mt-2">
-          <h2 className="text-4xl md:text-5xl font-fraunces font-light text-white leading-tight drop-shadow-lg tracking-wide">
+          <h2 className="text-4xl md:text-5xl font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide">
             {currentQuestion?.text || "No question"}
           </h2>
         </div>

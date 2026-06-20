@@ -94,8 +94,9 @@ export default function PollRoom() {
 
   // Get all votes for current question
   const getCurrentVotes = () => {
-    if (!poll?.questions?.[poll.activeQuestionIndex]) return [];
-    return poll.questions[poll.activeQuestionIndex].options.map((_, idx) =>
+    const question = poll?.questions?.[poll.activeQuestionIndex];
+    if (!question?.options || question.options.length === 0) return [];
+    return question.options.map((_, idx) =>
       getVoteCount(poll.activeQuestionIndex, idx),
     );
   };
@@ -193,6 +194,7 @@ export default function PollRoom() {
   // Render layout using the merged component
   return (
     <PollScreen
+      key={`q-${poll.activeQuestionIndex}`}
       poll={poll}
       cleanTitle={cleanTitle}
       pollId={pollId}

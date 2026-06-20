@@ -330,123 +330,8 @@ export default function SynergySpherePresent({
       {/* Light overlay */}
       <div className="absolute inset-0 bg-white/10 z-0" />
 
-      {/* ── Emoji Panel — fixed bottom-right, separate from controls ── */}
-      <div className="fixed bottom-6 right-6 z-30 flex flex-col items-center gap-1 pointer-events-none">
-        {/* Float zone: emojis drift upward through here */}
-        <div
-          className="relative overflow-visible"
-          style={{ width: 64, height: 180 }}
-        >
-          {floatingEmojis.map((r) => (
-            <span
-              key={r.id}
-              className={`sn-flow-${r.flow} absolute select-none pointer-events-none`}
-              style={{
-                animationDuration: `${r.timing}s`,
-                fontSize: `${r.size}px`,
-                bottom: 0,
-              }}
-            >
-              {r.emoji}
-            </span>
-          ))}
-        </div>
-
-        {/* Stacked emoji buttons — small, overlapping vertically */}
-        <div className="pointer-events-auto flex flex-col items-center bg-black/60 backdrop-blur-md border border-white/10 rounded-xl px-1.5 py-1 shadow-2xl">
-          {BASIC_EMOJIS.map((item, idx) => (
-            <button
-              key={idx}
-              onClick={() => launchEmoji(item.emoji)}
-              title={item.label}
-              className="w-7 h-7 rounded-full flex items-center justify-center text-base hover:scale-125 active:scale-90 transition-transform duration-100 select-none bg-white/10 hover:bg-white/20"
-              style={{ marginTop: idx === 0 ? 0 : -6 }}
-            >
-              {item.emoji}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Top Bar */}
-      <header className="w-full z-20 relative bg-transparent">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div><img src="/GryphonWhite.png" alt="Gryphon Logo"        className="h-16 w-auto object-contain" /></div>
-          <div><img src="/SNSlogo.png"       alt="Synergy Sphere Logo" className="h-12 w-auto object-contain" /></div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-transparent border-none shadow-none my-4">
-        <div className="text-center w-full max-w-4xl mx-auto mb-6 mt-2">
-          <h2 className="text-4xl md:text-5xl font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide">
-            {currentQuestion?.text || "No question"}
-          </h2>
-        </div>
-
-        {isWordCloud ? (
-          <div className="w-full flex-1 flex flex-col justify-center items-center max-w-5xl mx-auto my-auto mb-6 pt-4">
-            {wordsList.length > 0 ? (
-              <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-8 bg-black/15 backdrop-blur-[0.5px] rounded-3xl border border-white/5 text-center max-w-md">
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10 animate-pulse text-2xl">☁️</div>
-                <h3 className="text-white font-bold text-lg mb-1">Waiting for Responses</h3>
-                <p className="text-slate-400 text-sm">Words submitted by participants will appear here in real-time.</p>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="w-full flex-1 flex flex-col justify-end mb-6">
-            <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
-              {currentQuestion?.options?.map((option, idx) => {
-                const votes    = getVoteCount(idx);
-                const height   = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
-                const gradient = CHART_COLORS[idx % CHART_COLORS.length];
-                return (
-                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
-                    <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
-                      <div className="text-white font-bold text-2xl mb-2 drop-shadow-md">{votes}</div>
-                      {votes > 0 && (
-                        <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
-                          style={{ background: gradient, boxShadow: "0 4px 20px rgba(255,255,255,0.1)" }} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="flex justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto mt-4">
-              {currentQuestion?.options?.map((option, idx) => (
-                <div key={idx} className="flex-1 max-w-[120px] text-center">
-                  <div className="text-slate-200 font-semibold text-xs md:text-sm whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
-                    {option.text}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* QR Code Modal */}
-      {showQR && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300">
-          <div className="bg-black/90 border border-white/15 p-8 rounded-3xl flex flex-col items-center max-w-md w-full shadow-2xl relative mx-4">
-            <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-            <h3 className="text-white font-bold text-xl mb-4 text-center">Join the Poll</h3>
-            <div className="bg-white p-4 rounded-2xl mb-4"><QRCodeSVG value={pollUrl} size={320} /></div>
-            <p className="text-rose-300 font-mono font-bold tracking-wider text-base select-all">{pollId}</p>
-            <p className="text-slate-400 text-xs text-center mt-2">Scan the QR code or click the link below to participate:</p>
-            <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-rose-400 hover:text-rose-300 hover:underline mt-4 text-sm font-semibold break-all text-center">{pollUrl}</a>
-          </div>
-        </div>
-      )}
-
       {/* ── Bottom Controls Bar ── */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-7xl px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
+      <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         {/* Left: Poll controls */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
           {isVotingActive ? (
@@ -466,17 +351,52 @@ export default function SynergySpherePresent({
           <button onClick={() => setConfettiActive(true)} className="text-slate-400 hover:text-white transition-colors px-1 text-base active:scale-95 duration-100" title="Confetti Burst (C)">🎉</button>
         </div>
 
-        {/* Right: Stats + QR + fullscreen */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto">
+        {/* Right: Stats + Emojis + QR + fullscreen */}
+        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
+          {/* Float zone: emojis drift upward through here, relative to the container */}
+          <div className="absolute bottom-full right-[180px] pointer-events-none z-50 w-36 h-72 overflow-visible flex justify-center items-end mb-2">
+            {floatingEmojis.map((r) => (
+              <span
+                key={r.id}
+                className={`sn-flow-${r.flow} absolute select-none pointer-events-none`}
+                style={{
+                  animationDuration: `${r.timing}s`,
+                  fontSize: `${r.size}px`,
+                  bottom: 0,
+                }}
+              >
+                {r.emoji}
+              </span>
+            ))}
+          </div>
+
           <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
             <Users className="w-3.5 h-3.5 text-rose-400" />
             <span>{totalVotes}</span>
           </div>
+          
           <div className="w-px h-4 bg-white/20" />
+
           <button onClick={() => setShowQR(!showQR)} className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQR ? "bg-rose-600 hover:bg-rose-700 text-white border-rose-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"}`} title="Toggle QR Code">QR</button>
           <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5" title="Toggle Fullscreen">
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
+
+          <div className="w-px h-4 bg-white/20" />
+
+          {/* Horizontal Emojis Panel */}
+          <div className="flex items-center gap-1">
+            {BASIC_EMOJIS.map((item, idx) => (
+              <button
+                key={idx}
+                onClick={() => launchEmoji(item.emoji)}
+                title={item.label}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-base hover:scale-125 active:scale-90 transition-transform duration-100 select-none bg-white/10 hover:bg-white/20 cursor-pointer"
+              >
+                {item.emoji}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

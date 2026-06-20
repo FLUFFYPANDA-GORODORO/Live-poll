@@ -233,6 +233,7 @@ export default function PresentationMode() {
       <ProtectedRoute>
         <div ref={containerRef} className="w-full h-full relative">
           <SynergySpherePresent
+            key={currentQuestionIndex}
             poll={poll}
             cleanTitle={cleanTitle}
             pollId={pollId}
@@ -283,6 +284,7 @@ export default function PresentationMode() {
       <ProtectedRoute>
         <div ref={containerRef} className="w-full h-full relative">
           <MasterclassPresent
+            key={currentQuestionIndex}
             poll={poll}
             cleanTitle={cleanTitle}
             pollId={pollId}
@@ -333,6 +335,7 @@ export default function PresentationMode() {
     <ProtectedRoute>
       <div ref={containerRef} className="w-full h-full relative">
         <StandardPresent
+          key={currentQuestionIndex}
           poll={poll}
           cleanTitle={cleanTitle}
           pollId={pollId}

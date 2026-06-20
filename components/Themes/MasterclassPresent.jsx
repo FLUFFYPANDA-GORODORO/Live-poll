@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Maximize, 
-  Minimize, 
-  Square, 
-  Users, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Maximize,
+  Minimize,
+  Square,
+  Users,
   X,
   GraduationCap
 } from "lucide-react";
@@ -38,7 +38,7 @@ function ConfettiBurst({ active, onComplete }) {
     let confetti = [];
     let sequins = [];
 
-    const confettiCount = 40; 
+    const confettiCount = 40;
     const sequinCount = 20;
 
     const gravityConfetti = 0.6;
@@ -255,7 +255,7 @@ export default function MasterclassPresent({
 
   useEffect(() => {
     let disposed = false;
-    
+
     const loadScript = (src) => {
       return new Promise((resolve, reject) => {
         if (typeof window === "undefined") return resolve();
@@ -308,7 +308,7 @@ export default function MasterclassPresent({
           series.maxCount = 200;
           series.minWordLength = 2;
           series.labels.template.tooltipText = "{word}: {value}";
-          
+
           series.fontFamily = "Libre Baskerville";
           series.maxFontSize = window.am4core.percent(45);
           series.minFontSize = window.am4core.percent(6);
@@ -317,7 +317,7 @@ export default function MasterclassPresent({
           series.dataFields.value = "count";
 
           // Adapt fills using our theme colors
-          series.labels.template.adapter.add("fill", function(fill, target) {
+          series.labels.template.adapter.add("fill", function (fill, target) {
             if (target.dataItem && target.dataItem.word) {
               return window.am4core.color(getWordColor(target.dataItem.word));
             }
@@ -641,9 +641,8 @@ export default function MasterclassPresent({
           {/* QR Code Toggle */}
           <button
             onClick={() => setShowQR(!showQR)}
-            className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-              showQR ? "bg-emerald-650 hover:bg-emerald-700 text-white border-emerald-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"
-            }`}
+            className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQR ? "bg-emerald-650 hover:bg-emerald-700 text-white border-emerald-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"
+              }`}
             title="Toggle QR Code"
           >
             QR

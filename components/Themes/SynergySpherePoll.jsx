@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles } from "lucide-react";
+import { Loader2, Home, Check, Lock, AlertCircle, Users } from "lucide-react";
 
 // Red/Rose Palette
 const CHART_COLORS = ["#ef4444", "#f43f5e", "#fda4af", "#e11d48"];

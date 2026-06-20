@@ -28,9 +28,8 @@ function VerticalBarChart({ options, votes, totalVotes, theme }) {
             </div>
             <div className="relative h-32 md:h-40 w-full flex items-end justify-center">
               <div
-                className={`w-10 md:w-12 rounded-t-lg transition-all duration-700 ease-out ${
-                  isSynergy ? "bg-gradient-to-t from-red-600 to-rose-500" : ""
-                }`}
+                className={`w-10 md:w-12 rounded-t-lg transition-all duration-700 ease-out ${isSynergy ? "bg-gradient-to-t from-red-600 to-rose-500" : ""
+                  }`}
                 style={{
                   height: `${height}%`,
                   backgroundColor: isSynergy ? undefined : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length],
@@ -39,9 +38,8 @@ function VerticalBarChart({ options, votes, totalVotes, theme }) {
               />
             </div>
             <div className="text-center">
-              <div className={`text-xs md:text-sm font-semibold truncate max-w-[70px] ${
-                isSynergy ? "text-rose-950" : "text-[#1E293B]"
-              }`}>
+              <div className={`text-xs md:text-sm font-semibold truncate max-w-[70px] ${isSynergy ? "text-rose-950" : "text-[#1E293B]"
+                }`}>
                 {option.text}
               </div>
               <div className={`text-xs ${isSynergy ? "text-rose-500 font-bold" : "text-[#64748B]"}`}>
@@ -290,9 +288,8 @@ export default function StandardPoll({
               <span className="text-sm bg-[#E2E8F0] px-3 py-1 rounded-full text-[#64748B]">
                 Q{poll.activeQuestionIndex + 1}/{poll.questions?.length}
               </span>
-              <span className={`text-sm px-3 py-1 rounded-full flex items-center gap-1.5 ${
-                poll.currentQuestionActive ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
-              }`}>
+              <span className={`text-sm px-3 py-1 rounded-full flex items-center gap-1.5 ${poll.currentQuestionActive ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                }`}>
                 {poll.currentQuestionActive ? (
                   <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />Live</>
                 ) : (
@@ -361,16 +358,14 @@ export default function StandardPoll({
 
           {hasVoted && isWordCloud && (
             <div className="p-6 text-center">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 border ${
-                isMasterclass
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 border ${isMasterclass
                   ? "bg-emerald-100 border-emerald-200"
                   : isSynergy
-                  ? "bg-rose-100 border-rose-200"
-                  : "bg-green-100 border-green-200"
-              }`}>
-                <Check className={`w-6 h-6 ${
-                  isMasterclass ? "text-emerald-600" : isSynergy ? "text-rose-600" : "text-green-600"
-                }`} />
+                    ? "bg-rose-100 border-rose-200"
+                    : "bg-green-100 border-green-200"
+                }`}>
+                <Check className={`w-6 h-6 ${isMasterclass ? "text-emerald-600" : isSynergy ? "text-rose-600" : "text-green-600"
+                  }`} />
               </div>
               <h3 className={`text-lg font-bold mb-1 ${isSynergy || isMasterclass ? "text-slate-800" : "text-slate-800"}`}>
                 Response Recorded!
@@ -390,26 +385,23 @@ export default function StandardPoll({
                 let badgeStyle = {};
 
                 if (isMasterclass) {
-                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${
-                    poll.currentQuestionActive && !voting
+                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${poll.currentQuestionActive && !voting
                       ? "bg-slate-50 hover:bg-emerald-50/50 border-emerald-100/50 hover:border-emerald-450 cursor-pointer active:scale-[0.98]"
                       : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60"
-                  }`;
+                    }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
                   badgeStyle = { backgroundColor: MASTERCLASS_CHART_COLORS[idx % MASTERCLASS_CHART_COLORS.length] };
                 } else if (isSynergy) {
-                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${
-                    poll.currentQuestionActive && !voting
+                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${poll.currentQuestionActive && !voting
                       ? "bg-stone-50 hover:bg-rose-50/50 border-rose-100/50 hover:border-rose-400 cursor-pointer active:scale-[0.98]"
                       : "bg-stone-100 border-stone-200 cursor-not-allowed opacity-60"
-                  }`;
+                    }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 bg-gradient-to-br from-red-500 to-rose-600 shadow-md";
                 } else {
-                  buttonStyleClass = `w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 ${
-                    poll.currentQuestionActive && !voting
+                  buttonStyleClass = `w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 ${poll.currentQuestionActive && !voting
                       ? "bg-[#F8FAFC] hover:bg-slate-100 border-2 border-transparent hover:border-[var(--color-primary)] cursor-pointer active:scale-[0.98]"
                       : "bg-[#F1F5F9] cursor-not-allowed opacity-60"
-                  }`;
+                    }`;
                   badgeClass = "w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0";
                   badgeStyle = { backgroundColor: STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
                 }
@@ -437,9 +429,8 @@ export default function StandardPoll({
           {!hasVoted && isWordCloud && (
             <div className="p-4 space-y-4">
               <div className="flex flex-col gap-1.5">
-                <label className={`text-xs font-bold uppercase tracking-wider ${
-                  isMasterclass ? "text-emerald-600" : isSynergy ? "text-rose-600" : "text-[var(--color-primary)]"
-                }`}>
+                <label className={`text-xs font-bold uppercase tracking-wider ${isMasterclass ? "text-emerald-600" : isSynergy ? "text-rose-600" : "text-[var(--color-primary)]"
+                  }`}>
                   Your Answer
                 </label>
                 <input
@@ -449,25 +440,23 @@ export default function StandardPoll({
                   placeholder="Type your response (max 50 characters)..."
                   maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
-                  className={`w-full p-3 border rounded-xl text-sm focus:outline-none focus:ring-1 bg-slate-50 disabled:opacity-60 text-slate-800 placeholder-slate-400 ${
-                    isMasterclass
+                  className={`w-full p-3 border rounded-xl text-sm focus:outline-none focus:ring-1 bg-slate-50 disabled:opacity-60 text-slate-800 placeholder-slate-400 ${isMasterclass
                       ? "border-emerald-100 focus:border-emerald-500 focus:ring-emerald-500"
                       : isSynergy
-                      ? "border-rose-100 focus:border-rose-500 focus:ring-rose-500"
-                      : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                  }`}
+                        ? "border-rose-100 focus:border-rose-500 focus:ring-rose-500"
+                        : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                    }`}
                 />
               </div>
               <button
                 onClick={handleSubmitWord}
                 disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
-                className={`w-full py-3 text-white rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${
-                  isMasterclass
+                className={`w-full py-3 text-white rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isMasterclass
                     ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 shadow-emerald-500/10"
                     : isSynergy
-                    ? "bg-rose-600 hover:bg-rose-700 disabled:opacity-50 shadow-rose-500/10"
-                    : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
-                }`}
+                      ? "bg-rose-600 hover:bg-rose-700 disabled:opacity-50 shadow-rose-500/10"
+                      : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                  }`}
               >
                 {(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Answer

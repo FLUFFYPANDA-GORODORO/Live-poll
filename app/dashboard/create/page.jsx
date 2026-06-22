@@ -16,6 +16,8 @@ export default function CreatePoll() {
   const [questions, setQuestions] = useState([{ text: "", type: "MultipleChoice", options: ["", ""] }]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [selectedTheme, setSelectedTheme] = useState("standard");
+  const [enableBidding, setEnableBidding] = useState(false);
+  const [skillCost, setSkillCost] = useState(20);
 
   const { createPoll, isSaving } = usePollStore();
 
@@ -63,7 +65,8 @@ export default function CreatePoll() {
 
     try {
       // Send title to API with suffix to persist theme
-      const pollId = await createPoll(titleWithSuffix, cleanedQuestions, selectedTheme);
+      const actualSkillCost = enableBidding ? skillCost : 0;
+      const pollId = await createPoll(titleWithSuffix, cleanedQuestions, selectedTheme, actualSkillCost);
 
       toast.success("Poll created successfully!");
       if (redirectPath === "dashboard") {
@@ -79,20 +82,66 @@ export default function CreatePoll() {
 
   // Shared Theme Dropdown component
   const themeDropdown = (
-    <div className="flex items-center gap-2">
-      <label htmlFor="theme-select" className="text-xs font-bold uppercase tracking-wider text-slate-500">
-        Theme:
-      </label>
-      <select
-        id="theme-select"
-        value={selectedTheme}
-        onChange={(e) => setSelectedTheme(e.target.value)}
-        className="bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold focus:outline-none focus:border-slate-500 text-slate-700"
-      >
-        <option value="standard">Standard</option>
-        <option value="synergy_sphere">Synergy Sphere</option>
-        <option value="masterclass">Masterclass</option>
-      </select>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <label htmlFor="theme-select" className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          Theme:
+        </label>
+        <select
+          id="theme-select"
+          value={selectedTheme}
+          onChange={(e) => {
+            setSelectedTheme(e.target.value);
+            // Auto-enable bidding for themed polls
+            if (e.target.value === "synergy_sphere" || e.target.value === "masterclass") {
+              setEnableBidding(true);
+            } else {
+              setEnableBidding(false);
+            }
+          }}
+          className="bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold focus:outline-none focus:border-slate-500 text-slate-700"
+        >
+          <option value="standard">Standard</option>
+          <option value="synergy_sphere">Synergy Sphere</option>
+          <option value="masterclass">Masterclass</option>
+        </select>
+      </div>
+
+      {/* Bidding Config — only for themed polls */}
+      {(selectedTheme === "synergy_sphere" || selectedTheme === "masterclass") && (
+        <div className="flex items-center gap-4 p-3 rounded-lg bg-slate-50 border border-slate-200">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={enableBidding}
+              onChange={(e) => setEnableBidding(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Skill Bidding
+            </span>
+          </label>
+          {enableBidding && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="skill-cost" className="text-xs text-slate-400">
+                Cost per skill:
+              </label>
+              <input
+                id="skill-cost"
+                type="number"
+                min={5}
+                max={100}
+                value={skillCost}
+                onChange={(e) => setSkillCost(Math.max(5, Math.min(100, parseInt(e.target.value) || 20)))}
+                className="w-20 px-2 py-1 text-sm border border-slate-300 rounded text-slate-700 font-semibold focus:outline-none focus:border-emerald-500"
+              />
+              <span className="text-[10px] text-slate-400">
+                (max picks: {Math.floor(100 / skillCost)})
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 

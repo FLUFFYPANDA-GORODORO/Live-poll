@@ -106,22 +106,20 @@ function ConfettiBurst({ active, onComplete }) {
       { front: "#ff5a5f", back: "#e03e42" },
     ];
     const rng = (a, b) => Math.random() * (b - a) + a;
-    const initV = (xR, yR) => {
-      const x = rng(xR[0], xR[1]);
-      const range = yR[1] - yR[0] + 1;
-      let y = yR[1] - Math.abs(rng(0, range) + rng(0, range) - range);
-      if (y >= yR[1] - 1) y += Math.random() < 0.25 ? rng(1, 3) : 0;
-      return { x, y: -y };
-    };
 
-    function Confetto() {
+    function Confetto(side) {
       this.randomModifier = rng(0, 99);
       this.color = colors[Math.floor(rng(0, colors.length))];
       this.dimensions = { x: rng(5, 9), y: rng(8, 15) };
-      this.position = { x: canvas.width / 2, y: canvas.height / 2 };
+      if (side === "left") {
+        this.position = { x: 0, y: canvas.height };
+        this.velocity = { x: rng(8, 22), y: -rng(14, 24) };
+      } else {
+        this.position = { x: canvas.width, y: canvas.height };
+        this.velocity = { x: -rng(8, 22), y: -rng(14, 24) };
+      }
       this.rotation = rng(0, 2 * Math.PI);
       this.scale = { x: 1, y: 1 };
-      this.velocity = initV([-12, 12], [10, 18]);
     }
     Confetto.prototype.update = function () {
       this.velocity.x -= this.velocity.x * dragConfetti;
@@ -132,11 +130,16 @@ function ConfettiBurst({ active, onComplete }) {
       this.scale.y = Math.cos((this.position.y + this.randomModifier) * 0.09);
     };
 
-    function Sequin() {
+    function Sequin(side) {
       this.color = colors[Math.floor(rng(0, colors.length))].back;
       this.radius = rng(1.5, 3);
-      this.position = { x: canvas.width / 2, y: canvas.height / 2 };
-      this.velocity = { x: rng(-10, 10), y: rng(-12, -20) };
+      if (side === "left") {
+        this.position = { x: 0, y: canvas.height };
+        this.velocity = { x: rng(6, 20), y: -rng(15, 25) };
+      } else {
+        this.position = { x: canvas.width, y: canvas.height };
+        this.velocity = { x: -rng(6, 20), y: -rng(15, 25) };
+      }
     }
     Sequin.prototype.update = function () {
       this.velocity.x -= this.velocity.x * dragSequins;
@@ -145,8 +148,14 @@ function ConfettiBurst({ active, onComplete }) {
       this.position.y += this.velocity.y;
     };
 
-    for (let i = 0; i < 40; i++) confetti.push(new Confetto());
-    for (let i = 0; i < 20; i++) sequins.push(new Sequin());
+    for (let i = 0; i < 40; i++) {
+      confetti.push(new Confetto("left"));
+      confetti.push(new Confetto("right"));
+    }
+    for (let i = 0; i < 20; i++) {
+      sequins.push(new Sequin("left"));
+      sequins.push(new Sequin("right"));
+    }
 
     let animationFrame, elapsedFrames = 0;
     const renderLoop = () => {
@@ -235,11 +244,29 @@ export default function MasterclassPresent({
       return !txt.trim();
     });
 
+  const seenWordsOrder = useRef([]);
+  const prevQuestionIndex = useRef(currentQuestionIndex);
+
   const wordsList = useMemo(() => {
     const wordsData = poll.wordCloudCounts?.[currentQuestionIndex.toString()] || {};
-    return Object.entries(wordsData)
-      .map(([text, count]) => ({ text, count }))
-      .sort((a, b) => b.count - a.count);
+
+    if (prevQuestionIndex.current !== currentQuestionIndex) {
+      seenWordsOrder.current = [];
+      prevQuestionIndex.current = currentQuestionIndex;
+    }
+
+    Object.keys(wordsData).forEach((word) => {
+      if (!seenWordsOrder.current.includes(word)) {
+        seenWordsOrder.current.push(word);
+      }
+    });
+
+    seenWordsOrder.current = seenWordsOrder.current.filter((word) => word in wordsData);
+
+    return seenWordsOrder.current.map((text) => ({
+      text,
+      count: wordsData[text],
+    }));
   }, [poll.wordCloudCounts, currentQuestionIndex]);
 
   const chartInstance = useRef(null);
@@ -280,10 +307,12 @@ export default function MasterclassPresent({
           if (chart.logo) chart.logo.dispose();
           const series = chart.series.push(new window.am4plugins_wordCloud.WordCloudSeries());
           series.accuracy = 4; series.step = 15; series.rotationThreshold = 0.7;
-          series.maxCount = 200; series.minWordLength = 2;
+          series.maxCount = 100; series.minWordLength = 2;
+          series.randomness = 0;
+          series.interpolationDuration = 800;
           series.labels.template.tooltipText = "{word}: {value}";
           series.fontFamily = "Libre Baskerville";
-          series.maxFontSize = window.am4core.percent(45);
+          series.maxFontSize = window.am4core.percent(30);
           series.minFontSize = window.am4core.percent(6);
           series.dataFields.word = "word"; series.dataFields.value = "count";
           series.labels.template.adapter.add("fill", (fill, target) => {
@@ -430,8 +459,6 @@ export default function MasterclassPresent({
             <ChevronRight className="w-4 h-4" />
           </button>
           <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all">End</button>
-          <div className="w-px h-4 bg-white/20" />
-          <button onClick={() => setConfettiActive(true)} className="text-slate-400 hover:text-white transition-colors px-1 text-base active:scale-95 duration-100" title="Confetti Burst (C)">🎉</button>
         </div>
 
         {/* Right: Stats + Emojis + QR + fullscreen */}

@@ -33,13 +33,14 @@ export default function PollRoom() {
     subscribeToPoll,
     checkVoteStatus,
     voteForOption,
-    sendEmoji
+    sendEmoji,
   } = usePollStore();
 
   const [error, setError] = useState("");
   const [hasVoted, setHasVoted] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [voting, setVoting] = useState(false);
+  const [subscribedId, setSubscribedId] = useState(null);
   const sessionId = getSessionId();
 
   // Check if user already voted on current question
@@ -75,6 +76,7 @@ export default function PollRoom() {
       return;
     }
 
+    setSubscribedId(pollId);
     const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
   }, [pollId, subscribeToPoll]);
@@ -142,7 +144,7 @@ export default function PollRoom() {
   };
 
   // Loading state
-  if (loading) {
+  if (loading || subscribedId !== pollId) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
         <div className="text-center">
@@ -154,7 +156,7 @@ export default function PollRoom() {
   }
 
   // Error state
-  if (error || !poll) {
+  if (error || !poll || poll.id !== pollId) {
     return (
       <div className="min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6">
         <div className="max-w-md text-center">

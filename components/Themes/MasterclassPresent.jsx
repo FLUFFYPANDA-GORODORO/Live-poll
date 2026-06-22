@@ -59,6 +59,22 @@ function injectGlobalStyles() {
       100% { transform: scale(1);   opacity: 1; }
     }
     .animate-word-pop { animation: mc-scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+    @keyframes cloudDash {
+      0% {
+        stroke-dashoffset: 58;
+      }
+      50% {
+        stroke-dashoffset: 15;
+      }
+      100% {
+        stroke-dashoffset: 58;
+      }
+    }
+    .animate-cloud-dash {
+      stroke-dasharray: 58;
+      animation: cloudDash 2s ease-in-out infinite;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -199,6 +215,15 @@ function ConfettiBurst({ active, onComplete }) {
   }, [active, onComplete]);
 
   return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-50 w-full h-full" />;
+}
+
+function getQuestionFontSize(text) {
+  if (!text) return "text-3xl md:text-4xl";
+  const len = text.length;
+  if (len <= 40) return "text-3xl md:text-4xl";
+  if (len <= 80) return "text-2xl md:text-3xl";
+  if (len <= 140) return "text-xl md:text-2xl";
+  return "text-base md:text-lg";
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -375,54 +400,81 @@ export default function MasterclassPresent({
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-black/15 rounded-3xl border border-white/5 shadow-2xl my-4">
-        <div className="text-center w-full max-w-4xl mx-auto mb-6 mt-2">
-          <h2 className="text-4xl md:text-5xl font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide">
-            {currentQuestion?.text || "No question"}
-          </h2>
-        </div>
-
-        {isWordCloud ? (
-          <div className="w-full flex-1 flex flex-col justify-center items-center max-w-5xl mx-auto my-auto mb-6 pt-4">
-            {wordsList.length > 0 ? (
-              <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
-            ) : (
-              <div className="flex flex-col items-center justify-center p-8 bg-black/15 backdrop-blur-[0.5px] rounded-3xl border border-white/5 text-center max-w-md">
-                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10 animate-pulse text-2xl">☁️</div>
-                <h3 className="text-white font-bold text-lg mb-1">Waiting for Responses</h3>
-                <p className="text-slate-400 text-sm">Words submitted by participants will appear here in real-time.</p>
-              </div>
-            )}
+        {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
+            <h1 className="text-5xl md:text-7xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+              Welcome to Masterclass 3.0
+            </h1>
+            <p className="text-emerald-350 font-epilogue text-lg md:text-xl mt-4 opacity-80 tracking-widest uppercase">
+              The Adventurous Intelligence
+            </p>
           </div>
         ) : (
-          <div className="w-full flex-1 flex flex-col justify-end mb-6">
-            <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
-              {currentQuestion?.options?.map((option, idx) => {
-                const votes = getVoteCount(idx);
-                const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
-                const gradient = CHART_COLORS[idx % CHART_COLORS.length];
-                return (
-                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
-                    <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
-                      <div className="text-white font-bold text-2xl mb-2 drop-shadow-md">{votes}</div>
-                      {votes > 0 && (
-                        <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
-                          style={{ background: gradient, boxShadow: "0 4px 20px rgba(255,255,255,0.1)" }} />
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+          <>
+            <div className="text-center w-full max-w-4xl mx-auto mb-6 mt-2">
+              <h2 className={`${getQuestionFontSize(currentQuestion?.text)} font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide`}>
+                {currentQuestion?.text || "No question"}
+              </h2>
             </div>
-            <div className="flex justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto mt-4">
-              {currentQuestion?.options?.map((option, idx) => (
-                <div key={idx} className="flex-1 max-w-[120px] text-center">
-                  <div className="text-slate-200 font-semibold text-xs md:text-sm whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
-                    {option.text}
+
+            {isWordCloud ? (
+              <div className="w-full flex-1 flex flex-col justify-center items-center max-w-5xl mx-auto my-auto mb-6 pt-4">
+                {wordsList.length > 0 ? (
+                  <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-[480px] min-h-[400px]">
+                    <svg viewBox="0 0 24 24" className="w-24 h-24 text-emerald-450">
+                      <path
+                        d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.08)"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                      <path
+                        d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        className="animate-cloud-dash"
+                      />
+                    </svg>
                   </div>
+                )}
+              </div>
+            ) : (
+              <div className="w-full flex-1 flex flex-col justify-end mb-6">
+                <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
+                  {currentQuestion?.options?.map((option, idx) => {
+                    const votes = getVoteCount(idx);
+                    const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
+                    const gradient = CHART_COLORS[idx % CHART_COLORS.length];
+                    return (
+                      <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
+                        <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
+                          <div className="text-white font-bold text-2xl mb-2 drop-shadow-md">{votes}</div>
+                          {votes > 0 && (
+                            <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
+                              style={{ background: gradient, boxShadow: "0 4px 20px rgba(255,255,255,0.1)" }} />
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="flex justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto mt-4">
+                  {currentQuestion?.options?.map((option, idx) => (
+                    <div key={idx} className="flex-1 max-w-[120px] text-center">
+                      <div className="text-slate-200 font-semibold text-xs md:text-sm whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
+                        {option.text}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
 

@@ -71,11 +71,11 @@ const CHART_COLORS = [
 ];
 
 const BASIC_EMOJIS = [
-  { emoji: "❤️",  label: "Love"       },
-  { emoji: "🔥",  label: "Fire"       },
-  { emoji: "👏",  label: "Clap"       },
-  { emoji: "😂",  label: "Laugh"      },
-  { emoji: "🤯",  label: "Mind blown" },
+  { emoji: "❤️", label: "Love" },
+  { emoji: "🔥", label: "Fire" },
+  { emoji: "👏", label: "Clap" },
+  { emoji: "😂", label: "Laugh" },
+  { emoji: "🤯", label: "Mind blown" },
 ];
 
 const FLOWS = ["one", "two", "three"];
@@ -105,22 +105,22 @@ function ConfettiBurst({ active, onComplete }) {
       { front: "#ff5a5f", back: "#e03e42" },
     ];
     const rng = (a, b) => Math.random() * (b - a) + a;
-    const initV = (xR, yR) => {
-      const x = rng(xR[0], xR[1]);
-      const range = yR[1] - yR[0] + 1;
-      let y = yR[1] - Math.abs(rng(0, range) + rng(0, range) - range);
-      if (y >= yR[1] - 1) y += Math.random() < 0.25 ? rng(1, 3) : 0;
-      return { x, y: -y };
-    };
 
-    function Confetto() {
+    function Confetto(side) {
       this.randomModifier = rng(0, 99);
       this.color = colors[Math.floor(rng(0, colors.length))];
       this.dimensions = { x: rng(5, 9), y: rng(8, 15) };
-      this.position = { x: canvas.width / 2, y: canvas.height / 2 };
+      
+      if (side === "left") {
+        this.position = { x: 0, y: canvas.height };
+        this.velocity = { x: rng(8, 22), y: -rng(14, 24) };
+      } else {
+        this.position = { x: canvas.width, y: canvas.height };
+        this.velocity = { x: -rng(8, 22), y: -rng(14, 24) };
+      }
+      
       this.rotation = rng(0, 2 * Math.PI);
       this.scale = { x: 1, y: 1 };
-      this.velocity = initV([-12, 12], [10, 18]);
     }
     Confetto.prototype.update = function () {
       this.velocity.x -= this.velocity.x * dragConfetti;
@@ -131,11 +131,17 @@ function ConfettiBurst({ active, onComplete }) {
       this.scale.y = Math.cos((this.position.y + this.randomModifier) * 0.09);
     };
 
-    function Sequin() {
+    function Sequin(side) {
       this.color = colors[Math.floor(rng(0, colors.length))].back;
       this.radius = rng(1.5, 3);
-      this.position = { x: canvas.width / 2, y: canvas.height / 2 };
-      this.velocity = { x: rng(-10, 10), y: rng(-12, -20) };
+      
+      if (side === "left") {
+        this.position = { x: 0, y: canvas.height };
+        this.velocity = { x: rng(6, 20), y: -rng(15, 25) };
+      } else {
+        this.position = { x: canvas.width, y: canvas.height };
+        this.velocity = { x: -rng(6, 20), y: -rng(15, 25) };
+      }
     }
     Sequin.prototype.update = function () {
       this.velocity.x -= this.velocity.x * dragSequins;
@@ -144,8 +150,14 @@ function ConfettiBurst({ active, onComplete }) {
       this.position.y += this.velocity.y;
     };
 
-    for (let i = 0; i < 40; i++) confetti.push(new Confetto());
-    for (let i = 0; i < 20; i++) sequins.push(new Sequin());
+    for (let i = 0; i < 40; i++) {
+      confetti.push(new Confetto("left"));
+      confetti.push(new Confetto("right"));
+    }
+    for (let i = 0; i < 20; i++) {
+      sequins.push(new Sequin("left"));
+      sequins.push(new Sequin("right"));
+    }
 
     let animationFrame, elapsedFrames = 0;
     const renderLoop = () => {
@@ -169,7 +181,7 @@ function ConfettiBurst({ active, onComplete }) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
       });
       confetti = confetti.filter((c) => c.position.y < canvas.height + 20);
-      sequins  = sequins.filter((s) => s.position.y < canvas.height + 20);
+      sequins = sequins.filter((s) => s.position.y < canvas.height + 20);
       elapsedFrames++;
       if ((confetti.length === 0 && sequins.length === 0) || elapsedFrames > 180) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -234,16 +246,34 @@ export default function SynergySpherePresent({
       return !txt.trim();
     });
 
+  const seenWordsOrder = useRef([]);
+  const prevQuestionIndex = useRef(currentQuestionIndex);
+
   const wordsList = useMemo(() => {
     const wordsData = poll.wordCloudCounts?.[currentQuestionIndex.toString()] || {};
-    return Object.entries(wordsData)
-      .map(([text, count]) => ({ text, count }))
-      .sort((a, b) => b.count - a.count);
+
+    if (prevQuestionIndex.current !== currentQuestionIndex) {
+      seenWordsOrder.current = [];
+      prevQuestionIndex.current = currentQuestionIndex;
+    }
+
+    Object.keys(wordsData).forEach((word) => {
+      if (!seenWordsOrder.current.includes(word)) {
+        seenWordsOrder.current.push(word);
+      }
+    });
+
+    seenWordsOrder.current = seenWordsOrder.current.filter((word) => word in wordsData);
+
+    return seenWordsOrder.current.map((text) => ({
+      text,
+      count: wordsData[text],
+    }));
   }, [poll.wordCloudCounts, currentQuestionIndex]);
 
   const chartInstance = useRef(null);
 
-  const WORD_COLORS = ["#60a5fa","#34d399","#fbbf24","#f87171","#a78bfa","#2dd4bf","#f472b6"];
+  const WORD_COLORS = ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa", "#2dd4bf", "#f472b6"];
   const getWordColor = (word) => {
     if (!word) return "#60a5fa";
     let hash = 0;
@@ -279,10 +309,12 @@ export default function SynergySpherePresent({
           if (chart.logo) chart.logo.dispose();
           const series = chart.series.push(new window.am4plugins_wordCloud.WordCloudSeries());
           series.accuracy = 4; series.step = 15; series.rotationThreshold = 0.7;
-          series.maxCount = 200; series.minWordLength = 2;
+          series.maxCount = 100; series.minWordLength = 2;
+          series.randomness = 0;
+          series.interpolationDuration = 800;
           series.labels.template.tooltipText = "{word}: {value}";
           series.fontFamily = "Libre Baskerville";
-          series.maxFontSize = window.am4core.percent(45);
+          series.maxFontSize = window.am4core.percent(30);
           series.minFontSize = window.am4core.percent(6);
           series.dataFields.word = "word"; series.dataFields.value = "count";
           series.labels.template.adapter.add("fill", (fill, target) => {
@@ -309,8 +341,8 @@ export default function SynergySpherePresent({
   useEffect(() => {
     const onKey = (e) => {
       if (isTransitioning) return;
-      if      (e.key === "ArrowLeft"  && currentQuestionIndex > 0)                handlePrevQuestion();
-      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions-1) handleNextQuestion();
+      if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
+      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
       else if (e.key.toLowerCase() === "c") setConfettiActive(true);
       else if (e.key.toLowerCase() === "q") setShowQR(!showQR);
@@ -322,10 +354,10 @@ export default function SynergySpherePresent({
   // Spawn a floating emoji with random flow path + random timing + random size
   const launchEmoji = (emoji) => {
     if (addReaction) addReaction(emoji);
-    const id     = Date.now() + Math.random();
-    const flow   = FLOWS[Math.floor(Math.random() * 3)];
+    const id = Date.now() + Math.random();
+    const flow = FLOWS[Math.floor(Math.random() * 3)];
     const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
-    const size   = Math.floor(Math.random() * (30 - 22) + 22);
+    const size = Math.floor(Math.random() * (30 - 22) + 22);
     setFloatingEmojis((prev) => [...prev, { id, emoji, flow, timing, size }]);
     setTimeout(() => setFloatingEmojis((prev) => prev.filter((r) => r.id !== id)), timing * 1000 + 200);
   };
@@ -429,8 +461,6 @@ export default function SynergySpherePresent({
             <ChevronRight className="w-4 h-4" />
           </button>
           <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all">End</button>
-          <div className="w-px h-4 bg-white/20" />
-          <button onClick={() => setConfettiActive(true)} className="text-slate-400 hover:text-white transition-colors px-1 text-base active:scale-95 duration-100" title="Confetti Burst (C)">🎉</button>
         </div>
 
         {/* Right: Stats + Emojis + QR + fullscreen */}
@@ -456,7 +486,7 @@ export default function SynergySpherePresent({
             <Users className="w-3.5 h-3.5 text-rose-400" />
             <span>{totalVotes}</span>
           </div>
-          
+
           <div className="w-px h-4 bg-white/20" />
 
           <button onClick={() => setShowQR(!showQR)} className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQR ? "bg-rose-600 hover:bg-rose-700 text-white border-rose-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"}`} title="Toggle QR Code">QR</button>

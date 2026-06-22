@@ -37,14 +37,14 @@ export default function Home() {
         <nav className="relative z-50 flex items-center justify-between px-6 py-4 max-w-7xl mx-auto w-full">
           <Link
             href="/"
-            className="relative flex items-center group min-h-[80px] w-64"
+            className="flex items-center gap-3 group"
           >
             <img
-              src="/logo2.png"
+              src="/shortlogo.png"
               alt="Logo"
-              className="absolute -left-14 top-1/2 -translate-y-1/2 w-42 h-42 object-contain"
+              className="w-16 h-16 object-contain -translate-y-2.5"
             />
-            <span className="absolute left-24 top-1/2 -translate-y-1/2 text-3xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
+            <span className="text-3xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
               Rapid poll
             </span>
           </Link>

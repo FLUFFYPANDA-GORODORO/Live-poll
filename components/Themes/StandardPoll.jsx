@@ -130,7 +130,7 @@ export default function StandardPoll({
 
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
-    let waitingClass = "min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6";
+    let waitingClass = "min-h-screen bg-[#F8FAFC] flex flex-col justify-between p-4 md:p-6";
     let textClass = "text-[#1E293B]";
     let codeClass = "text-sm bg-[#E2E8F0] px-3 py-1 rounded-lg text-[#64748B] mb-8 inline-block";
     let cardClass = "bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-sm";
@@ -141,7 +141,7 @@ export default function StandardPoll({
     let subTitleText = "The poll will begin shortly...";
 
     if (isMasterclass) {
-      waitingClass = "min-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-6 text-emerald-50";
+      waitingClass = "min-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
       textClass = "text-white";
       codeClass = "text-sm bg-slate-800/80 px-3 py-1 rounded-lg text-emerald-350 mb-8 inline-block border border-emerald-900/30";
       cardClass = "bg-slate-950/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-900/30 shadow-2xl";
@@ -151,7 +151,7 @@ export default function StandardPoll({
       titleText = "Classroom Waiting Room";
       subTitleText = "Waiting for the class lecture to begin...";
     } else if (isSynergy) {
-      waitingClass = "min-h-screen bg-stone-900 flex flex-col items-center justify-center p-6 text-rose-50";
+      waitingClass = "min-h-screen bg-stone-900 flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
       textClass = "text-white";
       codeClass = "text-sm bg-stone-800 px-3 py-1 rounded-lg text-rose-350 mb-8 inline-block border border-rose-900/30";
       cardClass = "bg-stone-950 rounded-2xl p-8 border border-rose-900/30 shadow-2xl";
@@ -164,7 +164,28 @@ export default function StandardPoll({
 
     return (
       <div className={waitingClass}>
-        <div className="max-w-lg text-center">
+        {/* Synergy Sphere Light Overlay */}
+        {!!isSynergy && <div className="absolute inset-0 bg-white/10 z-0" />}
+
+        {/* Top Logos Header */}
+        {isMasterclass ? (
+          <div className="w-full flex items-center justify-between gap-3 mb-2 flex-shrink-0 relative z-10">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 w-auto object-contain" />
+            <img src="/mc01.png" alt="Masterclass Logo" className="h-10 w-auto object-contain translate-y-1.5" />
+          </div>
+        ) : isSynergy ? (
+          <div className="w-full flex items-center justify-between gap-3 mb-2 flex-shrink-0 z-10 relative">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 w-auto object-contain" />
+            <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-10 w-auto object-contain" />
+          </div>
+        ) : (
+          <div className="absolute top-4 left-4 z-20">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+          </div>
+        )}
+
+        {/* Main Content Card */}
+        <div className="max-w-lg text-center mx-auto my-auto z-10 relative">
           <div className="flex items-center justify-center gap-2 mb-3">
             {isSynergy && <Sparkles className="w-6 h-6 text-rose-500 animate-pulse" />}
             <h1 className={`text-3xl font-extrabold tracking-tight ${textClass}`}>{cleanTitle}</h1>
@@ -188,6 +209,9 @@ export default function StandardPoll({
             </div>
           </div>
         </div>
+
+        {/* Bottom Spacer to balance top header under justify-between */}
+        <div className="h-12 flex-shrink-0 hidden md:block" />
       </div>
     );
   }

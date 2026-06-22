@@ -387,9 +387,6 @@ export default function MasterclassPresent({
 
   return (
     <div className="h-screen max-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col text-emerald-50 font-epilogue font-light overflow-hidden relative select-none">
-      {/* Dark overlay */}
-      <div className="absolute inset-0 bg-black/40 z-0" />
-
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -399,7 +396,7 @@ export default function MasterclassPresent({
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-black/15 rounded-3xl border border-white/5 shadow-2xl my-4">
+      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-transparent rounded-3xl my-4">
         {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
             <h1 className="text-5xl md:text-7xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
@@ -497,7 +494,7 @@ export default function MasterclassPresent({
       {/* ── Bottom Controls Bar ── */}
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         {/* Left: Poll controls */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
+        <div className="bg-black/60 border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
           {isVotingActive ? (
             <button onClick={handleStopVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Stop</button>
           ) : (
@@ -514,7 +511,7 @@ export default function MasterclassPresent({
         </div>
 
         {/* Right: Stats + Emojis + QR + fullscreen */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
+        <div className="bg-black/60 border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
           {/* Float zone: emojis drift upward through here, relative to the container */}
           <div className="absolute bottom-full right-[180px] pointer-events-none z-50 w-36 h-72 overflow-visible flex justify-center items-end mb-2">
             {floatingEmojis.map((r) => (

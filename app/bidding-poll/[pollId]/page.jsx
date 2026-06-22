@@ -75,7 +75,7 @@ export default function BiddingPollPage() {
 
   return (
     <BiddingPoll
-      skills={skills}
+      skills={poll?.skills || []}
       poll={poll}
       sessionId={sessionId}
       sendSelectionChange={sendSelectionChange}

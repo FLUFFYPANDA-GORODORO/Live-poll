@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader2, Play, Square, BarChart3, X, Users } from "lucide-react";
+import { Loader2, Play, Square, BarChart3, X, Users, QrCode, Copy, Check } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const GLOBAL_STYLE_ID = "bidding-present-styles";
 
@@ -23,6 +24,7 @@ export default function BiddingPresent({
   const simulationRef = useRef(null);
   const [d3Loaded, setD3Loaded] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
   const [analytics, setAnalytics] = useState(null);
   const [loadingD3, setLoadingD3] = useState(true);
 
@@ -381,6 +383,13 @@ export default function BiddingPresent({
             </button>
           )}
           <button
+            onClick={() => setShowQrCode(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-[Epilogue] transition-all hover:scale-105 bg-white/10 text-white/80 hover:bg-white/20"
+          >
+            <QrCode className="w-4 h-4" />
+            Join QR
+          </button>
+          <button
             onClick={handleViewAnalytics}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-[Epilogue] transition-all hover:scale-105 bg-white/10 text-white/80 hover:bg-white/20"
           >
@@ -407,6 +416,17 @@ export default function BiddingPresent({
             <p className="text-sm">Add skills via the admin panel to start bidding</p>
           </div>
         </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQrCode && (
+        <QrCodeModal
+          theme={theme}
+          pollId={pollId}
+          onClose={() => setShowQrCode(false)}
+          isSynergy={isSynergy}
+          isMasterclass={isMasterclass}
+        />
       )}
 
       {/* Analytics Modal */}
@@ -443,7 +463,7 @@ function AnalyticsModal({
     const load = async () => {
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/bidding/analytics/${pollId}`
+          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5065"}/api/bidding/analytics/${pollId}`
         );
         if (!res.ok) throw new Error("Failed to load analytics");
         const json = await res.json();
@@ -559,6 +579,70 @@ function AnalyticsModal({
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
+  const [copied, setCopied] = useState(false);
+  const accentColor = isSynergy ? "#f43f5e" : isMasterclass ? "#10b981" : "#6366f1";
+  const participantUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/bidding-poll/${pollId}?theme=${theme}`
+    : "";
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(participantUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in" onClick={onClose}>
+      <div 
+        className="relative w-full max-w-sm rounded-3xl p-8 text-center border shadow-2xl transition-all"
+        style={{ 
+          background: isSynergy ? "#1c0a0a" : isMasterclass ? "#051a10" : "#1e293b", 
+          borderColor: `${accentColor}33` 
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors">
+          <X className="w-6 h-6" />
+        </button>
+
+        <h3 className="text-white font-[Epilogue] text-2xl font-bold mb-2">Scan to Join</h3>
+        <p className="text-white/40 font-[Epilogue] text-sm mb-6">
+          Scan the QR code to enter the bidding wallet on your phone
+        </p>
+
+        {/* QR Code Container */}
+        <div className="bg-white p-6 rounded-2xl inline-block shadow-lg border border-white/10 mb-6 bp-glow">
+          <QRCodeSVG value={participantUrl} size={220} />
+        </div>
+
+        {/* Link Input & Copy */}
+        <div className="flex gap-2 mb-6 px-1">
+          <input
+            type="text"
+            value={participantUrl}
+            readOnly
+            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white/70 outline-none focus:ring-1 focus:ring-white/20 select-all"
+          />
+          <button
+            onClick={copyLink}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all flex items-center gap-1 active:scale-95 shrink-0"
+            style={{ background: accentColor }}
+          >
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? "Copied" : "Copy"}
+          </button>
+        </div>
+
+        <div className="text-center font-[Epilogue]">
+          <p className="text-xs text-white/30 uppercase tracking-wider">Bidding Session Code</p>
+          <p className="text-3xl font-bold font-mono mt-1 text-white tracking-widest">{pollId}</p>
+        </div>
       </div>
     </div>
   );

@@ -71,7 +71,7 @@ export default function BiddingPresentPage() {
 
   return (
     <BiddingPresent
-      skills={skills}
+      skills={poll?.skills || []}
       bubbleCounts={bubbleCounts}
       committedCount={committedCount}
       theme={theme}

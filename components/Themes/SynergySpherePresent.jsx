@@ -214,6 +214,9 @@ export default function SynergySpherePresent({
   handleEndPoll,
   pollUrl,
   router,
+  reactions = [],
+  addReaction,
+  isTransitioning,
 }) {
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
@@ -305,6 +308,7 @@ export default function SynergySpherePresent({
 
   useEffect(() => {
     const onKey = (e) => {
+      if (isTransitioning) return;
       if      (e.key === "ArrowLeft"  && currentQuestionIndex > 0)                handlePrevQuestion();
       else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions-1) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
@@ -313,10 +317,11 @@ export default function SynergySpherePresent({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR]);
+  }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR, isTransitioning]);
 
   // Spawn a floating emoji with random flow path + random timing + random size
   const launchEmoji = (emoji) => {
+    if (addReaction) addReaction(emoji);
     const id     = Date.now() + Math.random();
     const flow   = FLOWS[Math.floor(Math.random() * 3)];
     const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
@@ -330,20 +335,97 @@ export default function SynergySpherePresent({
       {/* Light overlay */}
       <div className="absolute inset-0 bg-white/10 z-0" />
 
+      {/* Top Bar */}
+      <header className="w-full z-20 relative bg-transparent">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 w-auto object-contain" /></div>
+          <div><img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain" /></div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-black/15 rounded-3xl border border-white/5 shadow-2xl my-4">
+        <div className="text-center w-full max-w-4xl mx-auto mb-6 mt-2">
+          <h2 className="text-4xl md:text-5xl font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide">
+            {currentQuestion?.text || "No question"}
+          </h2>
+        </div>
+
+        {isWordCloud ? (
+          <div className="w-full flex-1 flex flex-col justify-center items-center max-w-5xl mx-auto my-auto mb-6 pt-4">
+            {wordsList.length > 0 ? (
+              <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
+            ) : (
+              <div className="flex flex-col items-center justify-center p-8 bg-black/15 backdrop-blur-[0.5px] rounded-3xl border border-white/5 text-center max-w-md">
+                <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/10 animate-pulse text-2xl">☁️</div>
+                <h3 className="text-white font-bold text-lg mb-1">Waiting for Responses</h3>
+                <p className="text-slate-400 text-sm">Words submitted by participants will appear here in real-time.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="w-full flex-1 flex flex-col justify-end mb-6">
+            <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
+              {currentQuestion?.options?.map((option, idx) => {
+                const votes = getVoteCount(idx);
+                const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
+                const gradient = CHART_COLORS[idx % CHART_COLORS.length];
+                return (
+                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
+                    <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
+                      <div className="text-white font-bold text-2xl mb-2 drop-shadow-md">{votes}</div>
+                      {votes > 0 && (
+                        <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
+                          style={{ background: gradient, boxShadow: "0 4px 20px rgba(255,255,255,0.1)" }} />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto mt-4">
+              {currentQuestion?.options?.map((option, idx) => (
+                <div key={idx} className="flex-1 max-w-[120px] text-center">
+                  <div className="text-slate-200 font-semibold text-xs md:text-sm whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
+                    {option.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300">
+          <div className="bg-black/90 border border-white/15 p-8 rounded-3xl flex flex-col items-center max-w-md w-full shadow-2xl relative mx-4">
+            <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-white font-bold text-xl mb-4 text-center">Join the Poll</h3>
+            <div className="bg-white p-4 rounded-2xl mb-4"><QRCodeSVG value={pollUrl} size={320} /></div>
+            <p className="text-rose-300 font-mono font-bold tracking-wider text-base select-all">{pollId}</p>
+            <p className="text-slate-400 text-xs text-center mt-2">Scan the QR code or click the link below to participate:</p>
+            <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-rose-400 hover:text-rose-350 hover:underline mt-4 text-sm font-semibold break-all text-center">{pollUrl}</a>
+          </div>
+        </div>
+      )}
+
       {/* ── Bottom Controls Bar ── */}
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         {/* Left: Poll controls */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
           {isVotingActive ? (
-            <button onClick={handleStopVoting}  className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Stop</button>
+            <button onClick={handleStopVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Stop</button>
           ) : (
-            <button onClick={handleStartVoting} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Start</button>
+            <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
           )}
-          <button onClick={handlePrevQuestion} disabled={currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
+          <button onClick={handlePrevQuestion} disabled={isTransitioning || currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="bg-white/10 border border-white/10 text-white px-3 py-0.5 rounded font-mono text-sm font-bold min-w-[2rem] text-center">{currentQuestionIndex + 1}</div>
-          <button onClick={handleNextQuestion} disabled={currentQuestionIndex >= totalQuestions - 1} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
+          <button onClick={handleNextQuestion} disabled={isTransitioning || currentQuestionIndex >= totalQuestions - 1} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
             <ChevronRight className="w-4 h-4" />
           </button>
           <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all">End</button>
@@ -382,10 +464,8 @@ export default function SynergySpherePresent({
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
 
-          <div className="w-px h-4 bg-white/20" />
-
           {/* Horizontal Emojis Panel */}
-          <div className="flex items-center gap-1">
+          {/* <div className="flex items-center gap-1">
             {BASIC_EMOJIS.map((item, idx) => (
               <button
                 key={idx}
@@ -396,7 +476,7 @@ export default function SynergySpherePresent({
                 {item.emoji}
               </button>
             ))}
-          </div>
+          </div> */}
         </div>
       </div>
 

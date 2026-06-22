@@ -199,6 +199,7 @@ export default function PollRoom() {
       cleanTitle={cleanTitle}
       pollId={pollId}
       hasVoted={hasVoted}
+      selectedOption={selectedOption}
       voting={voting}
       voteForOptionHandler={voteForOptionHandler}
       totalVotes={totalVotes}

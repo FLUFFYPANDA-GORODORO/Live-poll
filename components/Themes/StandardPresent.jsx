@@ -41,10 +41,12 @@ export default function StandardPresent({
   handleStopVoting,
   handleEndPoll,
   pollUrl,
-  router
+  router,
+  isTransitioning
 }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (isTransitioning) return;
       if (e.key === "ArrowLeft" && currentQuestionIndex > 0) {
         handlePrevQuestion();
       } else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) {
@@ -73,7 +75,8 @@ export default function StandardPresent({
     handleStartVoting,
     handleStopVoting,
     showQR,
-    setShowQR
+    setShowQR,
+    isTransitioning
   ]);
 
   return (
@@ -182,7 +185,7 @@ export default function StandardPresent({
       <div className="fixed bottom-2 left-1/2 -translate-x-1/2 z-20 bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-1.5 flex items-center gap-2 shadow-2xl">
         <button
           onClick={handlePrevQuestion}
-          disabled={currentQuestionIndex <= 0}
+          disabled={isTransitioning || currentQuestionIndex <= 0}
           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-xs font-semibold"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -192,7 +195,8 @@ export default function StandardPresent({
         {isVotingActive ? (
           <button
             onClick={handleStopVoting}
-            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold transition-all text-xs"
+            disabled={isTransitioning}
+            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-orange-600 hover:bg-orange-700 text-white font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Square className="w-3.5 h-3.5" />
             Stop
@@ -200,7 +204,8 @@ export default function StandardPresent({
         ) : (
           <button
             onClick={handleStartVoting}
-            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all text-xs"
+            disabled={isTransitioning}
+            className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Start
           </button>
@@ -208,7 +213,7 @@ export default function StandardPresent({
 
         <button
           onClick={handleNextQuestion}
-          disabled={currentQuestionIndex >= totalQuestions - 1}
+          disabled={isTransitioning || currentQuestionIndex >= totalQuestions - 1}
           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-xs font-semibold"
         >
           Next

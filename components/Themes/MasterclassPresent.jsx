@@ -217,6 +217,7 @@ export default function MasterclassPresent({
   router,
   reactions = [],
   addReaction,
+  isTransitioning,
 }) {
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
@@ -308,6 +309,7 @@ export default function MasterclassPresent({
 
   useEffect(() => {
     const onKey = (e) => {
+      if (isTransitioning) return;
       if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
       else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
@@ -316,7 +318,7 @@ export default function MasterclassPresent({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR]);
+  }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR, isTransitioning]);
 
   // Spawn a floating emoji with random flow path + random timing + random size
   const launchEmoji = (emoji) => {
@@ -416,15 +418,15 @@ export default function MasterclassPresent({
         {/* Left: Poll controls */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
           {isVotingActive ? (
-            <button onClick={handleStopVoting} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Stop</button>
+            <button onClick={handleStopVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Stop</button>
           ) : (
-            <button onClick={handleStartVoting} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all">Start</button>
+            <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
           )}
-          <button onClick={handlePrevQuestion} disabled={currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
+          <button onClick={handlePrevQuestion} disabled={isTransitioning || currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="bg-white/10 border border-white/10 text-white px-3 py-0.5 rounded font-mono text-sm font-bold min-w-[2rem] text-center">{currentQuestionIndex + 1}</div>
-          <button onClick={handleNextQuestion} disabled={currentQuestionIndex >= totalQuestions - 1} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
+          <button onClick={handleNextQuestion} disabled={isTransitioning || currentQuestionIndex >= totalQuestions - 1} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
             <ChevronRight className="w-4 h-4" />
           </button>
           <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all">End</button>

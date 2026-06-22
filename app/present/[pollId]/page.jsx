@@ -31,12 +31,45 @@ export default function PresentationMode() {
     prevQuestion,
     endPoll,
     subscribeToPresenter,
-    simulateWordCloud
+    simulateWordCloud,
+    isTransitioning
   } = usePollStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [reactions, setReactions] = useState([]);
+
+  // ── Theme-aware toast helper (works even before poll loads) ──
+  const rawTheme = urlTheme || "";
+  const isSynergyTheme = rawTheme === "synergy_sphere";
+  const isMasterclassTheme = rawTheme === "masterclass";
+
+  const toastStyle = isSynergyTheme
+    ? {
+        background: "#1c0a0a",
+        color: "#fda4af",
+        border: "1px solid rgba(244,63,94,0.25)",
+        borderRadius: "12px",
+        fontSize: "13px",
+        fontWeight: "500",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+        padding: "10px 14px",
+      }
+    : isMasterclassTheme
+    ? {
+        background: "#051a10",
+        color: "#6ee7b7",
+        border: "1px solid rgba(16,185,129,0.25)",
+        borderRadius: "12px",
+        fontSize: "13px",
+        fontWeight: "500",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+        padding: "10px 14px",
+      }
+    : undefined; // use global default
+
+  const toastSuccess = (msg) => toast.success(msg, toastStyle ? { style: toastStyle, iconTheme: { primary: isSynergyTheme ? "#f43f5e" : "#10b981", secondary: isSynergyTheme ? "#1c0a0a" : "#051a10" } } : undefined);
+  const toastError   = (msg) => toast.error(msg,   toastStyle ? { style: toastStyle, iconTheme: { primary: "#ef4444", secondary: isSynergyTheme ? "#1c0a0a" : "#051a10" } } : undefined);
 
   const addReaction = (emoji) => {
     const id = Date.now() + Math.random();
@@ -114,36 +147,38 @@ export default function PresentationMode() {
   const handleStartVoting = async () => {
     try {
       await startVoting(pollId, currentQuestionIndex);
-      toast.success("Voting started!");
+      toastSuccess("Voting started!");
     } catch (err) {
-      toast.error("Failed to start voting");
+      toastError("Failed to start voting");
     }
   };
 
   const handleStopVoting = async () => {
     try {
       await stopVoting(pollId);
-      toast.success("Voting stopped");
+      toastSuccess("Voting stopped");
     } catch (err) {
-      toast.error("Failed to stop voting");
+      toastError("Failed to stop voting");
     }
   };
 
   const handleNextQuestion = async () => {
-    if (currentQuestionIndex >= totalQuestions - 1) return;
+    if (isTransitioning || currentQuestionIndex >= totalQuestions - 1) return;
     try {
-      await nextQuestion(pollId, currentQuestionIndex);
+      await nextQuestion(pollId, currentQuestionIndex, totalQuestions);
+      toastSuccess("Next question started!");
     } catch (err) {
-      toast.error("Failed to go to next question");
+      toastError("Failed to go to next question");
     }
   };
 
   const handlePrevQuestion = async () => {
-    if (currentQuestionIndex <= 0) return;
+    if (isTransitioning || currentQuestionIndex <= 0) return;
     try {
       await prevQuestion(pollId, currentQuestionIndex);
+      toastSuccess("Previous question started!");
     } catch (err) {
-      toast.error("Failed to go to previous question");
+      toastError("Failed to go to previous question");
     }
   };
 
@@ -153,10 +188,10 @@ export default function PresentationMode() {
     ) {
       try {
         await endPoll(pollId);
-        toast.success("Poll ended");
+        toastSuccess("Poll ended");
         router.push("/dashboard");
       } catch (err) {
-        toast.error("Failed to end poll");
+        toastError("Failed to end poll");
       }
     }
   };
@@ -257,6 +292,7 @@ export default function PresentationMode() {
             router={router}
             reactions={reactions}
             addReaction={addReaction}
+            isTransitioning={isTransitioning}
           />
           {/* Floating Emojis Container */}
           <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
@@ -308,6 +344,7 @@ export default function PresentationMode() {
             router={router}
             reactions={reactions}
             addReaction={addReaction}
+            isTransitioning={isTransitioning}
           />
           {/* Floating Emojis Container */}
           <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
@@ -359,6 +396,7 @@ export default function PresentationMode() {
           router={router}
           reactions={reactions}
           addReaction={addReaction}
+          isTransitioning={isTransitioning}
         />
         {/* Floating Emojis Container */}
         <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">

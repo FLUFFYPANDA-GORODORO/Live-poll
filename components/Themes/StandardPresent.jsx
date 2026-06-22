@@ -20,6 +20,15 @@ const CHART_COLORS = [
   "linear-gradient(to top, #0d9488, #14b8a6)"  // Electric Teal (matches right cyan glow)
 ];
 
+function getQuestionFontSize(text) {
+  if (!text) return "text-2xl md:text-3xl";
+  const len = text.length;
+  if (len <= 40) return "text-2xl md:text-3xl";
+  if (len <= 80) return "text-xl md:text-2xl";
+  if (len <= 140) return "text-lg md:text-xl";
+  return "text-sm md:text-base";
+}
+
 export default function StandardPresent({
   poll,
   cleanTitle,
@@ -126,59 +135,72 @@ export default function StandardPresent({
           </div>
         )}
 
-        {/* Question Title - Centered */}
-        <div className="text-center w-full max-w-4xl mx-auto mb-3 mt-1">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-white leading-tight drop-shadow-lg tracking-tight">
-            {currentQuestion?.text || "No question"}
-          </h2>
-          <div className="mt-3 text-zinc-300 text-sm flex items-center justify-center gap-3 font-medium">
-            <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
-            {isVotingActive && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-500/20 text-green-400 text-xs border border-green-500/30">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Live
-              </span>
-            )}
+        {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
+            <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+              Welcome to Masterclass 3.0
+            </h1>
+            <p className="text-zinc-300 text-lg md:text-xl mt-4 opacity-80 tracking-widest uppercase">
+              Interactive Presentation
+            </p>
           </div>
-        </div>
-
-        {/* Huge Bars Container */}
-        <div className="flex-1 flex items-end justify-center gap-6 md:gap-12 w-full max-w-7xl mx-auto my-auto mt-2">
-          {currentQuestion?.options?.map((option, idx) => {
-            const votes = getVoteCount(idx);
-            const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-            const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
-            const gradient = CHART_COLORS[idx % CHART_COLORS.length];
-
-            return (
-              <div key={idx} className="flex flex-col items-center flex-1 max-w-[250px] h-[36vh] justify-end">
-                {/* Percentage above bar */}
-                <div className="text-white font-black text-3xl mb-3 drop-shadow-md">
-                  {percentage}%
-                </div>
-
-                {/* Big Bar wrapper */}
-                <div className="w-full flex-1 flex items-end relative">
-                  <div
-                    className="w-full rounded-t-md transition-all duration-700 ease-out"
-                    style={{
-                      height: `${height || 3}%`,
-                      background: gradient,
-                      boxShadow: votes > 0 ? `0 4px 25px rgba(255, 255, 255, 0.15)` : "none",
-                    }}
-                  />
-                </div>
-
-                {/* Label under bar */}
-                <div className="text-center mt-2 w-full h-20 flex items-start justify-center">
-                  <div className="text-zinc-100 font-bold text-sm md:text-base lg:text-lg whitespace-normal break-words w-full drop-shadow-sm px-1" title={option.text}>
-                    {option.text}
-                  </div>
-                </div>
+        ) : (
+          <>
+            {/* Question Title - Centered */}
+            <div className="text-center w-full max-w-4xl mx-auto mb-3 mt-1">
+              <h2 className={`${getQuestionFontSize(currentQuestion?.text)} font-extrabold text-white leading-tight drop-shadow-lg tracking-tight`}>
+                {currentQuestion?.text || "No question"}
+              </h2>
+              <div className="mt-3 text-zinc-300 text-sm flex items-center justify-center gap-3 font-medium">
+                <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
+                {isVotingActive && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-500/20 text-green-400 text-xs border border-green-500/30">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    Live
+                  </span>
+                )}
               </div>
-            );
-          })}
-        </div>
+            </div>
+
+            {/* Huge Bars Container */}
+            <div className="flex-1 flex items-end justify-center gap-6 md:gap-12 w-full max-w-7xl mx-auto my-auto mt-2">
+              {currentQuestion?.options?.map((option, idx) => {
+                const votes = getVoteCount(idx);
+                const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
+                const gradient = CHART_COLORS[idx % CHART_COLORS.length];
+
+                return (
+                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[250px] h-[36vh] justify-end">
+                    {/* Percentage above bar */}
+                    <div className="text-white font-black text-3xl mb-3 drop-shadow-md">
+                      {percentage}%
+                    </div>
+
+                    {/* Big Bar wrapper */}
+                    <div className="w-full flex-1 flex items-end relative">
+                      <div
+                        className="w-full rounded-t-md transition-all duration-700 ease-out"
+                        style={{
+                          height: `${height || 3}%`,
+                          background: gradient,
+                          boxShadow: votes > 0 ? `0 4px 25px rgba(255, 255, 255, 0.15)` : "none",
+                        }}
+                      />
+                    </div>
+
+                    {/* Label under bar */}
+                    <div className="text-center mt-2 w-full h-20 flex items-start justify-center">
+                      <div className="text-zinc-100 font-bold text-sm md:text-base lg:text-lg whitespace-normal break-words w-full drop-shadow-sm px-1" title={option.text}>
+                        {option.text}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
       </main>
 
       {/* Control Buttons Tab (Fixed Bottom) */}

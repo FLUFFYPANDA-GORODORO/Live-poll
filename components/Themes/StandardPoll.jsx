@@ -148,8 +148,8 @@ export default function StandardPoll({
       iconBgClass = "w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6 border border-emerald-500/20";
       iconClass = "w-8 h-8 text-emerald-400";
       dotClass = "w-2 h-2 bg-emerald-500 rounded-full animate-bounce";
-      titleText = "Classroom Waiting Room";
-      subTitleText = "Waiting for the class lecture to begin...";
+      titleText = "Masterclass Waiting Room";
+      subTitleText = "The masterclass will begin shortly...";
     } else if (isSynergy) {
       waitingClass = "min-h-screen bg-stone-900 flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
       textClass = "text-white";
@@ -218,9 +218,10 @@ export default function StandardPoll({
 
   // 2. Render Ended State
   if (!activeQuestion || poll.status === "ended") {
-    let endedClass = "min-h-screen bg-[#F8FAFC] flex flex-col items-center justify-center p-6";
+    let endedClass = "min-h-screen bg-[#F8FAFC] flex flex-col justify-between p-4 md:p-6";
     let textClass = "text-[#1E293B]";
     let cardTextClass = "text-[#64748B]";
+    let cardClass = "bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-sm";
     let buttonClass = "flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors";
     let iconBgClass = "w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6";
     let iconClass = "w-10 h-10 text-green-500";
@@ -228,38 +229,66 @@ export default function StandardPoll({
     let subTitleText = "Thank you for participating!";
 
     if (isMasterclass) {
-      endedClass = "min-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center p-6 text-emerald-50";
+      endedClass = "min-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
       textClass = "text-white";
-      cardTextClass = "text-slate-350";
+      cardTextClass = "text-slate-300";
+      cardClass = "bg-slate-950/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-900/30 shadow-2xl";
       buttonClass = "flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors shadow-lg shadow-emerald-600/35 border border-emerald-500/30";
       iconBgClass = "w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6 border border-emerald-500/35";
       iconClass = "w-10 h-10 text-emerald-500";
-      titleText = "Lecture Ended";
-      subTitleText = "Your answers have been saved. Class dismissed!";
+      titleText = "Masterclass Ended";
+      subTitleText = "Your answers have been saved. Masterclass concluded!";
     } else if (isSynergy) {
-      endedClass = "min-h-screen bg-stone-900 flex flex-col items-center justify-center p-6 text-rose-50";
+      endedClass = "min-h-screen bg-stone-900 flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
       textClass = "text-white";
       cardTextClass = "text-stone-400";
+      cardClass = "bg-stone-950 rounded-2xl p-8 border border-rose-900/30 shadow-2xl";
       buttonClass = "flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors shadow-lg shadow-rose-600/35 border border-rose-500/30";
       iconBgClass = "w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-6 border border-rose-500/35";
       iconClass = "w-10 h-10 text-rose-500";
       titleText = "Sphere Concluded";
-      subTitleText = "Your answers have been saved. Thank you!";
+      subTitleText = "Your answers have been saved. Synergy Sphere concluded!";
     }
 
     return (
       <div className={endedClass}>
-        <div className="max-w-md text-center">
-          <div className={iconBgClass}>
-            <Check className={iconClass} />
+        {/* Synergy Sphere Light Overlay */}
+        {!!isSynergy && <div className="absolute inset-0 bg-white/10 z-0" />}
+
+        {/* Top Logos Header */}
+        {isMasterclass ? (
+          <div className="w-full flex items-center justify-between gap-3 mb-2 flex-shrink-0 relative z-10">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 w-auto object-contain" />
+            <img src="/mc01.png" alt="Masterclass Logo" className="h-10 w-auto object-contain translate-y-1.5" />
           </div>
-          <h1 className={`text-2xl font-bold mb-4 ${textClass}`}>{titleText}</h1>
-          <p className={`${cardTextClass} mb-6`}>{subTitleText}</p>
-          <button onClick={() => router.push("/")} className={buttonClass}>
-            <Home className="w-5 h-5" />
-            Return Home
-          </button>
+        ) : isSynergy ? (
+          <div className="w-full flex items-center justify-between gap-3 mb-2 flex-shrink-0 z-10 relative">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 w-auto object-contain" />
+            <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-10 w-auto object-contain" />
+          </div>
+        ) : (
+          <div className="absolute top-4 left-4 z-20">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+          </div>
+        )}
+
+        {/* Main Content Card */}
+        <div className="max-w-md text-center mx-auto my-auto z-10 relative w-full px-4">
+          <div className={cardClass}>
+            <div className={iconBgClass}>
+              <Check className={iconClass} />
+            </div>
+            <h1 className={`text-2xl font-bold mb-4 ${textClass}`}>{titleText}</h1>
+            <p className={`${cardTextClass} mb-6`}>{subTitleText}</p>
+            <button onClick={() => router.push("/")} className={buttonClass}>
+              <Home className="w-5 h-5" />
+              Return Home
+            </button>
+          </div>
         </div>
+
+        {/* Bottom Spacer to balance top header under justify-between */}
+        <div className="h-12 flex-shrink-0 hidden md:block" />
       </div>
     );
   }

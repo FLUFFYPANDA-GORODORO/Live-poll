@@ -38,6 +38,7 @@ export default function PresentationMode() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [reactions, setReactions] = useState([]);
+  const [subscribedId, setSubscribedId] = useState(null);
 
   // ── Theme-aware toast helper (works even before poll loads) ──
   const rawTheme = urlTheme || "";
@@ -97,6 +98,7 @@ export default function PresentationMode() {
   useEffect(() => {
     if (!pollId) return;
 
+    setSubscribedId(pollId);
     const unsubscribe = subscribeToPoll(pollId);
     return () => unsubscribe();
   }, [pollId, subscribeToPoll]);
@@ -228,7 +230,7 @@ export default function PresentationMode() {
     1
   );
 
-  if (loading) {
+  if (loading || subscribedId !== pollId) {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-white flex items-center justify-center">
@@ -238,7 +240,7 @@ export default function PresentationMode() {
     );
   }
 
-  if (!poll) {
+  if (!poll || poll.id !== pollId) {
     return (
       <ProtectedRoute>
         <div className="min-h-screen bg-white flex flex-col items-center justify-center text-slate-900">

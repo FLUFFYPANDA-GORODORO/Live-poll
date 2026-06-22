@@ -90,8 +90,8 @@ export default function MasterclassPoll({
             <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6 border border-emerald-500/20">
               <Lock className="w-8 h-8 text-emerald-400" />
             </div>
-            <h2 className="text-xl font-bold mb-3 text-white">Classroom Waiting Room</h2>
-            <p className="text-slate-355 mb-6">Waiting for the class lecture to begin...</p>
+            <h2 className="text-xl font-bold mb-3 text-white">Masterclass Waiting Room</h2>
+            <p className="text-slate-355 mb-6">The masterclass will begin shortly...</p>
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }} />

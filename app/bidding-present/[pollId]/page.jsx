@@ -24,16 +24,17 @@ export default function BiddingPresentPage() {
   const searchParams = useSearchParams();
 
   const {
-    currentPoll: poll,
-    loadingCurrent: loading,
-    subscribeToPoll,
+    currentBiddingPoll: poll,
+    loadingBiddingCurrent: loading,
+    subscribeToBiddingPoll,
     skills,
     bubbleCounts,
     committedCount,
     fetchSkills,
     startBidding,
     stopBidding,
-    fetchBiddingAnalytics,
+    deleteBiddingPoll,
+    restartBiddingPoll,
   } = usePollStore();
 
   const sessionId = getSessionId();
@@ -41,14 +42,21 @@ export default function BiddingPresentPage() {
   // Subscribe to poll updates
   useEffect(() => {
     if (!pollId) return;
-    const unsubscribe = subscribeToPoll(pollId);
+    const unsubscribe = subscribeToBiddingPoll(pollId);
     return () => unsubscribe();
-  }, [pollId, subscribeToPoll]);
+  }, [pollId, subscribeToBiddingPoll]);
 
   // Fetch skills on mount
   useEffect(() => {
     fetchSkills?.();
   }, [fetchSkills]);
+
+  // Automatically start bidding if not already active and not closed
+  useEffect(() => {
+    if (poll && !poll.isBiddingActive && !poll.biddingClosed && startBidding) {
+      startBidding(pollId).catch((err) => console.error("Auto start bidding failed:", err));
+    }
+  }, [poll, pollId, startBidding]);
 
   const theme = poll?.theme || searchParams.get("theme") || "synergy_sphere";
   const cleanTitle = poll?.title?.replace(/ ~(SS|MC)$/, "") || "Skill Bidding";
@@ -79,7 +87,8 @@ export default function BiddingPresentPage() {
       pollId={pollId}
       startBidding={startBidding}
       stopBidding={stopBidding}
-      fetchBiddingAnalytics={fetchBiddingAnalytics}
+      deleteBiddingPoll={deleteBiddingPoll}
+      restartBiddingPoll={restartBiddingPoll}
       isBiddingActive={poll?.isBiddingActive}
       biddingClosed={poll?.biddingClosed}
     />

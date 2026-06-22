@@ -458,7 +458,7 @@ export default function StandardCreate({
                   : "Type your question here..."
               }
               className={`w-full max-w-3xl text-3xl md:text-4xl font-bold text-center bg-transparent border-none focus:outline-none focus:ring-0 placeholder-slate-350 transition-colors ${
-                isMasterclass ? "text-emerald-950" : isSynergy ? "text-white" : "text-slate-800"
+                isMasterclass ? "text-white" : isSynergy ? "text-white" : "text-slate-800"
               }`}
             />
           </div>

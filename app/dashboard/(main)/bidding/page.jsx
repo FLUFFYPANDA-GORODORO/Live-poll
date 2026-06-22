@@ -444,13 +444,13 @@ export default function BiddingAdmin() {
 
   // Store actions/state
   const {
-    polls,
+    biddingPolls,
     loading: loadingStore,
-    fetchPolls,
-    deletePoll,
-    restartPoll,
-    createPoll,
-    savePoll,
+    fetchBiddingPolls,
+    deleteBiddingPoll,
+    restartBiddingPoll,
+    createBiddingPoll,
+    saveBiddingPoll,
   } = usePollStore();
 
   const [skills, setSkills] = useState([]);
@@ -484,36 +484,28 @@ export default function BiddingAdmin() {
 
   useEffect(() => {
     if (user) {
-      fetchPolls(user.uid);
+      fetchBiddingPolls(user.uid);
     }
     fetchSkills();
-  }, [user, fetchPolls, fetchSkills]);
-
-  // Filter bidding polls from general store polls
-  const biddingPolls = (polls || []).filter(
-    (p) => p.theme === "synergy_sphere" || p.theme === "masterclass"
-  );
+  }, [user, fetchBiddingPolls, fetchSkills]);
 
   const handleRefresh = () => {
-    if (user) fetchPolls(user.uid);
+    if (user) fetchBiddingPolls(user.uid);
     fetchSkills();
   };
 
   // Launch a new bidding poll session
   const handleLaunchSession = async (sessionData) => {
     const titleWithSuffix = `${sessionData.name} ${sessionData.theme === "synergy_sphere" ? "~SS" : "~MC"}`;
-    // Create bidding session
-    const dummyQuestions = [{ text: "Skill Bidding", type: "MultipleChoice", options: ["Bid"] }];
     try {
-      const pollId = await createPoll(
+      const pollId = await createBiddingPoll(
         titleWithSuffix,
-        dummyQuestions,
         sessionData.theme,
         sessionData.skillCost,
         sessionData.skillIds
       );
       toast.success("Bidding session launched!");
-      if (user) fetchPolls(user.uid);
+      if (user) fetchBiddingPolls(user.uid);
       window.open(`/bidding-present/${pollId}?theme=${sessionData.theme}`, "_blank");
     } catch (err) {
       toast.error("Failed to launch bidding session");
@@ -524,18 +516,16 @@ export default function BiddingAdmin() {
   // Save changes to an existing session
   const handleSaveSession = async (sessionData) => {
     const titleWithSuffix = `${sessionData.name} ${sessionData.theme === "synergy_sphere" ? "~SS" : "~MC"}`;
-    const dummyQuestions = [{ text: "Skill Bidding", type: "MultipleChoice", options: ["Bid"] }];
     try {
-      await savePoll(
+      await saveBiddingPoll(
         sessionData.id,
         titleWithSuffix,
-        dummyQuestions,
         sessionData.theme,
         sessionData.skillCost,
         sessionData.skillIds
       );
       toast.success("Bidding session updated successfully");
-      if (user) fetchPolls(user.uid);
+      if (user) fetchBiddingPolls(user.uid);
     } catch (err) {
       toast.error("Failed to update bidding session");
       throw err;
@@ -547,7 +537,7 @@ export default function BiddingAdmin() {
     if (!confirm("Are you sure you want to permanently delete this bidding session?")) return;
     setIsProcessing(true);
     try {
-      await deletePoll(pollId);
+      await deleteBiddingPoll(pollId);
       toast.success("Session deleted successfully");
     } catch (err) {
       toast.error("Failed to delete session");
@@ -561,9 +551,9 @@ export default function BiddingAdmin() {
     if (!confirm("Restart bidding? This will clear all votes and locked-in bids.")) return;
     setIsProcessing(true);
     try {
-      await restartPoll(poll.id);
+      await restartBiddingPoll(poll.id);
       toast.success("Session bids restarted");
-      if (user) fetchPolls(user.uid);
+      if (user) fetchBiddingPolls(user.uid);
     } catch (err) {
       toast.error("Failed to restart bids");
     } finally {

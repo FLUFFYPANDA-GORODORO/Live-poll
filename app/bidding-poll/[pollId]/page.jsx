@@ -23,10 +23,10 @@ export default function BiddingPollPage() {
   const searchParams = useSearchParams();
 
   const {
-    currentPoll: poll,
-    loadingCurrent: loading,
+    currentBiddingPoll: poll,
+    loadingBiddingCurrent: loading,
     error: storeError,
-    subscribeToPoll,
+    subscribeToBiddingPoll,
     skills,
     bubbleCounts,
     committedCount,
@@ -39,9 +39,9 @@ export default function BiddingPollPage() {
   // Subscribe to poll updates
   useEffect(() => {
     if (!pollId) return;
-    const unsubscribe = subscribeToPoll(pollId);
+    const unsubscribe = subscribeToBiddingPoll(pollId);
     return () => unsubscribe();
-  }, [pollId, subscribeToPoll]);
+  }, [pollId, subscribeToBiddingPoll]);
 
   const theme = poll?.theme || searchParams.get("theme") || "synergy_sphere";
 

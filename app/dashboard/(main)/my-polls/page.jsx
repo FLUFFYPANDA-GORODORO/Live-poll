@@ -132,6 +132,8 @@ export default function MyPolls() {
     if (user) fetchPolls(user.uid);
   }, [user, fetchPolls]);
 
+  const standardPolls = polls || [];
+
   const handleDeletePoll = async (pollId) => {
     if (!confirm("Delete this poll permanently?")) return;
     setProcessingPoll(pollId);
@@ -183,7 +185,7 @@ export default function MyPolls() {
             <div className="flex justify-center py-20">
               <Loader2 className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
             </div>
-          ) : polls.length === 0 ? (
+          ) : standardPolls.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300 shadow-sm max-w-2xl mx-auto">
               <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-slate-700">No polls yet</h3>
@@ -197,7 +199,7 @@ export default function MyPolls() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
-              {polls.map(poll => (
+              {standardPolls.map(poll => (
                 <PollCard 
                   key={poll.id} 
                   poll={poll} 

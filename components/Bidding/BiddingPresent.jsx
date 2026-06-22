@@ -15,7 +15,8 @@ export default function BiddingPresent({
   pollId,
   startBidding,
   stopBidding,
-  fetchBiddingAnalytics,
+  deleteBiddingPoll,
+  restartBiddingPoll,
   isBiddingActive,
   biddingClosed,
 }) {
@@ -23,10 +24,9 @@ export default function BiddingPresent({
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
   const [d3Loaded, setD3Loaded] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
-  const [analytics, setAnalytics] = useState(null);
   const [loadingD3, setLoadingD3] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
@@ -102,17 +102,29 @@ export default function BiddingPresent({
     };
   }, []);
 
-  // Load analytics
-  const handleViewAnalytics = useCallback(async () => {
-    if (!pollId || !fetchBiddingAnalytics) return;
-    setShowAnalytics(true);
-    try {
-      await fetchBiddingAnalytics(pollId);
-      // Store accesses biddingAnalytics from the store directly
-    } catch (err) {
-      console.error("Error fetching analytics:", err);
+  // Toggle Fullscreen helper
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true));
+    } else if (document.exitFullscreen) {
+      document.exitFullscreen().then(() => setIsFullscreen(false));
     }
-  }, [pollId, fetchBiddingAnalytics]);
+  };
+
+  // Close / Exit poll
+  const handleExitPoll = () => {
+    window.close();
+  };
+
+  // End poll
+  const handleEndPoll = async () => {
+    if (confirm("Are you sure you want to end this bidding session? This will close bidding.")) {
+      if (stopBidding) {
+        await stopBidding(pollId);
+      }
+      window.close();
+    }
+  };
 
   // D3 Force Simulation
   useEffect(() => {
@@ -330,7 +342,15 @@ export default function BiddingPresent({
       .attr("dy", (d) => `${-d.radius - 8}px`);
   }, [bubbleCounts, skills]);
 
-  const bgClass = isSynergy
+  const bgUrl = isSynergy
+    ? "/SynegrysphereBG.png"
+    : isMasterclass
+    ? "/MasterClassNewBg.png"
+    : null;
+
+  const bgClass = bgUrl
+    ? "bg-cover bg-center bg-no-repeat"
+    : isSynergy
     ? "bg-gradient-to-br from-stone-950 via-stone-900 to-rose-950"
     : isMasterclass
     ? "bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950"
@@ -340,8 +360,9 @@ export default function BiddingPresent({
 
   if (loadingD3) {
     return (
-      <div className={`min-h-screen ${bgClass} flex items-center justify-center`}>
-        <div className="text-center">
+      <div className={`min-h-screen ${bgClass} flex items-center justify-center`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
+        {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
+        <div className="text-center z-10">
           <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: accentColor }} />
           <p className="text-white/60 font-[Epilogue]">Loading visualization...</p>
         </div>
@@ -350,56 +371,22 @@ export default function BiddingPresent({
   }
 
   return (
-    <div className={`relative min-h-screen ${bgClass} overflow-hidden`}>
-      {/* Header */}
+    <div className={`relative min-h-screen ${bgClass} overflow-hidden`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
+      {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
+
+      {/* Top Header info (title and cohort logos) */}
       <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bp-fadeIn">
         <div>
           <h1 className="text-white font-[Epilogue] text-xl font-bold tracking-tight">
             {cleanTitle || "Skill Bidding"}
           </h1>
           <p className="text-white/40 text-sm font-[Epilogue] mt-1">
-            {isSynergy ? "SynergySphere" : isMasterclass ? "Masterclass" : "Live Poll"} • Bubble Chart
+            {isSynergy ? "SynergySphere" : isMasterclass ? "Masterclass" : "Live Poll"} • Bidding Session
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {!isBiddingActive && !biddingClosed && (
-            <button
-              onClick={() => startBidding?.(pollId)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold font-[Epilogue] transition-all hover:scale-105 bp-glow"
-              style={{ background: accentColor, color: "#fff" }}
-            >
-              <Play className="w-4 h-4" />
-              Start Bidding
-            </button>
-          )}
-          {isBiddingActive && (
-            <button
-              onClick={() => stopBidding?.(pollId)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold font-[Epilogue] transition-all hover:scale-105"
-              style={{ background: "#ef4444", color: "#fff" }}
-            >
-              <Square className="w-4 h-4" />
-              Close Bidding
-            </button>
-          )}
-          <button
-            onClick={() => setShowQrCode(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-[Epilogue] transition-all hover:scale-105 bg-white/10 text-white/80 hover:bg-white/20"
-          >
-            <QrCode className="w-4 h-4" />
-            Join QR
-          </button>
-          <button
-            onClick={handleViewAnalytics}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold font-[Epilogue] transition-all hover:scale-105 bg-white/10 text-white/80 hover:bg-white/20"
-          >
-            <BarChart3 className="w-4 h-4" />
-            Analytics
-          </button>
-          <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 text-white/70 text-sm font-[Epilogue]">
-            <Users className="w-4 h-4" />
-            <span>{committedCount} submitted</span>
-          </div>
+        <div>
+          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-10 w-auto object-contain" />}
+          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-10 w-auto object-contain" />}
         </div>
       </div>
 
@@ -418,6 +405,60 @@ export default function BiddingPresent({
         </div>
       )}
 
+      {/* Bottom Controls Bar (SynergySphere / Masterclass Presenter styled) */}
+      <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
+        {/* Left: Exit/End controls */}
+        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
+          <button
+            onClick={handleExitPoll}
+            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all"
+          >
+            Exit
+          </button>
+          <button
+            onClick={handleEndPoll}
+            className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all"
+          >
+            End
+          </button>
+        </div>
+
+        {/* Right: Stats, QR, Fullscreen */}
+        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
+          <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
+            <Users className="w-3.5 h-3.5" style={{ color: accentColor }} />
+            <span>{committedCount} submitted</span>
+          </div>
+
+          <div className="w-px h-4 bg-white/20" />
+
+          <button
+            onClick={() => setShowQrCode(!showQrCode)}
+            className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${
+              showQrCode
+                ? "text-white border-white/20"
+                : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"
+            }`}
+            style={showQrCode ? { background: accentColor, borderColor: `${accentColor}33` } : {}}
+            title="Toggle QR Code"
+          >
+            QR
+          </button>
+          
+          <button
+            onClick={toggleFullscreen}
+            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5"
+            title="Toggle Fullscreen"
+          >
+            {isFullscreen ? (
+              <span className="text-[10px] font-bold uppercase px-0.5">Min</span>
+            ) : (
+              <span className="text-[10px] font-bold uppercase px-0.5">Max</span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* QR Code Modal */}
       {showQrCode && (
         <QrCodeModal
@@ -428,158 +469,6 @@ export default function BiddingPresent({
           isMasterclass={isMasterclass}
         />
       )}
-
-      {/* Analytics Modal */}
-      {showAnalytics && (
-        <AnalyticsModal
-          theme={theme}
-          pollId={pollId}
-          onClose={() => setShowAnalytics(false)}
-          fetchBiddingAnalytics={fetchBiddingAnalytics}
-          isSynergy={isSynergy}
-          isMasterclass={isMasterclass}
-        />
-      )}
-    </div>
-  );
-}
-
-function AnalyticsModal({
-  theme,
-  pollId,
-  onClose,
-  fetchBiddingAnalytics,
-  isSynergy,
-  isMasterclass,
-}) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const accentColor = isSynergy ? "#f43f5e" : isMasterclass ? "#10b981" : "#6366f1";
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5065"}/api/bidding/analytics/${pollId}`
-        );
-        if (!res.ok) throw new Error("Failed to load analytics");
-        const json = await res.json();
-        if (!cancelled) setData(json);
-      } catch (err) {
-        if (!cancelled) setError(err.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    load();
-    return () => { cancelled = true; };
-  }, [pollId]);
-
-  const barMax = data?.skills?.length
-    ? Math.max(1, ...data.skills.map((s) => Math.max(s.hrVotes || 0, s.academiaVotes || 0)))
-    : 1;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="relative w-full max-w-4xl max-h-[85vh] mx-4 overflow-y-auto rounded-2xl p-8"
-        style={{ background: isSynergy ? "#1c0a0a" : isMasterclass ? "#051a10" : "#1e293b", border: `1px solid ${accentColor}33` }}
-      >
-        {/* Close */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors">
-          <X className="w-6 h-6" />
-        </button>
-
-        <h2 className="text-white font-[Epilogue] text-2xl font-bold mb-2">Bidding Analytics</h2>
-        <p className="text-white/40 font-[Epilogue] text-sm mb-8">
-          {isSynergy ? "SynergySphere (HR)" : isMasterclass ? "Masterclass (ACADEMIA)" : "Cross-Cohort"} Comparison
-        </p>
-
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: accentColor }} />
-          </div>
-        )}
-
-        {error && (
-          <div className="text-center py-10">
-            <p className="text-red-400 font-[Epilogue]">{error}</p>
-          </div>
-        )}
-
-        {data && !loading && (
-          <div className="space-y-6">
-            {/* Summary */}
-            <div className="grid grid-cols-3 gap-4 mb-8">
-              <div className="rounded-xl p-4 bg-white/5">
-                <p className="text-white/50 text-xs font-[Epilogue] uppercase tracking-wider">Total Skills</p>
-                <p className="text-white text-2xl font-bold font-[Epilogue] mt-1">{data.skills?.length || 0}</p>
-              </div>
-              <div className="rounded-xl p-4 bg-white/5">
-                <p className="text-white/50 text-xs font-[Epilogue] uppercase tracking-wider">HR Votes</p>
-                <p className="text-2xl font-bold font-[Epilogue] mt-1" style={{ color: isSynergy ? "#f43f5e" : "#a78bfa" }}>
-                  {data.skills?.reduce((sum, s) => sum + (s.hrVotes || 0), 0) || 0}
-                </p>
-              </div>
-              <div className="rounded-xl p-4 bg-white/5">
-                <p className="text-white/50 text-xs font-[Epilogue] uppercase tracking-wider">Academia Votes</p>
-                <p className="text-2xl font-bold font-[Epilogue] mt-1" style={{ color: isMasterclass ? "#10b981" : "#34d399" }}>
-                  {data.skills?.reduce((sum, s) => sum + (s.academiaVotes || 0), 0) || 0}
-                </p>
-              </div>
-            </div>
-
-            {/* Bar Chart */}
-            <div className="space-y-4">
-              {data.skills?.map((skill, idx) => {
-                const hrWidth = ((skill.hrVotes || 0) / barMax) * 100;
-                const acWidth = ((skill.academiaVotes || 0) / barMax) * 100;
-                const divergence = skill.divergenceScore || Math.abs((skill.hrVotes || 0) - (skill.academiaVotes || 0));
-                return (
-                  <div key={idx} className="bp-fadeIn" style={{ animationDelay: `${idx * 50}ms` }}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-white/80 text-sm font-[Epilogue] font-semibold">{skill.name}</span>
-                      <span className="text-white/40 text-xs font-[Epilogue]">
-                        Δ {divergence}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40 w-12 font-[Epilogue]">HR</span>
-                        <div className="flex-1 h-4 rounded-full bg-white/5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${hrWidth}%`, background: isSynergy ? "#f43f5e" : "#a78bfa" }}
-                          />
-                        </div>
-                        <span className="text-xs text-white/60 w-8 text-right font-[Epilogue]">{skill.hrVotes || 0}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/40 w-12 font-[Epilogue]">ACA</span>
-                        <div className="flex-1 h-4 rounded-full bg-white/5 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-700"
-                            style={{ width: `${acWidth}%`, background: isMasterclass ? "#10b981" : "#34d399" }}
-                          />
-                        </div>
-                        <span className="text-xs text-white/60 w-8 text-right font-[Epilogue]">{skill.academiaVotes || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {(!data.skills || data.skills.length === 0) && (
-              <div className="text-center py-10 text-white/40 font-[Epilogue]">
-                No bidding data yet
-              </div>
-            )}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

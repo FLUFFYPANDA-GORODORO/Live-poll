@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Play, Square, BarChart3, X, Users, QrCode, Copy, Check } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -20,6 +21,7 @@ export default function BiddingPresent({
   isBiddingActive,
   biddingClosed,
 }) {
+  const router = useRouter();
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
@@ -113,7 +115,7 @@ export default function BiddingPresent({
 
   // Close / Exit poll
   const handleExitPoll = () => {
-    window.close();
+    router.push("/dashboard/bidding");
   };
 
   // End poll
@@ -122,7 +124,7 @@ export default function BiddingPresent({
       if (stopBidding) {
         await stopBidding(pollId);
       }
-      window.close();
+      router.push("/dashboard/bidding");
     }
   };
 

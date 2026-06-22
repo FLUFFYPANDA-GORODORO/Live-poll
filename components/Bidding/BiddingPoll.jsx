@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
-import { Check, Lock, Sparkles, X, ArrowLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Check, Lock, Sparkles, X, ArrowLeft, Loader2, Minus, Plus } from "lucide-react";
 
-const CATEGORIES = ["Leadership", "Technical", "Cognitive", "Interpersonal"];
 const INITIAL_COINS = 100;
 
 export default function BiddingPoll({
@@ -22,56 +21,118 @@ export default function BiddingPoll({
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
 
-  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [selections, setSelections] = useState({}); // { [skillId]: count }
+  const selectionsRef = useRef({});
+
+  // Sync ref with selections state
+  useEffect(() => {
+    selectionsRef.current = selections;
+  }, [selections]);
+
   const [isLockedIn, setIsLockedIn] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showConfirmStep2, setShowConfirmStep2] = useState(false);
   const [lockingIn, setLockingIn] = useState(false);
   const [lockError, setLockError] = useState(null);
-  const [activeCategory, setActiveCategory] = useState(CATEGORIES[0]);
   const [hoveredSkill, setHoveredSkill] = useState(null);
   const [receiptSkills, setReceiptSkills] = useState([]);
+  const [coinAnimations, setCoinAnimations] = useState([]);
 
-  const categoryRefs = useRef({});
+  const walletRef = useRef(null);
   const containerRef = useRef(null);
 
-  const totalCoinsSpent = selectedIds.size * skillCost;
+  const totalCoinsSpent = Object.values(selections).reduce((acc, count) => acc + count, 0) * skillCost;
   const remainingCoins = INITIAL_COINS - totalCoinsSpent;
   const canSelect = remainingCoins >= skillCost && !isLockedIn;
 
-  // Group skills by category
-  const categorizedSkills = useMemo(() => {
-    const map = {};
-    CATEGORIES.forEach((cat) => {
-      map[cat] = (skills || []).filter((s) => s.category === cat);
-    });
-    return map;
-  }, [skills]);
-
-  // Toggle selection
-  const toggleSkill = useCallback(
-    (skillId) => {
+  // Add coin to skill
+  const addCoin = useCallback(
+    (skillId, event) => {
       if (isLockedIn) return;
+
+      const currentSelections = selectionsRef.current;
+      const currentSpent = Object.values(currentSelections).reduce((acc, count) => acc + count, 0) * skillCost;
+      const currentRemaining = INITIAL_COINS - currentSpent;
+
+      if (currentRemaining < skillCost) return; // budget exceeded
+
+      const nextSelections = {
+        ...currentSelections,
+        [skillId]: (currentSelections[skillId] || 0) + 1,
+      };
+
+      selectionsRef.current = nextSelections;
+      setSelections(nextSelections);
       setLockError(null);
 
-      setSelectedIds((prev) => {
-        const next = new Set(prev);
-        if (next.has(skillId)) {
-          next.delete(skillId);
-          sendSelectionChange?.(poll?.id, sessionId, skillId, false);
-        } else if (next.size < maxPicks) {
-          next.add(skillId);
-          sendSelectionChange?.(poll?.id, sessionId, skillId, true);
-        }
-        return next;
-      });
+      sendSelectionChange?.(poll?.id, sessionId, skillId, true);
+
+      // Trigger coin drop animation
+      if (event && walletRef.current) {
+        const walletRect = walletRef.current.getBoundingClientRect();
+        const targetRect = event.currentTarget.getBoundingClientRect();
+        
+        const startX = walletRect.left + walletRect.width / 2;
+        const startY = walletRect.top + walletRect.height / 2;
+        const endX = targetRect.left + targetRect.width / 2;
+        const endY = targetRect.top + targetRect.height / 2;
+
+        const animId = Math.random().toString(36).substring(2, 9);
+        setCoinAnimations((prev) => [
+          ...prev,
+          { id: animId, startX, startY, endX, endY },
+        ]);
+      }
     },
-    [isLockedIn, maxPicks, poll?.id, sessionId, sendSelectionChange]
+    [isLockedIn, skillCost, poll?.id, sessionId, sendSelectionChange]
+  );
+
+  // Remove coin from skill
+  const removeCoin = useCallback(
+    (skillId, event) => {
+      if (isLockedIn) return;
+      event.stopPropagation(); // Avoid triggering addCoin on bubble click
+
+      const currentSelections = selectionsRef.current;
+      const currentCount = currentSelections[skillId] || 0;
+      if (currentCount <= 0) return;
+
+      const nextSelections = { ...currentSelections };
+      nextSelections[skillId] = currentCount - 1;
+      if (nextSelections[skillId] === 0) {
+        delete nextSelections[skillId];
+      }
+
+      selectionsRef.current = nextSelections;
+      setSelections(nextSelections);
+      setLockError(null);
+
+      sendSelectionChange?.(poll?.id, sessionId, skillId, false);
+
+      // Trigger coin fly back to wallet animation
+      if (event && walletRef.current) {
+        const walletRect = walletRef.current.getBoundingClientRect();
+        const targetRect = event.currentTarget.getBoundingClientRect();
+        
+        const startX = targetRect.left + targetRect.width / 2;
+        const startY = targetRect.top + targetRect.height / 2;
+        const endX = walletRect.left + walletRect.width / 2;
+        const endY = walletRect.top + walletRect.height / 2;
+
+        const animId = Math.random().toString(36).substring(2, 9);
+        setCoinAnimations((prev) => [
+          ...prev,
+          { id: animId, startX, startY, endX, endY },
+        ]);
+      }
+    },
+    [isLockedIn, poll?.id, sessionId, sendSelectionChange]
   );
 
   // Open confirm modal
   const handleOpenConfirm = () => {
-    if (selectedIds.size === 0) return;
+    const selectedCount = Object.values(selections).reduce((acc, count) => acc + count, 0);
+    if (selectedCount === 0) return;
     setShowConfirmModal(true);
     setShowConfirmStep2(false);
   };
@@ -85,9 +146,16 @@ export default function BiddingPoll({
     setLockingIn(true);
     setLockError(null);
     try {
-      await lockInBids?.(poll?.id, sessionId, Array.from(selectedIds));
+      const allSelectedIds = [];
+      Object.entries(selections).forEach(([skillId, count]) => {
+        for (let i = 0; i < count; i++) {
+          allSelectedIds.push(parseInt(skillId));
+        }
+      });
+
+      await lockInBids?.(poll?.id, sessionId, allSelectedIds);
       setReceiptSkills(
-        skills?.filter((s) => selectedIds.has(s.id)) || []
+        skills?.filter((s) => (selections[s.id] || 0) > 0) || []
       );
       setIsLockedIn(true);
       setShowConfirmModal(false);
@@ -96,15 +164,6 @@ export default function BiddingPoll({
       setLockError(err.message || "Failed to lock in bids. Please try again.");
     } finally {
       setLockingIn(false);
-    }
-  };
-
-  // Scroll to category
-  const scrollToCategory = (cat) => {
-    setActiveCategory(cat);
-    const el = categoryRefs.current[cat];
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -130,6 +189,8 @@ export default function BiddingPoll({
   const textColor = isSynergy || isMasterclass ? "text-white" : "text-slate-900";
   const textMuted = isSynergy || isMasterclass ? "text-white/50" : "text-slate-500";
 
+  const totalPicks = Object.values(selections).reduce((acc, count) => acc + count, 0);
+
   // Locked-in receipt view
   if (isLockedIn) {
     return (
@@ -151,9 +212,7 @@ export default function BiddingPoll({
           </div>
 
           {/* Receipt Card */}
-          <div
-            className={`rounded-2xl p-6 border ${cardBg} backdrop-blur-sm`}
-          >
+          <div className={`rounded-2xl p-6 border ${cardBg} backdrop-blur-sm`}>
             <div className="flex items-center justify-between mb-4 pb-4 border-b border-white/10">
               <span className={`text-sm font-[Epilogue] ${textMuted}`}>Total Coins Spent</span>
               <div className="flex items-center gap-2">
@@ -191,7 +250,7 @@ export default function BiddingPoll({
                       className="object-contain"
                     />
                     <span className={`text-sm font-semibold font-[Epilogue] ${textColor}`}>
-                      {skillCost}
+                      {skillCost * (selections[skill.id] || 0)}
                     </span>
                   </div>
                 </div>
@@ -200,7 +259,7 @@ export default function BiddingPoll({
           </div>
 
           <p className={`mt-6 text-xs font-[Epilogue] ${textMuted}`}>
-            You selected {selectedIds.size} of {maxPicks} possible skills
+            You allocated {totalPicks} bid coins across {receiptSkills.length} skills
           </p>
         </div>
       </div>
@@ -208,197 +267,183 @@ export default function BiddingPoll({
   }
 
   return (
-    <div ref={containerRef} className={`min-h-screen ${bgClass}`}>
+    <div ref={containerRef} className={`min-h-screen ${bgClass} overflow-x-hidden`}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes coin-fly {
+          0% {
+            transform: translate(calc(var(--start-x) - 12px), calc(var(--start-y) - 12px)) scale(1.3);
+            opacity: 1;
+          }
+          80% {
+            transform: translate(calc(var(--end-x) - 12px), calc(var(--end-y) - 12px)) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(calc(var(--end-x) - 12px), calc(var(--end-y) - 12px)) scale(0.6);
+            opacity: 0;
+          }
+        }
+        .animate-coin-fly {
+          animation: coin-fly 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes float-bubble {
+          0%, 100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-8px) rotate(1deg);
+          }
+        }
+        .float-bubble {
+          animation: float-bubble 6s ease-in-out infinite;
+        }
+      `}} />
+
+      {/* Coin Fly Animations Container */}
+      {coinAnimations.map((coin) => (
+        <div
+          key={coin.id}
+          className="fixed z-50 pointer-events-none animate-coin-fly"
+          style={{
+            "--start-x": `${coin.startX}px`,
+            "--start-y": `${coin.startY}px`,
+            "--end-x": `${coin.endX}px`,
+            "--end-y": `${coin.endY}px`,
+            left: 0,
+            top: 0,
+          }}
+          onAnimationEnd={() => {
+            setCoinAnimations((prev) => prev.filter((c) => c.id !== coin.id));
+          }}
+        >
+          <Image
+            src="/coin2.png"
+            alt="coin"
+            width={24}
+            height={24}
+            className="object-contain drop-shadow-md"
+          />
+        </div>
+      ))}
+
       {/* Sticky Wallet Header */}
       <div
         className={`sticky top-0 z-30 backdrop-blur-xl border-b ${isSynergy || isMasterclass ? "border-white/10 bg-black/60" : "border-slate-200 bg-white/80"}`}
       >
-        <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/coin2.png"
-              alt="Gryphon Coins"
-              width={32}
-              height={32}
-              className="object-contain drop-shadow-lg"
-              priority
-            />
-            <div>
-              <p className={`text-xs font-[Epilogue] ${textMuted}`}>Wallet</p>
-              <p className={`text-lg font-bold font-[Epilogue] ${textColor}`}>
-                {remainingCoins}
-                <span className={`text-sm font-normal ${textMuted}`}> / {INITIAL_COINS}</span>
-              </p>
-            </div>
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h1 className={`text-xl font-bold font-[Epilogue] ${textColor}`}>
+              {poll?.title ? poll.title.replace(/~(SS|MC)$/, "").trim() : "Bidding Arena"}
+            </h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Picks counter */}
-            <div className="text-center">
-              <p className={`text-xs font-[Epilogue] ${textMuted}`}>Picks</p>
-              <p className={`text-sm font-bold font-[Epilogue] ${textColor}`}>
-                {selectedIds.size}/{maxPicks}
-              </p>
-            </div>
-
+          <div className="flex items-center gap-6">
             {/* Lock In Button */}
             <button
               onClick={handleOpenConfirm}
-              disabled={selectedIds.size === 0}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold font-[Epilogue] transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
+              disabled={totalPicks === 0}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold font-[Epilogue] transition-all disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95 shadow-md"
               style={{
-                background: selectedIds.size > 0 ? accentColor : "#333",
+                background: totalPicks > 0 ? accentColor : "#333",
                 color: "#fff",
               }}
             >
               <Lock className="w-4 h-4" />
               Lock In
             </button>
-          </div>
-        </div>
 
-        {/* Progress bar */}
-        <div className="h-1 bg-white/10">
-          <div
-            className="h-full transition-all duration-300"
-            style={{
-              width: `${(totalCoinsSpent / INITIAL_COINS) * 100}%`,
-              background: `linear-gradient(90deg, ${accentColor}, ${accentColor}88)`,
-            }}
-          />
+            {/* Wallet Info (Top Right) */}
+            <div
+              ref={walletRef}
+              className="flex items-center gap-2.5 bg-yellow-500/10 border border-yellow-500/30 px-4 py-2 rounded-2xl shadow-inner"
+            >
+              <Image
+                src="/coin2.png"
+                alt="Gryphon Coins"
+                width={28}
+                height={28}
+                className="object-contain drop-shadow-md animate-pulse"
+                priority
+              />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-yellow-500">Wallet</p>
+                <p className="text-base font-black font-[Epilogue] text-yellow-400">
+                  {remainingCoins}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Category Tabs */}
-      <div
-        className={`sticky top-[72px] z-20 backdrop-blur-xl ${isSynergy || isMasterclass ? "bg-black/40" : "bg-slate-50/80"}`}
-      >
-        <div className="max-w-lg mx-auto flex overflow-x-auto gap-1 px-4 py-2 scrollbar-hide">
-          {CATEGORIES.map((cat) => {
-            const count = categorizedSkills[cat]?.length || 0;
-            const selected = skills?.filter((s) => s.category === cat && selectedIds.has(s.id)).length || 0;
+      {/* Game board: scattered/distributed circles */}
+      <div className="max-w-5xl mx-auto px-6 py-12 pb-32">
+        <div className="flex flex-wrap justify-center gap-6 sm:gap-10">
+          {(skills || []).map((skill, index) => {
+            const skillCount = selections[skill.id] || 0;
+            const isSelected = skillCount > 0;
+            const votes = getSkillVotes(skill.id);
+            
+            // Generate some playful styling based on the index
+            const delay = `${(index % 5) * 0.3}s`;
+            
             return (
-              <button
-                key={cat}
-                onClick={() => scrollToCategory(cat)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold font-[Epilogue] whitespace-nowrap transition-all flex-shrink-0 ${
-                  activeCategory === cat
-                    ? "text-white shadow-lg"
-                    : `${textMuted} hover:bg-white/10`
-                }`}
-                style={
-                  activeCategory === cat
-                    ? { background: accentColor }
-                    : {}
-                }
+              <div
+                key={skill.id}
+                onClick={(e) => addCoin(skill.id, e)}
+                onMouseEnter={() => setHoveredSkill(skill.id)}
+                onMouseLeave={() => setHoveredSkill(null)}
+                className={`relative rounded-full flex flex-col items-center justify-center text-center p-4 aspect-square w-28 h-28 sm:w-36 sm:h-36 transition-all duration-300 float-bubble border ${
+                  isSelected
+                    ? "border-2 scale-[1.05] shadow-lg"
+                    : "hover:scale-[1.03]"
+                } ${isSynergy || isMasterclass ? "backdrop-blur-sm" : ""} ${
+                  !isSelected && !canSelect ? "opacity-30 cursor-not-allowed" : "cursor-pointer"
+                } ${cardBg}`}
+                style={{
+                  animationDelay: delay,
+                  borderColor: isSelected ? accentColor : undefined,
+                  boxShadow: isSelected ? `0 0 25px ${accentColor}44` : undefined,
+                }}
               >
-                {cat}
-                {selected > 0 && (
-                  <span
-                    className="text-[10px] px-1.5 py-0.5 rounded-full text-white"
-                    style={{ background: accentColor }}
-                  >
-                    {selected}
+                {/* Skill Name */}
+                <p className={`text-xs sm:text-sm font-bold font-[Epilogue] leading-tight px-1 ${textColor}`}>
+                  {skill.name}
+                </p>
+
+                {/* Votes Count (if any) */}
+                {votes > 0 && (
+                  <span className={`absolute top-2 text-[9px] font-bold font-[Epilogue] px-1.5 py-0.5 rounded-full bg-white/10 ${textMuted}`}>
+                    {votes} votes
                   </span>
                 )}
-                <span className={`text-[10px] ${textMuted}`}>({count})</span>
-              </button>
+
+                {/* Coin Badge showing selection multiplier */}
+                {isSelected && (
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-yellow-500 border-2 border-white flex items-center justify-center shadow-lg animate-bounce">
+                    <Image src="/coin2.png" alt="coin" width={18} height={18} />
+                    {skillCount > 1 && (
+                      <span className="absolute -top-2.5 -right-2 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full border border-white">
+                        x{skillCount}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Minus Button Overlay (to remove one coin) */}
+                {isSelected && (
+                  <button
+                    onClick={(e) => removeCoin(skill.id, e)}
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-slate-800 hover:bg-slate-700 text-white border border-white/20 flex items-center justify-center shadow-md transition-transform active:scale-90"
+                    title="Remove 1 Coin"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Skills Grid by Category */}
-      <div className="max-w-lg mx-auto px-4 pb-32 pt-4 space-y-8">
-        {CATEGORIES.map((cat) => {
-          const catSkills = categorizedSkills[cat] || [];
-          if (catSkills.length === 0) return null;
-          return (
-            <div
-              key={cat}
-              ref={(el) => { categoryRefs.current[cat] = el; }}
-            >
-              {/* Category Header */}
-              <div className="flex items-center gap-2 mb-3">
-                <h2 className={`text-sm font-bold uppercase tracking-wider font-[Epilogue] ${textMuted}`}>
-                  {cat}
-                </h2>
-                <div className="flex-1 h-px bg-white/10" />
-              </div>
-
-              {/* Skill Cards */}
-              <div className="grid grid-cols-2 gap-3">
-                {catSkills.map((skill) => {
-                  const isSelected = selectedIds.has(skill.id);
-                  const votes = getSkillVotes(skill.id);
-                  return (
-                    <button
-                      key={skill.id}
-                      onClick={() => toggleSkill(skill.id)}
-                      onMouseEnter={() => setHoveredSkill(skill.id)}
-                      onMouseLeave={() => setHoveredSkill(null)}
-                      disabled={!isSelected && !canSelect}
-                      className={`relative rounded-xl p-4 border text-left transition-all duration-200 ${
-                        isSelected
-                          ? "border-2 scale-[1.02] shadow-lg"
-                          : "border hover:scale-[1.01]"
-                      } ${isSynergy || isMasterclass ? "backdrop-blur-sm" : ""} ${
-                        !isSelected && !canSelect ? "opacity-40 cursor-not-allowed" : "cursor-pointer"
-                      } ${cardBg}`}
-                      style={
-                        isSelected
-                          ? {
-                              borderColor: accentColor,
-                              boxShadow: `0 0 20px ${accentColor}33`,
-                            }
-                          : {}
-                      }
-                    >
-                      {/* Checkmark overlay */}
-                      {isSelected && (
-                        <div
-                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                          style={{ background: accentColor }}
-                        >
-                          <Check className="w-3.5 h-3.5 text-white" />
-                        </div>
-                      )}
-
-                      {/* Skill Name */}
-                      <p className={`text-sm font-bold font-[Epilogue] mb-1 ${textColor}`}>
-                        {skill.name}
-                      </p>
-
-                      {/* Cost / Votes */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <Image
-                            src="/coin2.png"
-                            alt="coin"
-                            width={14}
-                            height={14}
-                            className="object-contain"
-                          />
-                          <span className={`text-xs font-semibold font-[Epilogue] ${
-                            isSelected ? "text-yellow-400" : textMuted
-                          }`}>
-                            {skillCost}
-                          </span>
-                        </div>
-
-                        {votes > 0 && (
-                          <span className={`text-[10px] font-[Epilogue] ${textMuted}`}>
-                            {votes} vote{votes !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
 
         {(!skills || skills.length === 0) && (
           <div className="text-center py-20">
@@ -413,9 +458,7 @@ export default function BiddingPoll({
       {/* Confirm Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div
-            className={`w-full max-w-sm rounded-2xl p-6 border ${cardBg} backdrop-blur-xl`}
-          >
+          <div className={`w-full max-w-sm rounded-2xl p-6 border ${cardBg} backdrop-blur-xl`}>
             {!showConfirmStep2 ? (
               <>
                 {/* Step 1: Summary */}
@@ -431,23 +474,30 @@ export default function BiddingPoll({
                   </h3>
                   <p className={`mt-2 text-sm font-[Epilogue] ${textMuted}`}>
                     You're allocating <strong className={textColor}>{totalCoinsSpent}</strong> coins across{" "}
-                    <strong className={textColor}>{selectedIds.size}</strong> skills
+                    <strong className={textColor}>{totalPicks}</strong> bids
                   </p>
                 </div>
 
                 {/* Selected skills preview */}
                 <div className="space-y-2 mb-6 max-h-32 overflow-y-auto">
                   {skills
-                    ?.filter((s) => selectedIds.has(s.id))
+                    ?.filter((s) => (selections[s.id] || 0) > 0)
                     .map((skill) => (
                       <div
                         key={skill.id}
                         className="flex items-center justify-between p-2.5 rounded-lg bg-white/5"
                       >
                         <span className={`text-sm font-[Epilogue] ${textColor}`}>{skill.name}</span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5">
                           <Image src="/coin2.png" alt="coin" width={14} height={14} />
-                          <span className={`text-xs font-[Epilogue] ${textColor}`}>{skillCost}</span>
+                          <span className={`text-xs font-semibold font-[Epilogue] ${textColor}`}>
+                            {skillCost * (selections[skill.id] || 0)}
+                          </span>
+                          {selections[skill.id] > 1 && (
+                            <span className="text-[10px] bg-white/10 px-1.5 py-0.5 rounded-md text-white/70">
+                              {selections[skill.id]} bids
+                            </span>
+                          )}
                         </div>
                       </div>
                     ))}

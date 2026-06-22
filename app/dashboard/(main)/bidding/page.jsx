@@ -373,7 +373,6 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
               <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-10 py-1 animation-fade-in origin-top-right">
                 <Link
                   href={`/bidding-present/${poll.id}?theme=${theme}`}
-                  target="_blank"
                   className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                   onClick={() => setShowMenu(false)}
                 >
@@ -506,7 +505,7 @@ export default function BiddingAdmin() {
       );
       toast.success("Bidding session launched!");
       if (user) fetchBiddingPolls(user.uid);
-      window.open(`/bidding-present/${pollId}?theme=${sessionData.theme}`, "_blank");
+      window.open(`/bidding-present/${pollId}?theme=${sessionData.theme}`, "_self");
     } catch (err) {
       toast.error("Failed to launch bidding session");
       throw err;

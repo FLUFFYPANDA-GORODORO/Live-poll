@@ -30,8 +30,12 @@ export default function BiddingPollPage() {
     skills,
     bubbleCounts,
     committedCount,
-    sendSelectionChange,
-    lockInBids,
+    sendEmoji,
+    activeQuestionIndex,
+    currentCohort,
+    userBids,
+    sendBidChange,
+    placeBid,
   } = usePollStore();
 
   const sessionId = getSessionId();
@@ -75,14 +79,17 @@ export default function BiddingPollPage() {
 
   return (
     <BiddingPoll
-      skills={poll?.skills || []}
       poll={poll}
       sessionId={sessionId}
-      sendSelectionChange={sendSelectionChange}
-      lockInBids={lockInBids}
       bubbleCounts={bubbleCounts}
       committedCount={committedCount}
       theme={theme}
+      sendEmoji={sendEmoji}
+      activeQuestionIndex={activeQuestionIndex}
+      currentCohort={currentCohort}
+      userBids={userBids}
+      sendBidChange={sendBidChange}
+      placeBid={placeBid}
     />
   );
 }

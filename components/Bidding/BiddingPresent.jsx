@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Play, Square, BarChart3, X, Users, QrCode, Copy, Check } from "lucide-react";
+import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 const GLOBAL_STYLE_ID = "bidding-present-styles";
@@ -17,18 +17,15 @@ const SPRITE_SEQUENCE = [
 ];
 
 export default function BiddingPresent({
-  skills,
+  poll,
   bubbleCounts,
   committedCount,
   theme,
   cleanTitle,
   pollId,
-  startBidding,
   stopBidding,
-  deleteBiddingPoll,
-  restartBiddingPoll,
-  isBiddingActive,
-  biddingClosed,
+  subscribeToPresenter,
+  startQuestion,
 }) {
   const router = useRouter();
   const containerRef = useRef(null);
@@ -41,8 +38,17 @@ export default function BiddingPresent({
   const [spriteIndex, setSpriteIndex] = useState(0);
   const [shootImageOverride, setShootImageOverride] = useState(null);
   const activeShotsRef = useRef(0);
+  const [reactions, setReactions] = useState([]);
+  
+  // Cohort state: "HR" vs "ACADEMIA"
+  const [activeCohort, setActiveCohort] = useState("HR");
 
-  // Preload character sprites and cycle them
+  // Retrieve active question index and active skills
+  const activeQuestionIndex = poll?.activeQuestionIndex ?? -1;
+  const activeQuestion = poll?.questions?.[activeQuestionIndex];
+  const activeSkills = activeQuestion?.skills || [];
+
+  // Preload sprites
   useEffect(() => {
     [...SPRITE_SEQUENCE, "/character/CharacterSpriteShoot.png"].forEach((src) => {
       const img = new Image();
@@ -59,8 +65,6 @@ export default function BiddingPresent({
   const getBarrelCoords = () => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    // Adjusted for w-64 h-64 (256px x 256px) character:
-    // Shifted further left (240px from right) and higher up (260px from bottom)
     const x = rect.width - 240; 
     const y = rect.height - 260; 
     return { x, y };
@@ -69,43 +73,40 @@ export default function BiddingPresent({
   const renderedCountsRef = useRef({});
   const hasInitializedCounts = useRef(false);
 
-  // Initialize rendered counts once with initial counts
+  // Initialize and sync counts
   useEffect(() => {
-    if (bubbleCounts && !hasInitializedCounts.current) {
+    if (bubbleCounts) {
       renderedCountsRef.current = { ...bubbleCounts };
       hasInitializedCounts.current = true;
     }
   }, [bubbleCounts]);
 
   const applyCountUpdate = useCallback((targetSkillId) => {
-    if (!window.d3 || !simulationRef.current || !skills?.length) return;
+    if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
     const d3 = window.d3;
     
-    // Increment the locally applied count
     const currentCounts = renderedCountsRef.current;
     currentCounts[targetSkillId] = (currentCounts[targetSkillId] || 0) + 1;
 
-    const maxCount = Math.max(1, ...skills.map((s) => currentCounts[s.id] || 0));
+    const maxCount = Math.max(1, ...activeSkills.map((s) => currentCounts[s.id] || 0));
 
     const nodes = simulationRef.current.nodes();
     nodes.forEach((node) => {
       const newCount = currentCounts[node.id] || 0;
       node.count = newCount;
-      const newRadius = Math.max(20, 15 + (newCount / maxCount) * 45);
-      node.radius = newRadius;
+      // Make bubbles expand as coins are added
+      node.radius = Math.max(50, 45 + (newCount / maxCount) * 75);
     });
 
-    // Re-initialize collide force with updated radius values to prevent overlapping
     simulationRef.current.force(
       "collide",
-      d3.forceCollide().radius((d) => d.radius + 3)
+      d3.forceCollide().radius((d) => d.radius + 6)
     );
     simulationRef.current.alpha(0.3).restart();
 
-    // Update SVG visuals
+    // Update SVG
     const svg = d3.select(svgRef.current);
     
-    // Transition all circles to their new radius
     svg
       .selectAll(".bp-node circle")
       .data(nodes)
@@ -116,16 +117,16 @@ export default function BiddingPresent({
     svg
       .selectAll(".bp-node text:first-of-type")
       .data(nodes)
-      .text((d) => (d.radius > 30 ? d.name : ""))
-      .attr("font-size", (d) => `${Math.min(d.radius * 0.35, 14)}px`);
+      .text((d) => d.name)
+      .attr("font-size", (d) => `${Math.min(d.radius * 0.22, 12)}px`);
 
     svg
       .selectAll(".bp-node text:last-of-type")
       .data(nodes)
-      .text((d) => (d.count > 0 ? d.count : ""))
-      .attr("dy", (d) => `${-d.radius - 8}px`);
+      .text((d) => `${d.count} Coins`)
+      .attr("dy", (d) => `${d.radius * 0.25}px`);
 
-    // Pulse target bubble on impact
+    // Pulse bubble on impact
     const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
     const targetNode = nodes.find((n) => n.id === targetSkillId);
     if (targetNode && targetGroup.size() > 0) {
@@ -137,7 +138,7 @@ export default function BiddingPresent({
         .duration(250)
         .attr("r", targetNode.radius);
     }
-  }, [skills]);
+  }, [activeSkills]);
 
   const shootCoin = useCallback((targetSkillId, shouldApplyUpdate = true) => {
     if (!d3Loaded || !svgRef.current || !simulationRef.current) return;
@@ -150,7 +151,6 @@ export default function BiddingPresent({
 
     const start = getBarrelCoords();
     
-    // Set shooting sprite pose override
     activeShotsRef.current += 1;
     setShootImageOverride("/character/CharacterSpriteShoot.png");
     setTimeout(() => {
@@ -160,7 +160,6 @@ export default function BiddingPresent({
       }
     }, 50);
 
-    // Create fly-in coin
     const coin = svg
       .append("image")
       .attr("href", "/coin2.png")
@@ -176,12 +175,10 @@ export default function BiddingPresent({
     const timer = d3.timer((elapsed) => {
       const t = Math.min(1, elapsed / duration);
       
-      // Query target node's current transformed screen position dynamically
       const transform = d3.zoomTransform(svgRef.current);
       const currentTargetX = transform.applyX(targetNode.x);
       const currentTargetY = transform.applyY(targetNode.y);
 
-      // Interpolate position using easeQuadOut
       const easeT = d3.easeQuadOut(t);
       const curX = start.x + (currentTargetX - start.x) * easeT;
       const curY = start.y + (currentTargetY - start.y) * easeT;
@@ -193,20 +190,6 @@ export default function BiddingPresent({
         coin.remove();
         if (shouldApplyUpdate) {
           applyCountUpdate(targetSkillId);
-        } else {
-          // Visual feedback only (temp pulse)
-          const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
-          const circle = targetGroup.select("circle");
-          if (targetNode && targetGroup.size() > 0) {
-            const originalRadius = targetNode.radius;
-            circle
-              .transition()
-              .duration(150)
-              .attr("r", originalRadius * 1.25)
-              .transition()
-              .duration(250)
-              .attr("r", originalRadius);
-          }
         }
       }
     });
@@ -214,12 +197,13 @@ export default function BiddingPresent({
 
   const prevBubbleCountsRef = useRef({});
 
+  // Sync bubble count updates to trigger coin shooting
   useEffect(() => {
-    if (!bubbleCounts || !skills?.length) return;
+    if (!bubbleCounts || !activeSkills?.length) return;
     
     const prevCounts = prevBubbleCountsRef.current;
     
-    skills.forEach((skill) => {
+    activeSkills.forEach((skill) => {
       const prevVal = prevCounts[skill.id] || 0;
       const newVal = bubbleCounts[skill.id] || 0;
       if (newVal > prevVal) {
@@ -233,12 +217,34 @@ export default function BiddingPresent({
     });
 
     prevBubbleCountsRef.current = { ...bubbleCounts };
-  }, [bubbleCounts, skills, shootCoin]);
+  }, [bubbleCounts, activeSkills, shootCoin]);
 
-  const isSynergy = theme === "synergy_sphere";
-  const isMasterclass = theme === "masterclass";
+  // Subscribe to floating presenter reaction emojis
+  useEffect(() => {
+    if (!pollId || !subscribeToPresenter) return;
+    const unsubscribe = subscribeToPresenter(pollId, (emoji) => {
+      const id = Date.now() + Math.random();
+      setReactions((prev) => [
+        ...prev,
+        {
+          id,
+          emoji,
+          left: Math.random() * 80 - 40,
+          rotate: Math.random() * 40 - 20,
+          scale: 0.7 + Math.random() * 0.6,
+        },
+      ]);
+      setTimeout(() => {
+        setReactions((prev) => prev.filter((r) => r.id !== id));
+      }, 2000);
+    });
+    return () => unsubscribe();
+  }, [pollId, subscribeToPresenter]);
 
-  // Dynamic D3 injection (presenter only — keeps client bundle light)
+  const isSynergy = activeCohort === "HR" || theme === "synergy_sphere";
+  const isMasterclass = activeCohort === "ACADEMIA" || theme === "masterclass";
+
+  // Dynamic D3 injection
   useEffect(() => {
     let cancelled = false;
     const script = document.createElement("script");
@@ -263,7 +269,7 @@ export default function BiddingPresent({
     };
   }, []);
 
-  // Dynamic styles
+  // Global Styles
   useEffect(() => {
     if (document.getElementById(GLOBAL_STYLE_ID)) return;
 
@@ -283,6 +289,25 @@ export default function BiddingPresent({
       @keyframes bp-glow {
         0%, 100% { box-shadow: 0 0 5px rgba(255,255,255,0.2); }
         50% { box-shadow: 0 0 20px rgba(255,255,255,0.5); }
+      }
+      @keyframes float-coin-up {
+        0% {
+          transform: translateY(0) scale(0.5);
+          opacity: 0;
+        }
+        15% {
+          opacity: 1;
+        }
+        85% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateY(-300px) scale(1.3);
+          opacity: 0;
+        }
+      }
+      .animate-float-coin-up {
+        animation: float-coin-up 2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
       }
       .bp-pulse { animation: bp-pulse 0.4s ease-out; }
       .bp-fadeIn { animation: bp-fadeIn 0.3s ease-out; }
@@ -309,7 +334,6 @@ export default function BiddingPresent({
     };
   }, []);
 
-  // Toggle Fullscreen helper
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true));
@@ -318,14 +342,12 @@ export default function BiddingPresent({
     }
   };
 
-  // Close / Exit poll
   const handleExitPoll = () => {
     router.push("/dashboard/bidding");
   };
 
-  // End poll
   const handleEndPoll = async () => {
-    if (confirm("Are you sure you want to end this bidding session? This will close bidding.")) {
+    if (confirm("Conclude cohort bidding run? This concludes the session.")) {
       if (stopBidding) {
         await stopBidding(pollId);
       }
@@ -333,9 +355,26 @@ export default function BiddingPresent({
     }
   };
 
-  // D3 Force Simulation
+  // Cohort question paging navigation
+  const handlePageQuestion = async (direction) => {
+    if (!startQuestion || !poll?.questions) return;
+    const nextIdx = activeQuestionIndex + direction;
+    if (nextIdx >= 0 && nextIdx < poll.questions.length) {
+      await startQuestion(pollId, nextIdx, activeCohort);
+    }
+  };
+
+  // Cohort Toggle handler
+  const handleCohortToggle = async (cohortVal) => {
+    setActiveCohort(cohortVal);
+    if (startQuestion && activeQuestionIndex >= 0) {
+      await startQuestion(pollId, activeQuestionIndex, cohortVal);
+    }
+  };
+
+  // D3 Force Simulation Setup
   useEffect(() => {
-    if (!d3Loaded || !svgRef.current || !containerRef.current || !skills?.length) return;
+    if (!d3Loaded || !svgRef.current || !containerRef.current || !activeSkills?.length) return;
 
     const d3 = window.d3;
     const container = containerRef.current;
@@ -344,49 +383,56 @@ export default function BiddingPresent({
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-     // Determine max count for radius scaling
     const counts = renderedCountsRef.current || {};
-    const maxCount = Math.max(1, ...skills.map((s) => counts[s.id] || 0));
+    const maxCount = Math.max(1, ...activeSkills.map((s) => counts[s.id] || 0));
 
-    const nodes = skills.map((skill) => ({
+    // Initialize bubble sizes and layout positions
+    const nodes = activeSkills.map((skill) => ({
       id: skill.id,
       name: skill.name,
       category: skill.category,
       count: counts[skill.id] || 0,
-      radius: Math.max(20, 15 + (counts[skill.id] || 0) / maxCount * 45),
+      radius: Math.max(50, 45 + (counts[skill.id] || 0) / maxCount * 75),
     }));
-
-    // Color mapping by category
-    const categoryColors = {
-      Leadership: isSynergy ? "#f43f5e" : isMasterclass ? "#10b981" : "#6366f1",
-      Technical: isSynergy ? "#fb923c" : isMasterclass ? "#34d399" : "#8b5cf6",
-      Cognitive: isSynergy ? "#a78bfa" : isMasterclass ? "#6ee7b7" : "#ec4899",
-      Interpersonal: isSynergy ? "#f472b6" : isMasterclass ? "#a7f3d0" : "#f59e0b",
-    };
 
     const simulation = d3
       .forceSimulation(nodes)
       .force(
         "collide",
-        d3.forceCollide().radius((d) => d.radius + 3)
+        d3.forceCollide().radius((d) => d.radius + 6)
       )
-      .force("manyBody", d3.forceManyBody().strength(-25))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("x", d3.forceX(width / 2).strength(0.05))
-      .force("y", d3.forceY(height / 2).strength(0.05));
+      .force("manyBody", d3.forceManyBody().strength(-40))
+      .force("center", d3.forceCenter(width / 2, height / 2 + 30))
+      .force("x", d3.forceX(width / 2).strength(0.08))
+      .force("y", d3.forceY(height / 2 + 30).strength(0.08));
 
     const g = svg.append("g");
 
-    // Zoom behavior
-    const zoom = d3.zoom().scaleExtent([0.3, 3]).on("zoom", (event) => {
+    const zoom = d3.zoom().scaleExtent([0.5, 2.5]).on("zoom", (event) => {
       g.attr("transform", event.transform);
     });
     svg.call(zoom);
 
-    const tooltip = d3.select(container.parentElement)
-      .append("div")
-      .attr("class", "bp-tooltip")
-      .style("opacity", 0);
+    // Gradient definitions for bubbles
+    const defs = svg.append("defs");
+    
+    // Add distinct gradients
+    const gradients = [
+      { id: "grad-emerald", start: "#10b981", end: "#047857" },
+      { id: "grad-indigo", start: "#6366f1", end: "#4338ca" },
+      { id: "grad-amber", start: "#f59e0b", end: "#b45309" },
+      { id: "grad-rose", start: "#f43f5e", end: "#be123c" }
+    ];
+
+    gradients.forEach((gData) => {
+      const grad = defs.append("radialGradient")
+        .attr("id", gData.id)
+        .attr("cx", "30%")
+        .attr("cy", "30%")
+        .attr("r", "70%");
+      grad.append("stop").attr("offset", "0%").attr("stop-color", gData.start);
+      grad.append("stop").attr("offset", "100%").attr("stop-color", gData.end);
+    });
 
     const nodeGroup = g
       .selectAll("g")
@@ -412,78 +458,43 @@ export default function BiddingPresent({
           })
       );
 
-    // Bubbles
+    // Render Options Bubbles
     nodeGroup
       .append("circle")
       .attr("r", (d) => d.radius)
-      .attr("fill", (d) => categoryColors[d.category] || "#64748b")
-      .attr("opacity", 0.85)
-      .attr("stroke", "rgba(255,255,255,0.15)")
-      .attr("stroke-width", 1.5)
+      .attr("fill", (d, i) => `url(#${gradients[i % gradients.length].id})`)
+      .attr("opacity", 0.95)
+      .attr("stroke", "rgba(255,255,255,0.25)")
+      .attr("stroke-width", 2)
       .style("cursor", "grab")
-      .style("transition", "r 0.3s ease-out");
+      .style("transition", "r 0.3s ease-out")
+      .attr("filter", "url(#bp-glow)");
 
-    // Glow filter
-    const defs = svg.append("defs");
-    const filter = defs
-      .append("filter")
-      .attr("id", "bp-glow")
-      .attr("x", "-50%")
-      .attr("y", "-50%")
-      .attr("width", "200%")
-      .attr("height", "200%");
-    filter
-      .append("feGaussianBlur")
-      .attr("stdDeviation", "3")
-      .attr("result", "blur");
-    const merge = filter.append("feMerge");
-    merge.append("feMergeNode").attr("in", "blur");
-    merge.append("feMergeNode").attr("in", "SourceGraphic");
-
-    // Labels (only if radius > 30)
+    // Option Skill Names (rendered from the beginning)
     nodeGroup
       .append("text")
-      .text((d) => (d.radius > 30 ? d.name : ""))
+      .text((d) => d.name)
       .attr("text-anchor", "middle")
-      .attr("dy", "0.35em")
+      .attr("dy", "-0.15em")
       .attr("fill", "#fff")
-      .attr("font-size", (d) => `${Math.min(d.radius * 0.35, 14)}px`)
+      .attr("font-size", (d) => `${Math.min(d.radius * 0.22, 12)}px`)
       .attr("font-family", "Epilogue, sans-serif")
-      .attr("font-weight", "600")
+      .attr("font-weight", "800")
       .attr("pointer-events", "none")
-      .style("text-shadow", "0 1px 3px rgba(0,0,0,0.5)");
+      .style("text-shadow", "0 2px 4px rgba(0,0,0,0.6)");
 
-    // Count badge
+    // Bidding coins counter
     nodeGroup
       .append("text")
-      .text((d) => (d.count > 0 ? d.count : ""))
+      .text((d) => `${d.count} Coins`)
       .attr("text-anchor", "middle")
-      .attr("dy", (d) => `${-d.radius - 8}px`)
-      .attr("fill", (d) => categoryColors[d.category] || "#64748b")
-      .attr("font-size", "12px")
+      .attr("dy", (d) => `${d.radius * 0.25}px`)
+      .attr("fill", "#fbbf24")
+      .attr("font-size", "11px")
       .attr("font-family", "Epilogue, sans-serif")
       .attr("font-weight", "700")
-      .attr("pointer-events", "none");
-
-    // Hover interactions
-    nodeGroup
-      .on("mouseenter", (event, d) => {
-        tooltip
-          .style("opacity", 1)
-          .html(
-            `<strong>${d.name}</strong><br/>Category: ${d.category}<br/>Votes: ${d.count}`
-          )
-          .style("left", `${event.pageX + 12}px`)
-          .style("top", `${event.pageY - 10}px`);
-      })
-      .on("mousemove", (event) => {
-        tooltip
-          .style("left", `${event.pageX + 12}px`)
-          .style("top", `${event.pageY - 10}px`);
-      })
-      .on("mouseleave", () => {
-        tooltip.style("opacity", 0);
-      });
+      .attr("pointer-events", "none")
+      .style("text-shadow", "0 1px 3px rgba(0,0,0,0.8)");
 
     simulation.on("tick", () => {
       nodeGroup.attr("transform", (d) => `translate(${d.x},${d.y})`);
@@ -491,12 +502,11 @@ export default function BiddingPresent({
 
     simulationRef.current = simulation;
 
-    // Handle resize
     const handleResize = () => {
       if (!containerRef.current) return;
       const { width: w, height: h } = containerRef.current.getBoundingClientRect();
       svg.attr("width", w).attr("height", h);
-      simulation.force("center", d3.forceCenter(w / 2, h / 2));
+      simulation.force("center", d3.forceCenter(w / 2, h / 2 + 30));
       simulation.alpha(0.3).restart();
     };
 
@@ -506,11 +516,8 @@ export default function BiddingPresent({
     return () => {
       resizeObserver.disconnect();
       simulation.stop();
-      tooltip.remove();
     };
-  }, [d3Loaded, skills, isSynergy, isMasterclass]);
-
-
+  }, [d3Loaded, activeSkills, isSynergy, isMasterclass]);
 
   const bgUrl = isSynergy
     ? "/SynegrysphereBG.png"
@@ -541,66 +548,145 @@ export default function BiddingPresent({
   }
 
   return (
-    <div className={`relative min-h-screen ${bgClass} overflow-hidden`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
+    <div className={`relative h-screen w-full ${bgClass} overflow-hidden`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
       {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
 
-      {/* Top Header info (title and cohort logos) */}
+      {/* Top Header info (cohort logos) */}
       <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bp-fadeIn">
         <div>
           <h1 className="text-white font-[Epilogue] text-xl font-bold tracking-tight">
             {cleanTitle || "Skill Bidding"}
           </h1>
-          <p className="text-white/40 text-sm font-[Epilogue] mt-1">
-            {isSynergy ? "SynergySphere" : isMasterclass ? "Masterclass" : "Live Poll"} • Bidding Session
+          <p className="text-white/40 text-xs font-[Epilogue] mt-0.5">
+            {isSynergy ? "SynergySphere" : isMasterclass ? "Masterclass" : "Live Bidding"} Arena
           </p>
         </div>
-        <div>
-          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-10 w-auto object-contain" />}
-          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-10 w-auto object-contain" />}
+        <div className="flex items-center gap-4">
+          {/* Cohort Toggle Buttons */}
+          <div className="bg-black/45 border border-white/10 rounded-xl p-1 flex items-center gap-1 shadow-inner">
+            <button
+              onClick={() => handleCohortToggle("HR")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all uppercase ${
+                activeCohort === "HR" ? "bg-emerald-600 text-white shadow-md" : "text-white/50 hover:text-white"
+              }`}
+            >
+              HR
+            </button>
+            <button
+              onClick={() => handleCohortToggle("ACADEMIA")}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all uppercase ${
+                activeCohort === "ACADEMIA" ? "bg-indigo-600 text-white shadow-md" : "text-white/50 hover:text-white"
+              }`}
+            >
+              Academia
+            </button>
+          </div>
+
+          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-9 w-auto object-contain" />}
+          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-9 w-auto object-contain" />}
         </div>
       </div>
 
-      {/* SVG Canvas */}
-      <div ref={containerRef} className="absolute inset-0 z-10">
-        <svg ref={svgRef} width="100%" height="100%" style={{ display: "block" }} />
-      </div>
-
-      {/* No skills placeholder */}
-      {(!skills || skills.length === 0) && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center">
-          <div className="text-center text-white/40 font-[Epilogue]">
-            <p className="text-lg mb-2">No skills available</p>
-            <p className="text-sm">Add skills via the admin panel to start bidding</p>
+      {/* Active Question Display in the Center (Styled like standard presenter screen) */}
+      {activeQuestionIndex !== -1 && activeQuestion ? (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl px-6 w-full select-none bp-fadeIn pointer-events-none">
+          <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 rounded-3xl shadow-2xl">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+              Active Question
+            </span>
+            <h2 className="text-2xl font-black text-white mt-1 leading-snug">
+              {activeQuestion.text || activeQuestion.title}
+            </h2>
+          </div>
+        </div>
+      ) : (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center select-none bp-fadeIn pointer-events-none">
+          <div className="bg-black/50 backdrop-blur-md border border-white/15 px-8 py-4 rounded-3xl shadow-2xl">
+            <h2 className="text-xl font-bold text-white/55">
+              Standby Mode: Waiting to Start Question
+            </h2>
           </div>
         </div>
       )}
 
-      {/* Bottom Controls Bar (SynergySphere / Masterclass Presenter styled) */}
+      {/* SVG Canvas for Bubbles */}
+      <div ref={containerRef} className="absolute inset-0 z-10">
+        <svg ref={svgRef} width="100%" height="100%" style={{ display: "block" }} />
+      </div>
+
+      {/* Bottom Controls Bar */}
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         {/* Left: Exit/End controls */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
-          <button
-            onClick={handleExitPoll}
-            className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all"
-          >
-            Exit
-          </button>
-          <button
-            onClick={handleEndPoll}
-            className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all"
-          >
-            End
-          </button>
+        <div className="relative pointer-events-auto flex items-center gap-2">
+          {/* Floating Coins Container */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 pointer-events-none w-48 h-72 overflow-visible flex justify-center items-end">
+            {reactions.map((r) => (
+              <div
+                key={r.id}
+                className="absolute animate-float-coin-up select-none pointer-events-none"
+                style={{
+                  left: `calc(50% + ${r.left}px)`,
+                  transform: `rotate(${r.rotate}deg) scale(${r.scale})`,
+                }}
+              >
+                <img
+                  src="/coin2.png"
+                  alt="coin"
+                  className="w-12 h-12 object-contain drop-shadow-[0_0_10px_rgba(250,204,21,0.7)]"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl">
+            <button
+              onClick={handleExitPoll}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              Exit
+            </button>
+            <button
+              onClick={handleEndPoll}
+              className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all animate-pulse"
+            >
+              Conclude Run
+            </button>
+          </div>
+
+          {/* Pager controls for startQuestion */}
+          {poll?.questions && (
+            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-1 shadow-2xl">
+              <button
+                onClick={() => handlePageQuestion(-1)}
+                disabled={activeQuestionIndex <= 0}
+                className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
+                title="Previous Question"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-white/60 text-xs font-bold px-2 select-none">
+                {activeQuestionIndex + 1} / {poll.questions.length}
+              </span>
+              <button
+                onClick={() => handlePageQuestion(1)}
+                disabled={activeQuestionIndex >= poll.questions.length - 1}
+                className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
+                title="Next Question"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Right: Stats, QR, Fullscreen */}
+        {/* Right: Stats, QR, Character and Fullscreen */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
-          {/* Mirrored Looping Character Sprite */}
+          {/* Looping Character Sprite */}
           <div 
             className="absolute bottom-full right-4 mb-2 pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
             onClick={() => {
-              if (skills?.length) {
-                const randomSkill = skills[Math.floor(Math.random() * skills.length)];
+              if (activeSkills?.length) {
+                const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
                 shootCoin(randomSkill.id, false);
               }
             }}
@@ -674,7 +760,7 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4" onClick={onClose}>
       <div 
         className="relative w-full max-w-sm rounded-3xl p-8 text-center border shadow-2xl transition-all"
         style={{ 
@@ -692,12 +778,10 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
           Scan the QR code to enter the bidding wallet on your phone
         </p>
 
-        {/* QR Code Container */}
         <div className="bg-white p-6 rounded-2xl inline-block shadow-lg border border-white/10 mb-6 bp-glow">
           <QRCodeSVG value={participantUrl} size={220} />
         </div>
 
-        {/* Link Input & Copy */}
         <div className="flex gap-2 mb-6 px-1">
           <input
             type="text"

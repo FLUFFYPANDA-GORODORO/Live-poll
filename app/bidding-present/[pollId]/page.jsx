@@ -35,6 +35,8 @@ export default function BiddingPresentPage() {
     stopBidding,
     deleteBiddingPoll,
     restartBiddingPoll,
+    subscribeToPresenter,
+    startQuestion,
   } = usePollStore();
 
   const sessionId = getSessionId();
@@ -79,6 +81,7 @@ export default function BiddingPresentPage() {
 
   return (
     <BiddingPresent
+      poll={poll}
       skills={poll?.skills || []}
       bubbleCounts={bubbleCounts}
       committedCount={committedCount}
@@ -91,6 +94,8 @@ export default function BiddingPresentPage() {
       restartBiddingPoll={restartBiddingPoll}
       isBiddingActive={poll?.isBiddingActive}
       biddingClosed={poll?.biddingClosed}
+      subscribeToPresenter={subscribeToPresenter}
+      startQuestion={startQuestion}
     />
   );
 }

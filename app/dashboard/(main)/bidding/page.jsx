@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { api } from "@/lib/api";
 import { usePollStore } from "@/lib/store/usePollStore";
 import toast from "react-hot-toast";
 import { parseTheme } from "@/lib/themeHelper";
@@ -11,13 +10,10 @@ import {
   Plus,
   Trash2,
   Loader2,
-  Award,
   Sparkles,
   RefreshCw,
-  AlertCircle,
   Play,
   Eye,
-  ExternalLink,
   Calendar,
   MoreVertical,
   Share2,
@@ -25,8 +21,9 @@ import {
   X,
   Check,
   Copy,
-  Download,
   FolderOpen,
+  CopyIcon,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -55,20 +52,17 @@ function ShareModal({ poll, onClose }) {
           </button>
         </div>
 
-        {/* QR Code */}
         <div className="flex justify-center mb-6">
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
             <QRCodeSVG value={pollUrl} size={180} />
           </div>
         </div>
 
-        {/* Session Code */}
         <div className="text-center mb-6">
           <p className="text-slate-500 text-sm mb-2">Session ID</p>
           <p className="text-3xl font-bold text-[var(--color-primary)] font-mono">{poll.id}</p>
         </div>
 
-        {/* Link */}
         <div className="flex gap-2">
           <input
             type="text"
@@ -89,46 +83,90 @@ function ShareModal({ poll, onClose }) {
   );
 }
 
-// ── LAUNCH / EDIT SESSION MODAL ──
-function SessionModal({ isOpen, onClose, onSave, skills, initialPoll = null }) {
+// ── NESTED QUESTION BUILDER MODAL ──
+function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
   const [name, setName] = useState("");
-  const [theme, setTheme] = useState("synergy_sphere");
-  const [skillCost, setSkillCost] = useState(20);
-  const [selectedSkillIds, setSelectedSkillIds] = useState(new Set());
+  const [questions, setQuestions] = useState([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (initialPoll) {
-      const { cleanTitle, theme: parsedTheme } = parseTheme(initialPoll.title || "");
+      const { cleanTitle } = parseTheme(initialPoll.title || "");
       setName(cleanTitle);
-      setTheme(parsedTheme || "synergy_sphere");
-      setSkillCost(initialPoll.skillCost || 20);
-      setSelectedSkillIds(new Set((initialPoll.skills || []).map(s => s.id)));
+      setQuestions(initialPoll.questions || []);
     } else {
       setName("");
-      setTheme("synergy_sphere");
-      setSkillCost(20);
-      setSelectedSkillIds(new Set(skills.map(s => s.id))); // select all by default for new sessions
+      setQuestions([
+        {
+          text: "Sample Question 1",
+          cohort: "HR",
+          skills: [
+            { name: "Communication & Presentation", category: "Interpersonal" },
+            { name: "Negotiation & Persuasion", category: "Leadership" }
+          ]
+        }
+      ]);
     }
-  }, [initialPoll, isOpen, skills]);
+  }, [initialPoll, isOpen]);
 
   if (!isOpen) return null;
 
-  const toggleSkill = (id) => {
-    setSelectedSkillIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const handleAddQuestion = () => {
+    setQuestions(prev => [
+      ...prev,
+      {
+        text: "",
+        cohort: "HR",
+        skills: []
+      }
+    ]);
   };
 
-  const selectAll = () => {
-    setSelectedSkillIds(new Set(skills.map(s => s.id)));
+  const handleRemoveQuestion = (qIdx) => {
+    setQuestions(prev => prev.filter((_, idx) => idx !== qIdx));
   };
 
-  const deselectAll = () => {
-    setSelectedSkillIds(new Set());
+  const handleQuestionChange = (qIdx, field, val) => {
+    setQuestions(prev => prev.map((q, idx) => idx === qIdx ? { ...q, [field]: val } : q));
+  };
+
+  const handleAddSkillToQuestion = (qIdx) => {
+    setQuestions(prev => prev.map((q, idx) => {
+      if (idx === qIdx) {
+        return {
+          ...q,
+          skills: [...(q.skills || []), { name: "", category: CATEGORIES[0] }]
+        };
+      }
+      return q;
+    }));
+  };
+
+  const handleRemoveSkillFromQuestion = (qIdx, sIdx) => {
+    setQuestions(prev => prev.map((q, idx) => {
+      if (idx === qIdx) {
+        return {
+          ...q,
+          skills: q.skills.filter((_, sIndex) => sIndex !== sIdx)
+        };
+      }
+      return q;
+    }));
+  };
+
+  const handleSkillChange = (qIdx, sIdx, field, val) => {
+    setQuestions(prev => prev.map((q, idx) => {
+      if (idx === qIdx) {
+        const updatedSkills = q.skills.map((s, sIndex) => {
+          if (sIndex === sIdx) {
+            return { ...s, [field]: val };
+          }
+          return s;
+        });
+        return { ...q, skills: updatedSkills };
+      }
+      return q;
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -137,18 +175,35 @@ function SessionModal({ isOpen, onClose, onSave, skills, initialPoll = null }) {
       toast.error("Please enter a session name");
       return;
     }
+    if (questions.length === 0) {
+      toast.error("Please add at least one question");
+      return;
+    }
+    for (let i = 0; i < questions.length; i++) {
+      if (!questions[i].text.trim()) {
+        toast.error(`Question ${i + 1} text cannot be empty`);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       await onSave({
         id: initialPoll?.id,
         name: name.trim(),
-        theme,
-        skillCost,
-        skillIds: Array.from(selectedSkillIds)
+        theme: "synergy_sphere", // default theme fallback
+        questions: questions.map(q => ({
+          text: q.text.trim(),
+          cohort: q.cohort,
+          skills: q.skills.map(s => ({
+            name: s.name.trim(),
+            category: s.category
+          })).filter(s => s.name !== "")
+        }))
       });
       onClose();
     } catch (err) {
-      // Error handled by parent
+      // Error handled by caller
     } finally {
       setSaving(false);
     }
@@ -156,9 +211,9 @@ function SessionModal({ isOpen, onClose, onSave, skills, initialPoll = null }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl p-6 max-w-xl w-full shadow-2xl animate-fade-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl animate-fade-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-          <h2 className="text-xl font-bold text-slate-900">
+          <h2 className="text-xl font-bold text-slate-900 font-[Epilogue]">
             {initialPoll ? "Edit Bidding Session" : "Launch Bidding Session"}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
@@ -175,99 +230,111 @@ function SessionModal({ isOpen, onClose, onSave, skills, initialPoll = null }) {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Executive Cohort 2026"
-              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:border-slate-500 focus:ring-2 focus:ring-[var(--color-primary)]/20"
+              placeholder="e.g. Executive Cohort Bidding"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:border-slate-500"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
-                Cohort / Theme
-              </label>
-              <select
-                value={theme}
-                onChange={(e) => setTheme(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:border-slate-500 bg-white"
-              >
-                <option value="synergy_sphere">SynergySphere (HR)</option>
-                <option value="masterclass">Masterclass (ACADEMIA)</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1 block">
-                Skill Cost (Coins)
-              </label>
-              <input
-                type="number"
-                min={5}
-                max={100}
-                value={skillCost}
-                onChange={(e) => setSkillCost(Math.max(5, Math.min(100, parseInt(e.target.value) || 20)))}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm font-medium focus:outline-none focus:border-slate-500"
-              />
-            </div>
-          </div>
-
           <div className="border-t border-slate-100 pt-3">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
-                Connect Skills to Session ({selectedSkillIds.size} selected)
+                Questions Builder ({questions.length})
               </label>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={selectAll}
-                  className="text-xs text-[var(--color-primary)] font-bold hover:underline"
-                >
-                  Select All
-                </button>
-                <span className="text-slate-300">|</span>
-                <button
-                  type="button"
-                  onClick={deselectAll}
-                  className="text-xs text-slate-500 font-bold hover:underline"
-                >
-                  Deselect All
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleAddQuestion}
+                className="text-xs text-[var(--color-primary)] font-bold hover:underline flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Question
+              </button>
             </div>
 
-            <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 max-h-[300px] overflow-y-auto space-y-4">
-              {CATEGORIES.map(cat => {
-                const catSkills = skills.filter(s => s.category === cat);
-                if (catSkills.length === 0) return null;
-                return (
-                  <div key={cat} className="space-y-1.5">
-                    <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-200 pb-0.5">
-                      {cat}
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {catSkills.map(s => {
-                        const isChecked = selectedSkillIds.has(s.id);
-                        return (
-                          <label
-                            key={s.id}
-                            className={`flex items-center gap-2.5 p-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                              isChecked
-                                ? "bg-white border-[var(--color-primary)] shadow-sm text-slate-900"
-                                : "bg-white/40 border-slate-200 text-slate-500 hover:border-slate-300"
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              onChange={() => toggleSkill(s.id)}
-                              className="rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
-                            />
-                            <span className="truncate">{s.name}</span>
-                          </label>
-                        );
-                      })}
+            <div className="space-y-4 max-h-[380px] overflow-y-auto">
+              {questions.map((q, qIdx) => (
+                <div key={qIdx} className="border border-slate-200 rounded-2xl p-4 bg-slate-50/50 space-y-3 relative">
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveQuestion(qIdx)}
+                    className="absolute top-3 right-3 p-1 text-slate-400 hover:text-red-500 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
+                        Question text
+                      </label>
+                      <input
+                        type="text"
+                        value={q.text}
+                        onChange={(e) => handleQuestionChange(qIdx, "text", e.target.value)}
+                        placeholder="e.g. BD & Sales Skill Bidding"
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold focus:outline-none bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
+                        Cohort
+                      </label>
+                      <select
+                        value={q.cohort}
+                        onChange={(e) => handleQuestionChange(qIdx, "cohort", e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold focus:outline-none bg-white"
+                      >
+                        <option value="HR">HR</option>
+                        <option value="ACADEMIA">Academia</option>
+                      </select>
                     </div>
                   </div>
-                );
-              })}
+
+                  {/* Skills nested builder */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between border-t border-slate-200/60 pt-2">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                        Skills / Options ({q.skills?.length || 0})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleAddSkillToQuestion(qIdx)}
+                        className="text-[10px] text-emerald-600 font-bold hover:underline flex items-center gap-0.5"
+                      >
+                        <Plus className="w-3 h-3" /> Add Skill
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {q.skills?.map((skill, sIdx) => (
+                        <div key={sIdx} className="flex gap-2 items-center bg-white p-2 rounded-xl border border-slate-100">
+                          <input
+                            type="text"
+                            value={skill.name}
+                            onChange={(e) => handleSkillChange(qIdx, sIdx, "name", e.target.value)}
+                            placeholder="Skill/Option Name"
+                            className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 text-xs focus:outline-none"
+                          />
+                          <select
+                            value={skill.category}
+                            onChange={(e) => handleSkillChange(qIdx, sIdx, "category", e.target.value)}
+                            className="px-2 py-1 rounded-md border border-slate-200 text-xs focus:outline-none bg-white text-slate-600"
+                          >
+                            {CATEGORIES.map(cat => (
+                              <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSkillFromQuestion(qIdx, sIdx)}
+                            className="p-1 text-slate-400 hover:text-red-500 rounded"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -281,18 +348,13 @@ function SessionModal({ isOpen, onClose, onSave, skills, initialPoll = null }) {
             </button>
             <button
               type="submit"
-              disabled={saving || selectedSkillIds.size === 0}
+              disabled={saving}
               className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01]"
               style={{
                 background: "linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))"
               }}
             >
-              {saving ? (
-                <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving...
-                </div>
-              ) : initialPoll ? "Save Changes" : "Launch Session"}
+              {saving ? "Saving..." : initialPoll ? "Save Changes" : "Launch Session"}
             </button>
           </div>
         </form>
@@ -301,8 +363,8 @@ function SessionModal({ isOpen, onClose, onSave, skills, initialPoll = null }) {
   );
 }
 
-// ── CARD COMPONENT FOR BIDDING SESSIONS ──
-function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
+// ── BIDDING POLL CARD COMPONENT ──
+function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -321,7 +383,7 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
   const createdDate = poll.createdAt ? new Date(poll.createdAt).toLocaleDateString() : "—";
   const isLive = poll.isBiddingActive;
   const isClosed = poll.biddingClosed;
-  const skillsCount = poll.skills?.length || 0;
+  const questionsCount = poll.questions?.length || 0;
 
   const getStatusColor = () => {
     if (isLive) return "bg-green-100 text-green-700";
@@ -338,7 +400,6 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition-all group relative flex flex-col justify-between">
       <div>
-        {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1 pr-4 min-w-0">
             <h3 className="font-bold text-lg text-slate-900 truncate mb-1" title={cleanTitle}>
@@ -360,7 +421,6 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
             </div>
           </div>
 
-          {/* Actions Menu */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
@@ -390,7 +450,13 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
                   onClick={() => { setShowMenu(false); onEdit(poll); }}
                   className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
-                  <Sparkles className="w-4 h-4 text-indigo-600" /> Manage Skills
+                  <Layers className="w-4 h-4 text-indigo-600" /> Manage Questions
+                </button>
+                <button
+                  onClick={() => { setShowMenu(false); onClone(poll.id); }}
+                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <CopyIcon className="w-4 h-4 text-purple-600" /> Clone config
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); onShare(poll); }}
@@ -402,7 +468,7 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
                   onClick={() => { setShowMenu(false); onRestart(poll); }}
                   className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
-                  <RotateCcw className="w-4 h-4 text-orange-500" /> Restart
+                  <RotateCcw className="w-4 h-4 text-orange-500" /> Restart Run
                 </button>
                 <div className="h-px bg-slate-100 my-1" />
                 <button
@@ -416,15 +482,30 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
           </div>
         </div>
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 gap-3 mb-4 mt-2">
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold text-[var(--color-primary)]">{skillsCount}</div>
-            <div className="text-[10px] uppercase font-bold text-slate-400">Connected Skills</div>
+        {/* Dynamic Run Progress Tags */}
+        <div className="mt-3 border-t border-slate-100 pt-3 space-y-2">
+          <div className="flex justify-between items-center text-xs">
+            <span className="font-semibold text-slate-500">HR Cohort Run</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              isLive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
+            }`}>
+              {isLive ? "In Progress" : "Standby"}
+            </span>
           </div>
+          <div className="flex justify-between items-center text-xs">
+            <span className="font-semibold text-slate-500">Academia Cohort Run</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              isLive ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-400"
+            }`}>
+              {isLive ? "In Progress" : "Standby"}
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 mb-4 mt-3">
           <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold text-[var(--color-secondary)]">{poll.skillCost || 20}</div>
-            <div className="text-[10px] uppercase font-bold text-slate-400">Coins/Skill</div>
+            <div className="text-xl font-bold text-[var(--color-primary)]">{questionsCount}</div>
+            <div className="text-[10px] uppercase font-bold text-slate-400">Total Bidding Questions</div>
           </div>
         </div>
       </div>
@@ -437,72 +518,44 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit }) {
   );
 }
 
-// ── MAIN BIDDING ADMIN COMPONENT ──
+// ── MAIN BIDDING ADMIN DASHBOARD ──
 export default function BiddingAdmin() {
   const { user } = useAuth();
 
-  // Store actions/state
   const {
     biddingPolls,
-    loading: loadingStore,
+    loading,
     fetchBiddingPolls,
     deleteBiddingPoll,
     restartBiddingPoll,
     createBiddingPoll,
     saveBiddingPoll,
+    cloneBiddingPoll,
   } = usePollStore();
 
-  const [skills, setSkills] = useState([]);
-  const [loadingSkills, setLoadingSkills] = useState(true);
-  const [activeTab, setActiveTab] = useState("sessions");
-
-  // Skill Directory form state
-  const [showAddSkillForm, setShowAddSkillForm] = useState(false);
-  const [newSkillName, setNewSkillName] = useState("");
-  const [newSkillCategory, setNewSkillCategory] = useState(CATEGORIES[0]);
-  const [savingSkill, setSavingSkill] = useState(false);
-  const [deletingSkillId, setDeletingSkillId] = useState(null);
-
-  // Modals state
   const [showLaunchModal, setShowLaunchModal] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
   const [sharePoll, setSharePoll] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const fetchSkills = useCallback(async () => {
-    try {
-      const data = await api.getSkills();
-      setSkills(data || []);
-    } catch (err) {
-      console.error("Error fetching skills:", err);
-      toast.error("Failed to load skills directory");
-    } finally {
-      setLoadingSkills(false);
-    }
-  }, []);
-
   useEffect(() => {
     if (user) {
       fetchBiddingPolls(user.uid);
     }
-    fetchSkills();
-  }, [user, fetchBiddingPolls, fetchSkills]);
+  }, [user, fetchBiddingPolls]);
 
   const handleRefresh = () => {
     if (user) fetchBiddingPolls(user.uid);
-    fetchSkills();
   };
 
-  // Launch a new bidding poll session
   const handleLaunchSession = async (sessionData) => {
     const titleWithSuffix = `${sessionData.name} ${sessionData.theme === "synergy_sphere" ? "~SS" : "~MC"}`;
     try {
-      const pollId = await createBiddingPoll(
-        titleWithSuffix,
-        sessionData.theme,
-        sessionData.skillCost,
-        sessionData.skillIds
-      );
+      const pollId = await createBiddingPoll({
+        title: titleWithSuffix,
+        theme: sessionData.theme,
+        questions: sessionData.questions,
+      });
       toast.success("Bidding session launched!");
       if (user) fetchBiddingPolls(user.uid);
       window.open(`/bidding-present/${pollId}?theme=${sessionData.theme}`, "_self");
@@ -512,17 +565,14 @@ export default function BiddingAdmin() {
     }
   };
 
-  // Save changes to an existing session
   const handleSaveSession = async (sessionData) => {
     const titleWithSuffix = `${sessionData.name} ${sessionData.theme === "synergy_sphere" ? "~SS" : "~MC"}`;
     try {
-      await saveBiddingPoll(
-        sessionData.id,
-        titleWithSuffix,
-        sessionData.theme,
-        sessionData.skillCost,
-        sessionData.skillIds
-      );
+      await saveBiddingPoll(sessionData.id, {
+        title: titleWithSuffix,
+        theme: sessionData.theme,
+        questions: sessionData.questions,
+      });
       toast.success("Bidding session updated successfully");
       if (user) fetchBiddingPolls(user.uid);
     } catch (err) {
@@ -531,9 +581,8 @@ export default function BiddingAdmin() {
     }
   };
 
-  // Delete session
   const handleDeleteSession = async (pollId) => {
-    if (!confirm("Are you sure you want to permanently delete this bidding session?")) return;
+    if (!confirm("Delete this bidding session permanently?")) return;
     setIsProcessing(true);
     try {
       await deleteBiddingPoll(pollId);
@@ -545,9 +594,8 @@ export default function BiddingAdmin() {
     }
   };
 
-  // Restart session (Reset bids)
   const handleRestartSession = async (poll) => {
-    if (!confirm("Restart bidding? This will clear all votes and locked-in bids.")) return;
+    if (!confirm("Restart bidding session run? This clears active bids.")) return;
     setIsProcessing(true);
     try {
       await restartBiddingPoll(poll.id);
@@ -560,56 +608,27 @@ export default function BiddingAdmin() {
     }
   };
 
-  // ── Global Skill Catalog Management handlers ──
-  const handleAddGlobalSkill = async (e) => {
-    e.preventDefault();
-    if (!newSkillName.trim()) {
-      toast.error("Please enter a skill name");
-      return;
-    }
-    setSavingSkill(true);
+  const handleCloneSession = async (pollId) => {
+    setIsProcessing(true);
     try {
-      await api.addSkill({ name: newSkillName.trim(), category: newSkillCategory });
-      toast.success(`"${newSkillName.trim()}" added to global catalog!`);
-      setNewSkillName("");
-      setShowAddSkillForm(false);
-      fetchSkills();
+      await cloneBiddingPoll(pollId);
+      toast.success("Bidding session configuration cloned!");
+      if (user) fetchBiddingPolls(user.uid);
     } catch (err) {
-      toast.error("Failed to add skill");
+      toast.error("Failed to clone session");
     } finally {
-      setSavingSkill(false);
+      setIsProcessing(false);
     }
   };
-
-  const handleDeleteGlobalSkill = async (id, name) => {
-    if (!confirm(`Delete "${name}" from global catalog? Connected sessions will no longer display this skill.`)) return;
-    setDeletingSkillId(id);
-    try {
-      await api.deleteSkill(id);
-      toast.success(`"${name}" deleted from catalog`);
-      fetchSkills();
-    } catch (err) {
-      toast.error("Failed to delete skill");
-    } finally {
-      setDeletingSkillId(null);
-    }
-  };
-
-  const groupedGlobalSkills = {};
-  CATEGORIES.forEach(cat => {
-    groupedGlobalSkills[cat] = skills.filter(s => s.category === cat);
-  });
-
-  const loading = loadingStore || loadingSkills;
 
   return (
     <>
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden font-[Epilogue]">
         {/* Header */}
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Skill Bidding</h1>
-            <p className="text-sm text-slate-500 mt-1">Manage all your bidding sessions and the global skills catalog</p>
+            <h1 className="text-2xl font-bold text-slate-900">Skill Bidding Arena</h1>
+            <p className="text-sm text-slate-500 mt-1">Manage and launch bidding sessions with hierarchical configurations</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -629,194 +648,37 @@ export default function BiddingAdmin() {
           </div>
         </header>
 
-        {/* Tab Selector */}
-        <div className="border-b border-slate-200 bg-white px-8 flex gap-6 z-10 shadow-sm">
-          <button
-            onClick={() => setActiveTab("sessions")}
-            className={`py-4 text-sm font-bold border-b-2 transition-all ${
-              activeTab === "sessions"
-                ? "border-[var(--color-primary)] text-[var(--color-primary)]"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Bidding Sessions ({biddingPolls.length})
-          </button>
-          <button
-            onClick={() => setActiveTab("catalog")}
-            className={`py-4 text-sm font-bold border-b-2 transition-all ${
-              activeTab === "catalog"
-                ? "border-[var(--color-primary)] text-[var(--color-primary)]"
-                : "border-transparent text-slate-500 hover:text-slate-700"
-            }`}
-          >
-            Global Skills Directory ({skills.length})
-          </button>
-        </div>
-
         {/* Scrollable Content Area */}
         <main className="flex-1 overflow-auto p-8 bg-slate-50">
           {loading && biddingPolls.length === 0 ? (
             <div className="flex justify-center py-20">
               <Loader2 className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
             </div>
-          ) : activeTab === "sessions" ? (
-            // ── TAB 1: SESSIONS GRID ──
-            biddingPolls.length === 0 ? (
-              <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300 shadow-sm max-w-2xl mx-auto">
-                <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-700">No Bidding Sessions yet</h3>
-                <p className="text-slate-500 mb-6">Launch a session using custom themes to start the bidding game.</p>
-                <button
-                  onClick={() => setShowLaunchModal(true)}
-                  className="text-[var(--color-primary)] font-bold hover:underline"
-                >
-                  Launch Bidding Session
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
-                {biddingPolls.map((poll) => (
-                  <BiddingPollCard
-                    key={poll.id}
-                    poll={poll}
-                    onDelete={handleDeleteSession}
-                    onRestart={handleRestartSession}
-                    onShare={(p) => setSharePoll(p)}
-                    onEdit={(p) => setEditingSession(p)}
-                  />
-                ))}
-              </div>
-            )
+          ) : biddingPolls.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300 shadow-sm max-w-2xl mx-auto">
+              <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-slate-700">No Bidding Sessions yet</h3>
+              <p className="text-slate-500 mb-6">Launch a session using custom themes to start the bidding game.</p>
+              <button
+                onClick={() => setShowLaunchModal(true)}
+                className="text-[var(--color-primary)] font-bold hover:underline"
+              >
+                Launch Bidding Session
+              </button>
+            </div>
           ) : (
-            // ── TAB 2: GLOBAL CATALOG ──
-            <div className="max-w-4xl mx-auto space-y-8 pb-10">
-              <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <div>
-                  <h3 className="font-bold text-slate-900">Manage Global Catalog</h3>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Add or remove skills globally. These serve as the repository when launching sessions.
-                  </p>
-                </div>
-                <button
-                  onClick={() => setShowAddSkillForm(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 transition-all shadow"
-                >
-                  <Plus className="w-4 h-4" /> Add Skill to Directory
-                </button>
-              </div>
-
-              {/* Add skill form */}
-              {showAddSkillForm && (
-                <div className="p-6 rounded-2xl border border-slate-200 bg-white shadow-md animate-fade-in">
-                  <h4 className="font-bold text-slate-900 mb-4 flex items-center gap-1.5">
-                    <Sparkles className="w-5 h-5 text-[var(--color-primary)]" />
-                    New Skill details
-                  </h4>
-                  <form onSubmit={handleAddGlobalSkill} className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                        Skill Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newSkillName}
-                        onChange={(e) => setNewSkillName(e.target.value)}
-                        placeholder="e.g. Adaptive Leadership"
-                        className="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:border-slate-500"
-                        autoFocus
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 block">
-                        Category
-                      </label>
-                      <select
-                        value={newSkillCategory}
-                        onChange={(e) => setNewSkillCategory(e.target.value)}
-                        className="w-full px-4 py-2 rounded-xl border border-slate-300 text-sm font-semibold focus:outline-none focus:border-slate-500 bg-white"
-                      >
-                        {CATEGORIES.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="submit"
-                        disabled={savingSkill}
-                        className="flex-1 py-2 rounded-xl text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-all flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        {savingSkill ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                        Add Skill
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setShowAddSkillForm(false); setNewSkillName(""); }}
-                        className="py-2 px-4 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-100 transition-all border border-slate-200"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Catalog list grouped */}
-              {skills.length === 0 ? (
-                <div className="text-center py-10 rounded-2xl border border-dashed border-slate-300">
-                  <p className="text-slate-400 text-sm">No skills found in the directory.</p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {CATEGORIES.map(cat => {
-                    const catSkills = groupedGlobalSkills[cat] || [];
-                    if (catSkills.length === 0) return null;
-                    return (
-                      <div key={cat} className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-bold uppercase tracking-wider text-slate-500">
-                            {cat}
-                          </h4>
-                          <span className="text-xs text-slate-400 bg-slate-200/50 px-2 py-0.5 rounded-full font-bold">
-                            {catSkills.length}
-                          </span>
-                          <div className="flex-1 h-px bg-slate-200" />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {catSkills.map(skill => (
-                            <div
-                              key={skill.id}
-                              className="group flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm transition-all"
-                            >
-                              <div className="min-w-0">
-                                <p className="text-sm font-bold text-slate-800 truncate">
-                                  {skill.name}
-                                </p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">
-                                  Added: {new Date(skill.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleDeleteGlobalSkill(skill.id, skill.name)}
-                                disabled={deletingSkillId === skill.id}
-                                className="p-2 rounded-xl text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                                title={`Delete ${skill.name}`}
-                              >
-                                {deletingSkillId === skill.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-4 h-4" />
-                                )}
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
+              {biddingPolls.map((poll) => (
+                <BiddingPollCard
+                  key={poll.id}
+                  poll={poll}
+                  onDelete={handleDeleteSession}
+                  onRestart={handleRestartSession}
+                  onShare={(p) => setSharePoll(p)}
+                  onEdit={(p) => setEditingSession(p)}
+                  onClone={handleCloneSession}
+                />
+              ))}
             </div>
           )}
         </main>
@@ -835,7 +697,6 @@ export default function BiddingAdmin() {
         isOpen={showLaunchModal}
         onClose={() => setShowLaunchModal(false)}
         onSave={handleLaunchSession}
-        skills={skills}
       />
 
       {/* Edit Modal */}
@@ -843,7 +704,6 @@ export default function BiddingAdmin() {
         isOpen={editingSession !== null}
         onClose={() => setEditingSession(null)}
         onSave={handleSaveSession}
-        skills={skills}
         initialPoll={editingSession}
       />
 

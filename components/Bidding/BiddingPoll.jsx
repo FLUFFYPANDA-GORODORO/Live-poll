@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Plus, Minus, Trophy, Info } from "lucide-react";
+import { Loader2, Trophy, Info } from "lucide-react";
+import toast from "react-hot-toast";
 
 // Simple debounce helper
 const useDebounce = () => {
@@ -25,16 +26,20 @@ export default function BiddingPoll({
   placeBid,
 }) {
   const [transactions, setTransactions] = useState({}); // { [questionIdx_skillId]: amount }
+  const [submittedQuestions, setSubmittedQuestions] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const debounceCall = useDebounce();
 
-  const isSynergy = theme === "synergy_sphere" || currentCohort === "HR";
-  const isMasterclass = theme === "masterclass" || currentCohort === "ACADEMIA";
+  const isSynergy = currentCohort ? currentCohort.toUpperCase() === "HR" : theme === "synergy_sphere";
+  const isMasterclass = currentCohort ? currentCohort.toUpperCase() === "ACADEMIA" : theme === "masterclass";
 
-  // Load transactions from localStorage on mount
+  // Load transactions and submitted status from localStorage on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const savedTransactions = JSON.parse(localStorage.getItem("bidding_transactions_v2") || "{}");
       setTransactions(savedTransactions);
+      const savedSubmitted = JSON.parse(localStorage.getItem("bidding_submitted_v2") || "{}");
+      setSubmittedQuestions(savedSubmitted);
     }
   }, []);
 
@@ -55,16 +60,12 @@ export default function BiddingPoll({
     sendEmoji?.(poll?.id, "coin2");
   };
 
-  const handleUpdateBid = (skillId, change) => {
+  const handleSetBid = (skillId, val) => {
     const key = `${activeQuestionIndex}_${skillId}`;
     const currentBid = transactions[key] || 0;
-    const newBid = Math.max(0, currentBid + change);
-    const diff = newBid - currentBid;
-
-    if (diff > remainingCoins) {
-      // Cannot exceed budget
-      return;
-    }
+    
+    const maxAllowed = currentBid + remainingCoins;
+    const newBid = Math.min(maxAllowed, Math.max(0, val));
 
     const updatedTransactions = {
       ...transactions,
@@ -75,19 +76,54 @@ export default function BiddingPoll({
     }
 
     saveTransactions(updatedTransactions);
+  };
 
-    // 1. Ephemeral SignalR broadcast for real-time visualization updates
-    sendBidChange?.(poll?.id, activeQuestionIndex, sessionId, skillId, newBid);
+  const isQuestionSubmitted = submittedQuestions[activeQuestionIndex] === true;
 
-    // 2. Debounced API call to save bid in backend database
-    debounceCall(() => {
-      placeBid?.(poll?.id, {
-        questionIndex: activeQuestionIndex,
-        sessionId,
-        cohort: currentCohort || "HR",
-        bids: [{ biddingSkillId: skillId, amount: newBid }],
-      }).catch((err) => console.error("Failed to place bid on backend:", err));
-    }, 800);
+  const handleSubmitBids = async () => {
+    if (isSubmitting) return;
+
+    try {
+      setIsSubmitting(true);
+
+      const activeQuestionBids = activeSkills.map(skill => ({
+        biddingSkillId: skill.id,
+        coinsSpent: transactions[`${activeQuestionIndex}_${skill.id}`] || 0
+      }));
+
+      // Submit bids SEQUENTIALLY (not in parallel) to prevent a race condition
+      // where concurrent PlaceBidAsync calls read the tracker before seeing each
+      // other's bids, potentially bypassing the 100-coin budget validation.
+      for (const bid of activeQuestionBids) {
+        await placeBid?.(poll?.id, {
+          questionIndex: activeQuestionIndex,
+          sessionId,
+          cohort: currentCohort || "HR",
+          biddingSkillId: bid.biddingSkillId,
+          coinsSpent: bid.coinsSpent
+        });
+      }
+
+      // After successful submission, broadcast final bid amounts to trigger
+      // coin shooting animation on the presenter screen
+      for (const bid of activeQuestionBids) {
+        if (bid.coinsSpent > 0) {
+          sendBidChange?.(poll?.id, activeQuestionIndex, sessionId, bid.biddingSkillId, bid.coinsSpent);
+        }
+      }
+
+      // Save submission state locally
+      const newSubmitted = { ...submittedQuestions, [activeQuestionIndex]: true };
+      setSubmittedQuestions(newSubmitted);
+      localStorage.setItem("bidding_submitted_v2", JSON.stringify(newSubmitted));
+
+      toast.success("Bids submitted successfully!");
+    } catch (err) {
+      toast.error("Failed to submit bids: " + (err.message || err));
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const containerBgStyle = isSynergy
@@ -204,34 +240,53 @@ export default function BiddingPoll({
                     >
                       <div className="pr-3 leading-snug flex-1">
                         <p className="font-semibold text-slate-800 text-sm">{skill.name}</p>
-                        <p className="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">{skill.category}</p>
                       </div>
 
-                      {/* Stepper Controls */}
+                      {/* Coins Input */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateBid(skill.id, -1)}
-                          disabled={currentBid === 0}
-                          className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-all font-black text-base"
-                        >
-                          <Minus className="w-4 h-4" />
-                        </button>
-                        <span className="w-8 text-center text-sm font-black text-slate-800">
-                          {currentBid}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateBid(skill.id, 1)}
-                          disabled={remainingCoins <= 0}
-                          className="w-8 h-8 rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 flex items-center justify-center transition-all font-black text-base"
-                        >
-                          <Plus className="w-4 h-4" />
-                        </button>
+                        <input
+                          type="number"
+                          min={0}
+                          max={100}
+                          value={currentBid || ""}
+                          disabled={isQuestionSubmitted}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10) || 0;
+                            handleSetBid(skill.id, val);
+                          }}
+                          className="w-16 text-center text-sm font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-lg py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-75"
+                          placeholder="0"
+                        />
                       </div>
                     </div>
                   );
                 })
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col items-center">
+              {isQuestionSubmitted ? (
+                <div className="w-full py-3 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-center text-sm border border-emerald-100 flex items-center justify-center gap-2">
+                  <span>Bids Submitted Successfully</span>
+                  <span className="text-base font-black">✓</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmitBids}
+                  disabled={isSubmitting}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 text-white font-bold rounded-xl text-center text-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Submitting Bids...</span>
+                    </>
+                  ) : (
+                    <span>Submit Bids</span>
+                  )}
+                </button>
               )}
             </div>
           </div>

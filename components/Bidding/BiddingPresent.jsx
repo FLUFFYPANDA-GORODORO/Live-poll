@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import toast from "react-hot-toast";
 
 const GLOBAL_STYLE_ID = "bidding-present-styles";
 
@@ -41,7 +42,13 @@ export default function BiddingPresent({
   const [reactions, setReactions] = useState([]);
   
   // Cohort state: "HR" vs "ACADEMIA"
-  const [activeCohort, setActiveCohort] = useState("HR");
+  const [activeCohort, setActiveCohort] = useState(poll?.currentCohort || "HR");
+
+  useEffect(() => {
+    if (poll?.currentCohort) {
+      setActiveCohort(poll.currentCohort);
+    }
+  }, [poll?.currentCohort]);
 
   // Retrieve active question index and active skills
   const activeQuestionIndex = poll?.activeQuestionIndex ?? -1;
@@ -81,20 +88,18 @@ export default function BiddingPresent({
     }
   }, [bubbleCounts]);
 
-  const applyCountUpdate = useCallback((targetSkillId) => {
+  const syncBubbleCounts = useCallback(() => {
     if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
     const d3 = window.d3;
     
     const currentCounts = renderedCountsRef.current;
-    currentCounts[targetSkillId] = (currentCounts[targetSkillId] || 0) + 1;
-
     const maxCount = Math.max(1, ...activeSkills.map((s) => currentCounts[s.id] || 0));
 
     const nodes = simulationRef.current.nodes();
     nodes.forEach((node) => {
       const newCount = currentCounts[node.id] || 0;
       node.count = newCount;
-      // Make bubbles expand as coins are added
+      // Make bubbles expand as coins are added or shrink as they are removed
       node.radius = Math.max(50, 45 + (newCount / maxCount) * 75);
     });
 
@@ -108,37 +113,109 @@ export default function BiddingPresent({
     const svg = d3.select(svgRef.current);
     
     svg
-      .selectAll(".bp-node circle")
+      .selectAll(".bp-node circle:first-child")
       .data(nodes)
       .transition()
       .duration(300)
       .attr("r", (d) => d.radius);
 
     svg
-      .selectAll(".bp-node text:first-of-type")
+      .selectAll(".bp-node circle:nth-child(2)")
       .data(nodes)
-      .text((d) => d.name)
-      .attr("font-size", (d) => `${Math.min(d.radius * 0.22, 12)}px`);
+      .transition()
+      .duration(300)
+      .attr("r", (d) => d.radius);
 
     svg
-      .selectAll(".bp-node text:last-of-type")
+      .selectAll(".bp-node circle:nth-child(3)")
+      .data(nodes)
+      .transition()
+      .duration(300)
+      .attr("r", (d) => d.radius * 0.5);
+
+    svg
+      .selectAll(".bp-node foreignObject")
+      .data(nodes)
+      .transition()
+      .duration(300)
+      .attr("x", (d) => -d.radius * 0.85)
+      .attr("y", (d) => -d.radius * 0.85)
+      .attr("width", (d) => d.radius * 1.7)
+      .attr("height", (d) => d.radius * 1.7);
+
+    svg
+      .selectAll(".bp-node foreignObject div")
+      .data(nodes)
+      .style("opacity", (d) => d.count > 0 ? 1 : 0);
+
+    svg
+      .selectAll(".bp-node .skill-name")
+      .data(nodes)
+      .text((d) => d.name)
+      .style("font-size", (d) => `${Math.max(10, Math.min(d.radius * 0.22, 13))}px`);
+
+    svg
+      .selectAll(".bp-node .skill-coins")
       .data(nodes)
       .text((d) => `${d.count} Coins`)
-      .attr("dy", (d) => `${d.radius * 0.25}px`);
+      .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11))}px`);
+  }, [activeSkills]);
 
-    // Pulse bubble on impact
+  const applyCountUpdate = useCallback((targetSkillId) => {
+    if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
+    const d3 = window.d3;
+    
+    // ⚠️ DO NOT increment the count here! The server's 100ms debounce timer
+    // broadcasts the correct aggregate count via ReceiveBubbleData BEFORE the
+    // 350ms coin animation completes. By the time this runs, renderedCountsRef
+    // already has the correct server value. Incrementing it would cause a
+    // permanent double-count (e.g., server says 1, this makes it 2).
+    // The coin animation is purely decorative — the data comes from the server.
+    syncBubbleCounts();
+
+    // Pulse bubble on impact — animate both the main circle and sheen
+    const svg = d3.select(svgRef.current);
+    const nodes = simulationRef.current.nodes();
     const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
     const targetNode = nodes.find((n) => n.id === targetSkillId);
     if (targetNode && targetGroup.size() > 0) {
-      targetGroup.select("circle")
+      // Main circle pulse
+      targetGroup.select("circle:first-child")
+        .interrupt()
         .transition()
-        .duration(150)
-        .attr("r", targetNode.radius * 1.25)
+        .duration(120)
+        .attr("r", targetNode.radius * 1.3)
+        .attr("stroke-width", 6)
+        .attr("stroke", "rgba(255,255,255,1)")
         .transition()
-        .duration(250)
+        .duration(280)
+        .attr("r", targetNode.radius)
+        .attr("stroke-width", 3)
+        .attr("stroke", "rgba(255,255,255,0.85)");
+
+      // Sheen circle follows
+      targetGroup.select("circle:nth-child(2)")
+        .interrupt()
+        .transition()
+        .duration(120)
+        .attr("r", targetNode.radius * 1.3)
+        .transition()
+        .duration(280)
         .attr("r", targetNode.radius);
+
+      // Ambient glow pulse
+      targetGroup.select("circle:nth-child(3)")
+        .interrupt()
+        .transition()
+        .duration(120)
+        .attr("r", targetNode.radius * 0.7)
+        .attr("opacity", 0.2)
+        .transition()
+        .duration(280)
+        .attr("r", targetNode.radius * 0.5)
+        .attr("opacity", 0.08);
     }
-  }, [activeSkills]);
+  }, [activeSkills, syncBubbleCounts]);
 
   const shootCoin = useCallback((targetSkillId, shouldApplyUpdate = true) => {
     if (!d3Loaded || !svgRef.current || !simulationRef.current) return;
@@ -202,6 +279,7 @@ export default function BiddingPresent({
     if (!bubbleCounts || !activeSkills?.length) return;
     
     const prevCounts = prevBubbleCountsRef.current;
+    let hasDecrements = false;
     
     activeSkills.forEach((skill) => {
       const prevVal = prevCounts[skill.id] || 0;
@@ -213,11 +291,18 @@ export default function BiddingPresent({
             shootCoin(skill.id);
           }, i * 150);
         }
+      } else if (newVal < prevVal) {
+        renderedCountsRef.current[skill.id] = newVal;
+        hasDecrements = true;
       }
     });
 
+    if (hasDecrements) {
+      syncBubbleCounts();
+    }
+
     prevBubbleCountsRef.current = { ...bubbleCounts };
-  }, [bubbleCounts, activeSkills, shootCoin]);
+  }, [bubbleCounts, activeSkills, shootCoin, syncBubbleCounts]);
 
   // Subscribe to floating presenter reaction emojis
   useEffect(() => {
@@ -241,8 +326,8 @@ export default function BiddingPresent({
     return () => unsubscribe();
   }, [pollId, subscribeToPresenter]);
 
-  const isSynergy = activeCohort === "HR" || theme === "synergy_sphere";
-  const isMasterclass = activeCohort === "ACADEMIA" || theme === "masterclass";
+  const isSynergy = activeCohort === "HR";
+  const isMasterclass = activeCohort === "ACADEMIA";
 
   // Dynamic D3 injection
   useEffect(() => {
@@ -360,7 +445,11 @@ export default function BiddingPresent({
     if (!startQuestion || !poll?.questions) return;
     const nextIdx = activeQuestionIndex + direction;
     if (nextIdx >= 0 && nextIdx < poll.questions.length) {
-      await startQuestion(pollId, nextIdx, activeCohort);
+      try {
+        await startQuestion(pollId, nextIdx, activeCohort);
+      } catch (err) {
+        toast.error("Failed to switch question: " + (err.message || err));
+      }
     }
   };
 
@@ -368,7 +457,11 @@ export default function BiddingPresent({
   const handleCohortToggle = async (cohortVal) => {
     setActiveCohort(cohortVal);
     if (startQuestion && activeQuestionIndex >= 0) {
-      await startQuestion(pollId, activeQuestionIndex, cohortVal);
+      try {
+        await startQuestion(pollId, activeQuestionIndex, cohortVal);
+      } catch (err) {
+        toast.error("Failed to switch cohort: " + (err.message || err));
+      }
     }
   };
 
@@ -434,6 +527,46 @@ export default function BiddingPresent({
       grad.append("stop").attr("offset", "100%").attr("stop-color", gData.end);
     });
 
+    // Glow filter for bubbles
+    const glowFilter = defs.append("filter")
+      .attr("id", "bp-glow")
+      .attr("x", "-20%")
+      .attr("y", "-20%")
+      .attr("width", "140%")
+      .attr("height", "140%");
+    glowFilter.append("feGaussianBlur")
+      .attr("stdDeviation", "6")
+      .attr("result", "blur");
+    const glowMerge = glowFilter.append("feMerge");
+    glowMerge.append("feMergeNode").attr("in", "blur");
+    glowMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+    // Ambient glow for bubble backgrounds
+    const ambientGlow = defs.append("filter")
+      .attr("id", "bp-ambient-glow")
+      .attr("x", "-50%")
+      .attr("y", "-50%")
+      .attr("width", "200%")
+      .attr("height", "200%");
+    ambientGlow.append("feGaussianBlur")
+      .attr("stdDeviation", "12")
+      .attr("result", "blur");
+    const ambientMerge = ambientGlow.append("feMerge");
+    ambientMerge.append("feMergeNode").attr("in", "blur");
+    ambientMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+    // Inner highlight / sheen on bubbles
+    gradients.forEach((gData) => {
+      const sheenGrad = defs.append("radialGradient")
+        .attr("id", `sheen-${gData.id}`)
+        .attr("cx", "35%")
+        .attr("cy", "25%")
+        .attr("r", "60%");
+      sheenGrad.append("stop").attr("offset", "0%").attr("stop-color", "rgba(255,255,255,0.4)");
+      sheenGrad.append("stop").attr("offset", "50%").attr("stop-color", "rgba(255,255,255,0.05)");
+      sheenGrad.append("stop").attr("offset", "100%").attr("stop-color", "rgba(255,255,255,0)");
+    });
+
     const nodeGroup = g
       .selectAll("g")
       .data(nodes)
@@ -463,38 +596,92 @@ export default function BiddingPresent({
       .append("circle")
       .attr("r", (d) => d.radius)
       .attr("fill", (d, i) => `url(#${gradients[i % gradients.length].id})`)
-      .attr("opacity", 0.95)
-      .attr("stroke", "rgba(255,255,255,0.25)")
-      .attr("stroke-width", 2)
+      .attr("opacity", 0.9)
+      .attr("stroke", "rgba(255,255,255,0.85)")
+      .attr("stroke-width", 3)
+      .attr("filter", "url(#bp-glow)")
       .style("cursor", "grab")
-      .style("transition", "r 0.3s ease-out")
-      .attr("filter", "url(#bp-glow)");
+      .style("transition", "r 0.3s ease-out, stroke-width 0.2s ease-out, filter 0.2s ease-out");
 
-    // Option Skill Names (rendered from the beginning)
+    // Sheen overlay for glossy effect
     nodeGroup
-      .append("text")
-      .text((d) => d.name)
-      .attr("text-anchor", "middle")
-      .attr("dy", "-0.15em")
-      .attr("fill", "#fff")
-      .attr("font-size", (d) => `${Math.min(d.radius * 0.22, 12)}px`)
-      .attr("font-family", "Epilogue, sans-serif")
-      .attr("font-weight", "800")
-      .attr("pointer-events", "none")
-      .style("text-shadow", "0 2px 4px rgba(0,0,0,0.6)");
+      .append("circle")
+      .attr("r", (d) => d.radius)
+      .attr("fill", (d, i) => `url(#sheen-${gradients[i % gradients.length].id})`)
+      .attr("stroke", "none")
+      .style("pointer-events", "none");
 
-    // Bidding coins counter
+    // Ambient glow ring behind bubble
     nodeGroup
-      .append("text")
-      .text((d) => `${d.count} Coins`)
-      .attr("text-anchor", "middle")
-      .attr("dy", (d) => `${d.radius * 0.25}px`)
-      .attr("fill", "#fbbf24")
-      .attr("font-size", "11px")
-      .attr("font-family", "Epilogue, sans-serif")
-      .attr("font-weight", "700")
-      .attr("pointer-events", "none")
-      .style("text-shadow", "0 1px 3px rgba(0,0,0,0.8)");
+      .append("circle")
+      .attr("r", (d) => d.radius * 0.5)
+      .attr("fill", (d, i) => {
+        const g = gradients[i % gradients.length];
+        return g.start;
+      })
+      .attr("opacity", 0.08)
+      .attr("filter", "url(#bp-ambient-glow)")
+      .attr("transform", "translate(0, 0)")
+      .style("pointer-events", "none");
+
+    // Hover interaction: enlarge and brighten on mouse enter
+    nodeGroup
+      .on("mouseenter", function () {
+        d3.select(this).select("circle:first-child")
+          .transition()
+          .duration(200)
+          .attr("stroke", "rgba(255,255,255,1)")
+          .attr("stroke-width", 5);
+      })
+      .on("mouseleave", function () {
+        d3.select(this).select("circle:first-child")
+          .transition()
+          .duration(200)
+          .attr("stroke", "rgba(255,255,255,0.85)")
+          .attr("stroke-width", 3);
+      });
+
+    // Render text block inside foreignObject (ensures text is wrapped and fully contained inside the sphere)
+    const fo = nodeGroup
+      .append("foreignObject")
+      .attr("x", (d) => -d.radius * 0.85)
+      .attr("y", (d) => -d.radius * 0.85)
+      .attr("width", (d) => d.radius * 1.7)
+      .attr("height", (d) => d.radius * 1.7)
+      .style("pointer-events", "none");
+
+    const bodyDiv = fo
+      .append("xhtml:div")
+      .style("width", "100%")
+      .style("height", "100%")
+      .style("display", "flex")
+      .style("flex-direction", "column")
+      .style("align-items", "center")
+      .style("justify-content", "center")
+      .style("font-family", "'Epilogue', sans-serif")
+      .style("text-align", "center")
+      .style("color", "#fff")
+      .style("padding", "6px")
+      .style("box-sizing", "border-box")
+      .style("text-shadow", "0 2px 4px rgba(0,0,0,0.8)")
+      .style("opacity", (d) => d.count > 0 ? 1 : 0)
+      .style("transition", "opacity 0.3s ease-out");
+
+    bodyDiv.append("p")
+      .attr("class", "skill-name")
+      .style("margin", "0")
+      .style("font-weight", "800")
+      .style("line-height", "1.15")
+      .style("font-size", (d) => `${Math.max(10, Math.min(d.radius * 0.22, 13))}px`)
+      .text((d) => d.name);
+
+    bodyDiv.append("p")
+      .attr("class", "skill-coins")
+      .style("margin", "4px 0 0 0")
+      .style("font-weight", "700")
+      .style("color", "#fbbf24")
+      .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11))}px`)
+      .text((d) => `${d.count} Coins`);
 
     simulation.on("tick", () => {
       nodeGroup.attr("transform", (d) => `translate(${d.x},${d.y})`);
@@ -554,36 +741,15 @@ export default function BiddingPresent({
       {/* Top Header info (cohort logos) */}
       <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bp-fadeIn">
         <div>
-          <h1 className="text-white font-[Epilogue] text-xl font-bold tracking-tight">
-            {cleanTitle || "Skill Bidding"}
-          </h1>
-          <p className="text-white/40 text-xs font-[Epilogue] mt-0.5">
-            {isSynergy ? "SynergySphere" : isMasterclass ? "Masterclass" : "Live Bidding"} Arena
-          </p>
+          <img
+            src="/GryphonWhite.png"
+            alt="Gryphon Logo"
+            className="h-14 w-auto object-contain filter drop-shadow-md"
+          />
         </div>
         <div className="flex items-center gap-4">
-          {/* Cohort Toggle Buttons */}
-          <div className="bg-black/45 border border-white/10 rounded-xl p-1 flex items-center gap-1 shadow-inner">
-            <button
-              onClick={() => handleCohortToggle("HR")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all uppercase ${
-                activeCohort === "HR" ? "bg-emerald-600 text-white shadow-md" : "text-white/50 hover:text-white"
-              }`}
-            >
-              HR
-            </button>
-            <button
-              onClick={() => handleCohortToggle("ACADEMIA")}
-              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all uppercase ${
-                activeCohort === "ACADEMIA" ? "bg-indigo-600 text-white shadow-md" : "text-white/50 hover:text-white"
-              }`}
-            >
-              Academia
-            </button>
-          </div>
-
-          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-9 w-auto object-contain" />}
-          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-9 w-auto object-contain" />}
+          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain" />}
+          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" />}
         </div>
       </div>
 
@@ -591,20 +757,53 @@ export default function BiddingPresent({
       {activeQuestionIndex !== -1 && activeQuestion ? (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl px-6 w-full select-none bp-fadeIn pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 rounded-3xl shadow-2xl">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-              Active Question
-            </span>
-            <h2 className="text-2xl font-black text-white mt-1 leading-snug">
+            <h2 className="text-2xl font-black text-white leading-snug">
               {activeQuestion.text || activeQuestion.title}
             </h2>
           </div>
         </div>
       ) : (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center select-none bp-fadeIn pointer-events-none">
-          <div className="bg-black/50 backdrop-blur-md border border-white/15 px-8 py-4 rounded-3xl shadow-2xl">
-            <h2 className="text-xl font-bold text-white/55">
-              Standby Mode: Waiting to Start Question
-            </h2>
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/3 z-20 text-center select-none bp-fadeIn w-full max-w-md px-4">
+          <div className="bg-black/75 backdrop-blur-lg border border-white/15 px-8 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-5">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
+                Bidding Arena
+              </span>
+              <h2 className="text-2xl font-black text-white mt-1">
+                Standby Mode
+              </h2>
+            </div>
+            <p className="text-white/60 text-xs font-[Epilogue] leading-relaxed max-w-xs">
+              This session contains {poll?.questions?.length || 0} questions. Choose a cohort below to launch the bidding run.
+            </p>
+            <div className="flex gap-3 w-full mt-2">
+              <button
+                onClick={async () => {
+                  setActiveCohort("HR");
+                  try {
+                    if (startQuestion) await startQuestion(pollId, 0, "HR");
+                  } catch (err) {
+                    toast.error("Failed to start HR run: " + (err.message || err));
+                  }
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Start HR Run
+              </button>
+              <button
+                onClick={async () => {
+                  setActiveCohort("ACADEMIA");
+                  try {
+                    if (startQuestion) await startQuestion(pollId, 0, "ACADEMIA");
+                  } catch (err) {
+                    toast.error("Failed to start Academia run: " + (err.message || err));
+                  }
+                }}
+                className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Start Academia Run
+              </button>
+            </div>
           </div>
         </div>
       )}

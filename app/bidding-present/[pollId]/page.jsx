@@ -10,10 +10,10 @@ import BiddingPresent from "@/components/Bidding/BiddingPresent";
 // Generate a unique session ID
 const getSessionId = () => {
   if (typeof window === "undefined") return "";
-  let sessionId = sessionStorage.getItem("sessionId");
+  let sessionId = localStorage.getItem("sessionId");
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    sessionStorage.setItem("sessionId", sessionId);
+    localStorage.setItem("sessionId", sessionId);
   }
   return sessionId;
 };
@@ -27,11 +27,8 @@ export default function BiddingPresentPage() {
     currentBiddingPoll: poll,
     loadingBiddingCurrent: loading,
     subscribeToBiddingPoll,
-    skills,
     bubbleCounts,
     committedCount,
-    fetchSkills,
-    startBidding,
     stopBidding,
     deleteBiddingPoll,
     restartBiddingPoll,
@@ -48,17 +45,20 @@ export default function BiddingPresentPage() {
     return () => unsubscribe();
   }, [pollId, subscribeToBiddingPoll]);
 
-  // Fetch skills on mount
-  useEffect(() => {
-    fetchSkills?.();
-  }, [fetchSkills]);
+  const cohortParam = searchParams.get("cohort");
 
-  // Automatically start bidding if not already active and not closed
+  // Automatically start question for a cohort if specified in the URL query params
   useEffect(() => {
-    if (poll && !poll.isBiddingActive && !poll.biddingClosed && startBidding) {
-      startBidding(pollId).catch((err) => console.error("Auto start bidding failed:", err));
+    if (poll && cohortParam && startQuestion) {
+      const targetCohort = cohortParam.toUpperCase();
+      // Start if in standby, OR if the active cohort on the poll doesn't match the URL parameter
+      if (poll.activeQuestionIndex === -1 || (poll.currentCohort?.toUpperCase() !== targetCohort)) {
+        startQuestion(pollId, Math.max(0, poll.activeQuestionIndex), targetCohort).catch((err) =>
+          console.error("Auto start/switch cohort run failed:", err)
+        );
+      }
     }
-  }, [poll, pollId, startBidding]);
+  }, [poll, pollId, cohortParam, startQuestion]);
 
   const theme = poll?.theme || searchParams.get("theme") || "synergy_sphere";
   const cleanTitle = poll?.title?.replace(/ ~(SS|MC)$/, "") || "Skill Bidding";
@@ -82,13 +82,11 @@ export default function BiddingPresentPage() {
   return (
     <BiddingPresent
       poll={poll}
-      skills={poll?.skills || []}
       bubbleCounts={bubbleCounts}
       committedCount={committedCount}
       theme={theme}
       cleanTitle={cleanTitle}
       pollId={pollId}
-      startBidding={startBidding}
       stopBidding={stopBidding}
       deleteBiddingPoll={deleteBiddingPoll}
       restartBiddingPoll={restartBiddingPoll}

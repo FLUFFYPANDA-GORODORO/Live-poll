@@ -10,10 +10,10 @@ import BiddingPoll from "@/components/Bidding/BiddingPoll";
 // Generate a unique session ID
 const getSessionId = () => {
   if (typeof window === "undefined") return "";
-  let sessionId = sessionStorage.getItem("sessionId");
+  let sessionId = localStorage.getItem("sessionId");
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    sessionStorage.setItem("sessionId", sessionId);
+    localStorage.setItem("sessionId", sessionId);
   }
   return sessionId;
 };
@@ -42,10 +42,10 @@ export default function BiddingPollPage() {
 
   // Subscribe to poll updates
   useEffect(() => {
-    if (!pollId) return;
-    const unsubscribe = subscribeToBiddingPoll(pollId);
+    if (!pollId || !sessionId) return;
+    const unsubscribe = subscribeToBiddingPoll(pollId, sessionId);
     return () => unsubscribe();
-  }, [pollId, subscribeToBiddingPoll]);
+  }, [pollId, subscribeToBiddingPoll, sessionId]);
 
   const theme = poll?.theme || searchParams.get("theme") || "synergy_sphere";
 

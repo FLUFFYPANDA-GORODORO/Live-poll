@@ -27,11 +27,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-const CATEGORIES = ["Leadership", "Technical", "Cognitive", "Interpersonal", "Soft"];
+
 
 // ── SHARE MODAL COMPONENT ──
 function ShareModal({ poll, onClose }) {
   const [copied, setCopied] = useState(false);
+  const clickTargetRef = useRef(null);
   const pollUrl = typeof window !== "undefined"
     ? `${window.location.origin}/bidding-poll/${poll.id}?theme=${poll.theme}`
     : "";
@@ -42,9 +43,27 @@ function ShareModal({ poll, onClose }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleMouseDown = (e) => {
+    clickTargetRef.current = e.target;
+  };
+
+  const handleMouseUp = (e) => {
+    if (clickTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+    >
+      <div
+        className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in"
+        onMouseDown={e => e.stopPropagation()}
+        onMouseUp={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-900">Share Bidding Session</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
@@ -83,11 +102,21 @@ function ShareModal({ poll, onClose }) {
   );
 }
 
-// ── NESTED QUESTION BUILDER MODAL ──
 function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
   const [name, setName] = useState("");
   const [questions, setQuestions] = useState([]);
   const [saving, setSaving] = useState(false);
+  const clickTargetRef = useRef(null);
+
+  const handleMouseDown = (e) => {
+    clickTargetRef.current = e.target;
+  };
+
+  const handleMouseUp = (e) => {
+    if (clickTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     if (initialPoll) {
@@ -99,10 +128,9 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
       setQuestions([
         {
           text: "Sample Question 1",
-          cohort: "HR",
           skills: [
-            { name: "Communication & Presentation", category: "Interpersonal" },
-            { name: "Negotiation & Persuasion", category: "Leadership" }
+            { name: "Communication & Presentation", category: "General" },
+            { name: "Negotiation & Persuasion", category: "General" }
           ]
         }
       ]);
@@ -116,7 +144,6 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
       ...prev,
       {
         text: "",
-        cohort: "HR",
         skills: []
       }
     ]);
@@ -135,7 +162,7 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
       if (idx === qIdx) {
         return {
           ...q,
-          skills: [...(q.skills || []), { name: "", category: CATEGORIES[0] }]
+          skills: [...(q.skills || []), { name: "", category: "General" }]
         };
       }
       return q;
@@ -192,12 +219,15 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
         id: initialPoll?.id,
         name: name.trim(),
         theme: "synergy_sphere", // default theme fallback
-        questions: questions.map(q => ({
+        questions: questions.map((q, qIdx) => ({
+          id: q.id || null,
           text: q.text.trim(),
-          cohort: q.cohort,
-          skills: q.skills.map(s => ({
+          index: qIdx,
+          skills: q.skills.map((s, sIdx) => ({
+            id: s.id || null,
             name: s.name.trim(),
-            category: s.category
+            category: s.category || "General",
+            index: sIdx
           })).filter(s => s.name !== "")
         }))
       });
@@ -210,8 +240,16 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl animate-fade-in max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+    >
+      <div
+        className="bg-white rounded-3xl p-6 max-w-2xl w-full shadow-2xl animate-fade-in max-h-[90vh] flex flex-col"
+        onMouseDown={e => e.stopPropagation()}
+        onMouseUp={e => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
           <h2 className="text-xl font-bold text-slate-900 font-[Epilogue]">
             {initialPoll ? "Edit Bidding Session" : "Launch Bidding Session"}
@@ -260,8 +298,8 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="col-span-2">
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
                       <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
                         Question text
                       </label>
@@ -272,19 +310,6 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
                         placeholder="e.g. BD & Sales Skill Bidding"
                         className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold focus:outline-none bg-white"
                       />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase text-slate-400 block mb-1">
-                        Cohort
-                      </label>
-                      <select
-                        value={q.cohort}
-                        onChange={(e) => handleQuestionChange(qIdx, "cohort", e.target.value)}
-                        className="w-full px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-semibold focus:outline-none bg-white"
-                      >
-                        <option value="HR">HR</option>
-                        <option value="ACADEMIA">Academia</option>
-                      </select>
                     </div>
                   </div>
 
@@ -313,15 +338,6 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
                             placeholder="Skill/Option Name"
                             className="flex-1 px-2.5 py-1 rounded-md border border-slate-200 text-xs focus:outline-none"
                           />
-                          <select
-                            value={skill.category}
-                            onChange={(e) => handleSkillChange(qIdx, sIdx, "category", e.target.value)}
-                            className="px-2 py-1 rounded-md border border-slate-200 text-xs focus:outline-none bg-white text-slate-600"
-                          >
-                            {CATEGORIES.map(cat => (
-                              <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                          </select>
                           <button
                             type="button"
                             onClick={() => handleRemoveSkillFromQuestion(qIdx, sIdx)}
@@ -432,11 +448,18 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
             {showMenu && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-10 py-1 animation-fade-in origin-top-right">
                 <Link
-                  href={`/bidding-present/${poll.id}?theme=${theme}`}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  href={`/bidding-present/${poll.id}?theme=${theme}&cohort=HR`}
+                  className="w-full text-left px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50/50 flex items-center gap-2"
                   onClick={() => setShowMenu(false)}
                 >
-                  <Play className="w-4 h-4 text-[var(--color-primary)]" /> Present
+                  <Play className="w-4 h-4 text-emerald-600" /> Present HR Run
+                </Link>
+                <Link
+                  href={`/bidding-present/${poll.id}?theme=${theme}&cohort=ACADEMIA`}
+                  className="w-full text-left px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50/50 flex items-center gap-2"
+                  onClick={() => setShowMenu(false)}
+                >
+                  <Play className="w-4 h-4 text-indigo-600" /> Present Academia Run
                 </Link>
                 <Link
                   href={`/bidding-poll/${poll.id}?theme=${theme}`}
@@ -487,17 +510,17 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
           <div className="flex justify-between items-center text-xs">
             <span className="font-semibold text-slate-500">HR Cohort Run</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              isLive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
+              isLive && poll.currentCohort?.toUpperCase() === "HR" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
             }`}>
-              {isLive ? "In Progress" : "Standby"}
+              {isLive && poll.currentCohort?.toUpperCase() === "HR" ? "In Progress" : "Standby"}
             </span>
           </div>
           <div className="flex justify-between items-center text-xs">
             <span className="font-semibold text-slate-500">Academia Cohort Run</span>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              isLive ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-400"
+              isLive && poll.currentCohort?.toUpperCase() === "ACADEMIA" ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-400"
             }`}>
-              {isLive ? "In Progress" : "Standby"}
+              {isLive && poll.currentCohort?.toUpperCase() === "ACADEMIA" ? "In Progress" : "Standby"}
             </span>
           </div>
         </div>

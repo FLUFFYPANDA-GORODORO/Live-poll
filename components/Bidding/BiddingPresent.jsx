@@ -7,6 +7,15 @@ import { QRCodeSVG } from "qrcode.react";
 
 const GLOBAL_STYLE_ID = "bidding-present-styles";
 
+const SPRITE_SEQUENCE = [
+  "/character/CharacterSprite.png",
+  "/character/CharacterSprite2.png",
+  "/character/CharacterSprite3.png",
+  "/character/CharacterSprite2.png",
+  "/character/CharacterSprite.png",
+  "/character/CharacterSprite4.png"
+];
+
 export default function BiddingPresent({
   skills,
   bubbleCounts,
@@ -29,6 +38,107 @@ export default function BiddingPresent({
   const [showQrCode, setShowQrCode] = useState(false);
   const [loadingD3, setLoadingD3] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [spriteIndex, setSpriteIndex] = useState(0);
+
+  // Preload character sprites and cycle them
+  useEffect(() => {
+    SPRITE_SEQUENCE.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+
+    const interval = setInterval(() => {
+      setSpriteIndex((prev) => (prev + 1) % SPRITE_SEQUENCE.length);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getBarrelCoords = () => {
+    if (!containerRef.current) return { x: 0, y: 0 };
+    const rect = containerRef.current.getBoundingClientRect();
+    // Adjusted for w-64 h-64 (256px x 256px) character:
+    // Shifted further left (240px from right) and higher up (260px from bottom)
+    const x = rect.width - 240; 
+    const y = rect.height - 260; 
+    return { x, y };
+  };
+
+  const shootCoin = useCallback((targetSkillId) => {
+    if (!d3Loaded || !svgRef.current || !simulationRef.current) return;
+    const d3 = window.d3;
+    const svg = d3.select(svgRef.current);
+    
+    const nodes = simulationRef.current.nodes();
+    const targetNode = nodes.find((n) => n.id === targetSkillId);
+    if (!targetNode) return;
+
+    const start = getBarrelCoords();
+    
+    // Get target node's current transformed screen position
+    const transform = d3.zoomTransform(svgRef.current);
+    const targetX = transform.applyX(targetNode.x);
+    const targetY = transform.applyY(targetNode.y);
+
+    // Create fly-in coin
+    const coin = svg
+      .append("image")
+      .attr("href", "/coin2.png")
+      .attr("x", start.x - 16)
+      .attr("y", start.y - 16)
+      .attr("width", 32)
+      .attr("height", 32)
+      .style("pointer-events", "none")
+      .style("z-index", 100);
+
+    // Animate to target
+    coin
+      .transition()
+      .duration(700)
+      .ease(d3.easeQuadOut)
+      .attr("x", targetX - 16)
+      .attr("y", targetY - 16)
+      .style("opacity", 1)
+      .on("end", () => {
+        coin.remove();
+        
+        // Pulse target bubble
+        const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
+        const circle = targetGroup.select("circle");
+        const originalRadius = targetNode.radius;
+        
+        circle
+          .transition()
+          .duration(150)
+          .attr("r", originalRadius * 1.25)
+          .transition()
+          .duration(250)
+          .attr("r", originalRadius);
+      });
+  }, [d3Loaded]);
+
+  const prevBubbleCountsRef = useRef({});
+
+  useEffect(() => {
+    if (!bubbleCounts || !skills?.length) return;
+    
+    const prevCounts = prevBubbleCountsRef.current;
+    
+    skills.forEach((skill) => {
+      const prevVal = prevCounts[skill.id] || 0;
+      const newVal = bubbleCounts[skill.id] || 0;
+      if (newVal > prevVal) {
+        const diff = newVal - prevVal;
+        for (let i = 0; i < diff; i++) {
+          setTimeout(() => {
+            shootCoin(skill.id);
+          }, i * 150);
+        }
+      }
+    });
+
+    prevBubbleCountsRef.current = { ...bubbleCounts };
+  }, [bubbleCounts, skills, shootCoin]);
 
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
@@ -427,6 +537,23 @@ export default function BiddingPresent({
 
         {/* Right: Stats, QR, Fullscreen */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
+          {/* Mirrored Looping Character Sprite */}
+          <div 
+            className="absolute bottom-full right-4 mb-2 pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+            onClick={() => {
+              if (skills?.length) {
+                const randomSkill = skills[Math.floor(Math.random() * skills.length)];
+                shootCoin(randomSkill.id);
+              }
+            }}
+          >
+            <img
+              src={SPRITE_SEQUENCE[spriteIndex]}
+              alt="Looping Character"
+              className="w-64 h-64 object-contain select-none"
+              style={{ transform: "scaleX(-1)" }}
+            />
+          </div>
           <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
             <Users className="w-3.5 h-3.5" style={{ color: accentColor }} />
             <span>{committedCount} submitted</span>

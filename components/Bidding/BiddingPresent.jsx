@@ -132,7 +132,7 @@ export default function BiddingPresent({
     }
   }, [skills]);
 
-  const shootCoin = useCallback((targetSkillId) => {
+  const shootCoin = useCallback((targetSkillId, shouldApplyUpdate = true) => {
     if (!d3Loaded || !svgRef.current || !simulationRef.current) return;
     const d3 = window.d3;
     const svg = d3.select(svgRef.current);
@@ -174,7 +174,23 @@ export default function BiddingPresent({
       if (t >= 1) {
         timer.stop();
         coin.remove();
-        applyCountUpdate(targetSkillId);
+        if (shouldApplyUpdate) {
+          applyCountUpdate(targetSkillId);
+        } else {
+          // Visual feedback only (temp pulse)
+          const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
+          const circle = targetGroup.select("circle");
+          if (targetNode && targetGroup.size() > 0) {
+            const originalRadius = targetNode.radius;
+            circle
+              .transition()
+              .duration(150)
+              .attr("r", originalRadius * 1.25)
+              .transition()
+              .duration(250)
+              .attr("r", originalRadius);
+          }
+        }
       }
     });
   }, [d3Loaded, applyCountUpdate]);
@@ -568,7 +584,7 @@ export default function BiddingPresent({
             onClick={() => {
               if (skills?.length) {
                 const randomSkill = skills[Math.floor(Math.random() * skills.length)];
-                shootCoin(randomSkill.id);
+                shootCoin(randomSkill.id, false);
               }
             }}
           >

@@ -64,6 +64,74 @@ export default function BiddingPresent({
     return { x, y };
   };
 
+  const renderedCountsRef = useRef({});
+  const hasInitializedCounts = useRef(false);
+
+  // Initialize rendered counts once with initial counts
+  useEffect(() => {
+    if (bubbleCounts && !hasInitializedCounts.current) {
+      renderedCountsRef.current = { ...bubbleCounts };
+      hasInitializedCounts.current = true;
+    }
+  }, [bubbleCounts]);
+
+  const applyCountUpdate = useCallback((targetSkillId) => {
+    if (!window.d3 || !simulationRef.current || !skills?.length) return;
+    const d3 = window.d3;
+    
+    // Increment the locally applied count
+    const currentCounts = renderedCountsRef.current;
+    currentCounts[targetSkillId] = (currentCounts[targetSkillId] || 0) + 1;
+
+    const maxCount = Math.max(1, ...skills.map((s) => currentCounts[s.id] || 0));
+
+    const nodes = simulationRef.current.nodes();
+    nodes.forEach((node) => {
+      const newCount = currentCounts[node.id] || 0;
+      node.count = newCount;
+      const newRadius = Math.max(20, 15 + (newCount / maxCount) * 45);
+      node.radius = newRadius;
+    });
+
+    simulationRef.current.alpha(0.3).restart();
+
+    // Update SVG visuals
+    const svg = d3.select(svgRef.current);
+    
+    // Transition all circles to their new radius
+    svg
+      .selectAll(".bp-node circle")
+      .data(nodes)
+      .transition()
+      .duration(300)
+      .attr("r", (d) => d.radius);
+
+    svg
+      .selectAll(".bp-node text:first-of-type")
+      .data(nodes)
+      .text((d) => (d.radius > 30 ? d.name : ""))
+      .attr("font-size", (d) => `${Math.min(d.radius * 0.35, 14)}px`);
+
+    svg
+      .selectAll(".bp-node text:last-of-type")
+      .data(nodes)
+      .text((d) => (d.count > 0 ? d.count : ""))
+      .attr("dy", (d) => `${-d.radius - 8}px`);
+
+    // Pulse target bubble on impact
+    const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
+    const targetNode = nodes.find((n) => n.id === targetSkillId);
+    if (targetNode && targetGroup.size() > 0) {
+      targetGroup.select("circle")
+        .transition()
+        .duration(150)
+        .attr("r", targetNode.radius * 1.25)
+        .transition()
+        .duration(250)
+        .attr("r", targetNode.radius);
+    }
+  }, [skills]);
+
   const shootCoin = useCallback((targetSkillId) => {
     if (!d3Loaded || !svgRef.current || !simulationRef.current) return;
     const d3 = window.d3;
@@ -75,11 +143,6 @@ export default function BiddingPresent({
 
     const start = getBarrelCoords();
     
-    // Get target node's current transformed screen position
-    const transform = d3.zoomTransform(svgRef.current);
-    const targetX = transform.applyX(targetNode.x);
-    const targetY = transform.applyY(targetNode.y);
-
     // Create fly-in coin
     const coin = svg
       .append("image")
@@ -91,31 +154,30 @@ export default function BiddingPresent({
       .style("pointer-events", "none")
       .style("z-index", 100);
 
-    // Animate to target
-    coin
-      .transition()
-      .duration(700)
-      .ease(d3.easeQuadOut)
-      .attr("x", targetX - 16)
-      .attr("y", targetY - 16)
-      .style("opacity", 1)
-      .on("end", () => {
+    const duration = 350;
+
+    const timer = d3.timer((elapsed) => {
+      const t = Math.min(1, elapsed / duration);
+      
+      // Query target node's current transformed screen position dynamically
+      const transform = d3.zoomTransform(svgRef.current);
+      const currentTargetX = transform.applyX(targetNode.x);
+      const currentTargetY = transform.applyY(targetNode.y);
+
+      // Interpolate position using easeQuadOut
+      const easeT = d3.easeQuadOut(t);
+      const curX = start.x + (currentTargetX - start.x) * easeT;
+      const curY = start.y + (currentTargetY - start.y) * easeT;
+
+      coin.attr("x", curX - 16).attr("y", curY - 16);
+
+      if (t >= 1) {
+        timer.stop();
         coin.remove();
-        
-        // Pulse target bubble
-        const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
-        const circle = targetGroup.select("circle");
-        const originalRadius = targetNode.radius;
-        
-        circle
-          .transition()
-          .duration(150)
-          .attr("r", originalRadius * 1.25)
-          .transition()
-          .duration(250)
-          .attr("r", originalRadius);
-      });
-  }, [d3Loaded]);
+        applyCountUpdate(targetSkillId);
+      }
+    });
+  }, [d3Loaded, applyCountUpdate]);
 
   const prevBubbleCountsRef = useRef({});
 
@@ -249,8 +311,8 @@ export default function BiddingPresent({
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 
-    // Determine max count for radius scaling
-    const counts = bubbleCounts || {};
+     // Determine max count for radius scaling
+    const counts = renderedCountsRef.current || {};
     const maxCount = Math.max(1, ...skills.map((s) => counts[s.id] || 0));
 
     const nodes = skills.map((skill) => ({
@@ -413,46 +475,9 @@ export default function BiddingPresent({
       simulation.stop();
       tooltip.remove();
     };
-  }, [d3Loaded, skills, bubbleCounts, isSynergy, isMasterclass]);
+  }, [d3Loaded, skills, isSynergy, isMasterclass]);
 
-  // Update bubble sizes when bubbleCounts changes
-  useEffect(() => {
-    if (!window.d3 || !simulationRef.current || !skills?.length) return;
-    const d3 = window.d3;
-    const counts = bubbleCounts || {};
-    const maxCount = Math.max(1, ...skills.map((s) => counts[s.id] || 0));
 
-    const nodes = simulationRef.current.nodes();
-    nodes.forEach((node) => {
-      const newCount = counts[node.id] || 0;
-      node.count = newCount;
-      const newRadius = Math.max(20, 15 + (newCount / maxCount) * 45);
-      node.radius = newRadius;
-    });
-
-    simulationRef.current.alpha(0.3).restart();
-
-    // Update SVG visuals
-    const svg = d3.select(svgRef.current);
-    svg
-      .selectAll(".bp-node circle")
-      .data(nodes)
-      .transition()
-      .duration(300)
-      .attr("r", (d) => d.radius);
-
-    svg
-      .selectAll(".bp-node text:first-of-type")
-      .data(nodes)
-      .text((d) => (d.radius > 30 ? d.name : ""))
-      .attr("font-size", (d) => `${Math.min(d.radius * 0.35, 14)}px`);
-
-    svg
-      .selectAll(".bp-node text:last-of-type")
-      .data(nodes)
-      .text((d) => (d.count > 0 ? d.count : ""))
-      .attr("dy", (d) => `${-d.radius - 8}px`);
-  }, [bubbleCounts, skills]);
 
   const bgUrl = isSynergy
     ? "/SynegrysphereBG.png"

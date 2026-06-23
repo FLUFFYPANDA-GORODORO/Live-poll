@@ -39,10 +39,12 @@ export default function BiddingPresent({
   const [loadingD3, setLoadingD3] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [spriteIndex, setSpriteIndex] = useState(0);
+  const [shootImageOverride, setShootImageOverride] = useState(null);
+  const activeShotsRef = useRef(0);
 
   // Preload character sprites and cycle them
   useEffect(() => {
-    SPRITE_SEQUENCE.forEach((src) => {
+    [...SPRITE_SEQUENCE, "/character/CharacterSpriteShoot.png"].forEach((src) => {
       const img = new Image();
       img.src = src;
     });
@@ -93,6 +95,11 @@ export default function BiddingPresent({
       node.radius = newRadius;
     });
 
+    // Re-initialize collide force with updated radius values to prevent overlapping
+    simulationRef.current.force(
+      "collide",
+      d3.forceCollide().radius((d) => d.radius + 3)
+    );
     simulationRef.current.alpha(0.3).restart();
 
     // Update SVG visuals
@@ -143,6 +150,16 @@ export default function BiddingPresent({
 
     const start = getBarrelCoords();
     
+    // Set shooting sprite pose override
+    activeShotsRef.current += 1;
+    setShootImageOverride("/character/CharacterSpriteShoot.png");
+    setTimeout(() => {
+      activeShotsRef.current -= 1;
+      if (activeShotsRef.current <= 0) {
+        setShootImageOverride(null);
+      }
+    }, 50);
+
     // Create fly-in coin
     const coin = svg
       .append("image")
@@ -589,7 +606,7 @@ export default function BiddingPresent({
             }}
           >
             <img
-              src={SPRITE_SEQUENCE[spriteIndex]}
+              src={shootImageOverride || SPRITE_SEQUENCE[spriteIndex]}
               alt="Looping Character"
               className="w-64 h-64 object-contain select-none"
               style={{ transform: "scaleX(-1)" }}

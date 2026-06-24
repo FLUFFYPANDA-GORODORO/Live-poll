@@ -2,19 +2,19 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square } from "lucide-react";
+import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square, Trophy } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 
 const GLOBAL_STYLE_ID = "bidding-present-styles";
 
 const SPRITE_SEQUENCE = [
-  "/character/CharacterSprite.png",
-  "/character/CharacterSprite2.png",
-  "/character/CharacterSprite3.png",
-  "/character/CharacterSprite2.png",
-  "/character/CharacterSprite.png",
-  "/character/CharacterSprite4.png"
+  "/character/CharacterSpriteU.png",
+  "/character/CharacterSprite2U.png",
+  "/character/CharacterSprite3U.png",
+  "/character/CharacterSprite2U.png",
+  "/character/CharacterSpriteU.png",
+  "/character/CharacterSprite4U.png"
 ];
 
 export default function BiddingPresent({
@@ -28,6 +28,7 @@ export default function BiddingPresent({
   stopBidding,
   subscribeToPresenter,
   startQuestion,
+  biddingClosed,
 }) {
   const router = useRouter();
   const containerRef = useRef(null);
@@ -63,7 +64,7 @@ export default function BiddingPresent({
 
   // Preload sprites
   useEffect(() => {
-    [...SPRITE_SEQUENCE, "/character/CharacterSpriteShoot.png"].forEach((src) => {
+    [...SPRITE_SEQUENCE, "/character/CharacterSpriteShootU.png"].forEach((src) => {
       const img = new Image();
       img.src = src;
     });
@@ -235,7 +236,7 @@ export default function BiddingPresent({
     const start = getBarrelCoords();
 
     activeShotsRef.current += 1;
-    setShootImageOverride("/character/CharacterSpriteShoot.png");
+    setShootImageOverride("/character/CharacterSpriteShootU.png");
     setTimeout(() => {
       activeShotsRef.current -= 1;
       if (activeShotsRef.current <= 0) {
@@ -430,7 +431,7 @@ export default function BiddingPresent({
   const handlePageQuestion = async (direction) => {
     if (!startQuestion || !poll?.questions) return;
     const nextIdx = activeQuestionIndex + direction;
-    if (nextIdx >= 0 && nextIdx < poll.questions.length) {
+    if (nextIdx >= -1 && nextIdx < poll.questions.length) {
       try {
         await startQuestion(pollId, nextIdx, activeCohort);
       } catch (err) {
@@ -450,6 +451,36 @@ export default function BiddingPresent({
       }
     }
   };
+
+  const pageQuestionRef = useRef(handlePageQuestion);
+  useEffect(() => {
+    pageQuestionRef.current = handlePageQuestion;
+  });
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (document.activeElement && (
+        document.activeElement.tagName === "INPUT" ||
+        document.activeElement.tagName === "TEXTAREA" ||
+        document.activeElement.isContentEditable
+      )) {
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        pageQuestionRef.current(1);
+      } else if (event.key === "ArrowLeft") {
+        pageQuestionRef.current(-1);
+      } else if (event.key.toLowerCase() === "q") {
+        setShowQrCode((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   // D3 Force Simulation Setup
   useEffect(() => {
@@ -720,6 +751,50 @@ export default function BiddingPresent({
     );
   }
 
+  const isSessionEnded = biddingClosed || poll?.biddingClosed;
+
+  if (isSessionEnded) {
+    return (
+      <div className={`relative h-screen w-full ${bgClass} overflow-hidden flex flex-col justify-between p-6`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
+        {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
+
+        {/* Top Header */}
+        <div className="z-20 p-6 flex items-center justify-between w-full">
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-14 w-auto object-contain" />
+          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain" />}
+          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" />}
+        </div>
+
+        {/* Center Concluded Card */}
+        <div className="z-20 text-center select-none w-full max-w-lg mx-auto my-auto px-4">
+          <div className="bg-black/80 backdrop-blur-lg border border-white/15 px-10 py-10 rounded-3xl shadow-2xl flex flex-col items-center gap-6">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center">
+              <Trophy className="w-10 h-10 text-emerald-500 animate-bounce" />
+            </div>
+            <div>
+              <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-400">
+                Bidding Arena
+              </span>
+              <h2 className="text-3xl font-black text-white mt-2">
+                Session Concluded
+              </h2>
+            </div>
+            <p className="text-white/60 text-sm leading-relaxed max-w-md">
+              The Skill Bidding session has ended. Thank you to all participants for entering their bids!
+            </p>
+
+            <button
+              onClick={() => router.push("/dashboard/bidding")}
+              className="py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Exit to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`relative h-screen w-full ${bgClass} overflow-hidden`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
       {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
@@ -749,126 +824,63 @@ export default function BiddingPresent({
           </div>
         </div>
       ) : (
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/3 z-20 text-center select-none bp-fadeIn w-full max-w-md px-4">
-          <div className="bg-black/75 backdrop-blur-lg border border-white/15 px-8 py-8 rounded-3xl shadow-2xl flex flex-col items-center gap-5">
-            <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-400">
-                Bidding Arena
-              </span>
-              <h2 className="text-2xl font-black text-white mt-1">
-                Standby Mode
-              </h2>
-            </div>
-            <p className="text-white/60 text-xs font-[Epilogue] leading-relaxed max-w-xs">
-              This session contains {poll?.questions?.length || 0} questions. Choose a cohort below to launch the bidding run.
-            </p>
-            <div className="flex gap-3 w-full mt-2">
-              <button
-                onClick={async () => {
-                  setActiveCohort("HR");
-                  try {
-                    if (startQuestion) await startQuestion(pollId, 0, "HR");
-                  } catch (err) {
-                    toast.error("Failed to start HR run: " + (err.message || err));
-                  }
-                }}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Start HR Run
-              </button>
-              <button
-                onClick={async () => {
-                  setActiveCohort("ACADEMIA");
-                  try {
-                    if (startQuestion) await startQuestion(pollId, 0, "ACADEMIA");
-                  } catch (err) {
-                    toast.error("Failed to start Academia run: " + (err.message || err));
-                  }
-                }}
-                className="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
-              >
-                Start Academia Run
-              </button>
-            </div>
-          </div>
+        <div className="absolute inset-0 z-15 flex flex-col items-center justify-center select-none bp-fadeIn pointer-events-none text-center">
+          <h1 className="text-white text-5xl md:text-7xl font-light tracking-wide font-[Libre Baskerville] italic mb-4">
+            {isMasterclass ? "Welcome to Masterclass 3.0" : isSynergy ? "Welcome to Synergy Sphere" : "Welcome to Bidding Arena"}
+          </h1>
+          <p className="text-white/60 text-xs md:text-sm tracking-[0.2em] font-mono uppercase mt-2">
+            {isMasterclass ? "THE ADVENTUROUS INTELLIGENCE" : isSynergy ? "COGNITIVE SYNERGY" : "INTERACTIVE SKILL BIDDING"}
+          </p>
         </div>
       )}
 
       {/* SVG Canvas for Bubbles */}
-      <div ref={containerRef} className="absolute inset-0 z-10">
-        <svg ref={svgRef} width="100%" height="100%" style={{ display: "block" }} />
-      </div>
+      {activeQuestionIndex !== -1 && (
+        <div ref={containerRef} className="absolute inset-0 z-10">
+          <svg ref={svgRef} width="100%" height="100%" style={{ display: "block" }} />
+        </div>
+      )}
 
       {/* Bottom Controls Bar */}
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
-        {/* Left: Exit/End controls */}
-        <div className="relative pointer-events-auto flex items-center gap-2">
-          <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl">
+        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto">
+          {activeQuestionIndex === -1 && (
             <button
-              onClick={handleExitPoll}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all"
+              onClick={() => handlePageQuestion(1)}
+              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all"
             >
-              Exit
+              Start
             </button>
-            <button
-              onClick={handleEndPoll}
-              className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all animate-pulse"
-            >
-              Conclude Run
-            </button>
-          </div>
-
-          {/* Pager controls for startQuestion */}
-          {poll?.questions && (
-            <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-1 shadow-2xl">
-              <button
-                onClick={() => handlePageQuestion(-1)}
-                disabled={activeQuestionIndex <= 0}
-                className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
-                title="Previous Question"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="text-white/60 text-xs font-bold px-2 select-none">
-                {activeQuestionIndex + 1} / {poll.questions.length}
-              </span>
-              <button
-                onClick={() => handlePageQuestion(1)}
-                disabled={activeQuestionIndex >= poll.questions.length - 1}
-                className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
-                title="Next Question"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
           )}
-        </div>
 
-        {/* Right: Stats, QR, Character and Fullscreen */}
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
-          {/* Looping Character Sprite */}
-          <div
-            className="absolute bottom-full right-4 mb-2 pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-            onClick={() => {
-              if (activeSkills?.length) {
-                const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
-                shootCoin(randomSkill.id, false);
-              }
-            }}
+          <button
+            onClick={() => handlePageQuestion(-1)}
+            disabled={activeQuestionIndex <= -1}
+            className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
+            title="Previous Question"
           >
-            <img
-              src={shootImageOverride || SPRITE_SEQUENCE[spriteIndex]}
-              alt="Looping Character"
-              className="w-64 h-64 object-contain select-none"
-              style={{ transform: "scaleX(-1)" }}
-            />
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
-            <Users className="w-3.5 h-3.5" style={{ color: accentColor }} />
-            <span>{committedCount} submitted</span>
-          </div>
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <span className="text-white/60 text-xs font-bold px-2 select-none min-w-[3rem] text-center">
+            {activeQuestionIndex === -1 ? "0" : activeQuestionIndex + 1} / {poll.questions.length}
+          </span>
+          <button
+            onClick={() => handlePageQuestion(1)}
+            disabled={activeQuestionIndex >= poll.questions.length - 1}
+            className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
+            title="Next Question"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
 
-          <div className="w-px h-4 bg-white/20" />
+          <button
+            onClick={handleEndPoll}
+            className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs uppercase tracking-wider transition-all"
+          >
+            End
+          </button>
+
+          <div className="w-px h-4 bg-white/20 mx-1" />
 
           <button
             onClick={() => setShowQrCode(!showQrCode)}
@@ -894,6 +906,33 @@ export default function BiddingPresent({
             )}
           </button>
         </div>
+      </div>
+
+      {/* Looping Character Sprite */}
+      <div
+        className="fixed bottom-35 right-10 pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+        onClick={() => {
+          if (activeSkills?.length) {
+            const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
+            shootCoin(randomSkill.id, false);
+          }
+        }}
+      >
+        <img
+          src={shootImageOverride || SPRITE_SEQUENCE[spriteIndex]}
+          alt="Looping Character"
+          className="w-[11rem] h-[11rem] object-contain select-none"
+          style={{ transform: "scaleX(-1)" }}
+        />
+      </div>
+
+      {/* Branch Sprite */}
+      <div className="fixed bottom-[-5rem] right-[-2rem] pointer-events-none z-20">
+        <img
+          src={isSynergy ? "/GameSprites/platform.png" : "/GameSprites/branch.png"}
+          alt="Branch Platform"
+          className="w-[15rem] h-auto object-contain select-none"
+        />
       </div>
 
       {/* QR Code Modal */}

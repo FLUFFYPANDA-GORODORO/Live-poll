@@ -268,7 +268,7 @@ export default function BiddingPoll({
           <div className="w-[calc(100%+1.5rem)] md:w-[calc(100%+2rem)] -mx-3 md:-mx-4 flex flex-col mt-6 relative select-none">
             {/* Scroll Top */}
             <img 
-              src="/GameSprites/ScrollTop.webp" 
+              src={isSynergy ? "/GameSprites/LogFire.webp" : "/GameSprites/ScrollTop.webp"} 
               alt="Scroll Top" 
               className="w-full h-auto object-contain block select-none pointer-events-none relative z-10" 
               style={{ transform: "scale(1.1)", transformOrigin: "bottom center", filter: "drop-shadow(0 6px 4px rgba(0,0,0,0.35))" }}
@@ -276,17 +276,24 @@ export default function BiddingPoll({
             
             {/* Scroll Middle (CSS Parchment) */}
             <div 
-              className="w-full px-6 py-5 md:py-8 flex flex-col relative z-0 -mt-[6%] -mb-[6%] retro-scroll-middle"
+              className="w-full px-6 py-5 md:py-8 flex flex-col relative z-0 retro-scroll-middle"
               style={{
                 backgroundColor: "#dfcaa7",
-                backgroundImage: "linear-gradient(to right, rgba(74,44,15,0.15) 0%, rgba(255,255,255,0.1) 6%, rgba(255,255,255,0.2) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.2) 88%, rgba(255,255,255,0.1) 94%, rgba(74,44,15,0.15) 100%)",
-                boxShadow: "inset 10px 0 15px -10px rgba(0,0,0,0.5), inset -10px 0 15px -10px rgba(0,0,0,0.5)"
+                backgroundImage: isSynergy 
+                  ? "linear-gradient(to bottom, rgba(249, 115, 22, 0.25) 0%, rgba(249, 115, 22, 0) 15%, rgba(59, 130, 246, 0) 85%, rgba(59, 130, 246, 0.25) 100%), linear-gradient(to right, rgba(74,44,15,0.15) 0%, rgba(255,255,255,0.1) 6%, rgba(255,255,255,0.2) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.2) 88%, rgba(255,255,255,0.1) 94%, rgba(74,44,15,0.15) 100%)"
+                  : "linear-gradient(to right, rgba(74,44,15,0.15) 0%, rgba(255,255,255,0.1) 6%, rgba(255,255,255,0.2) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.2) 88%, rgba(255,255,255,0.1) 94%, rgba(74,44,15,0.15) 100%)",
+                boxShadow: "inset 10px 0 15px -10px rgba(0,0,0,0.5), inset -10px 0 15px -10px rgba(0,0,0,0.5)",
+                marginTop: isSynergy ? "-12%" : "-6%",
+                marginBottom: "-6%"
               }}
             >
               <style>{`
+                .retro-scroll-middle {
+                  padding-top: ${isSynergy ? "2.5rem" : "1.25rem"} !important;
+                }
                 @media (min-height: 720px) {
                   .retro-scroll-middle {
-                    padding-top: 2.25rem !important;
+                    padding-top: ${isSynergy ? "3.75rem" : "2.25rem"} !important;
                     padding-bottom: 2.25rem !important;
                   }
                   .retro-instructions {
@@ -369,7 +376,7 @@ export default function BiddingPoll({
 
             {/* Scroll Bottom */}
             <img 
-              src="/GameSprites/ScrollBottom.webp" 
+              src={isSynergy ? "/GameSprites/logfreeze.webp" : "/GameSprites/ScrollBottom.webp"} 
               alt="Scroll Bottom" 
               className="w-full h-auto object-contain block select-none pointer-events-none relative z-10" 
               style={{ transform: "scale(1.1)", transformOrigin: "top center", filter: "drop-shadow(0 -6px 4px rgba(0,0,0,0.35))" }}

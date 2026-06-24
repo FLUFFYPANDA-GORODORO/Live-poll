@@ -145,12 +145,12 @@ export default function BiddingPoll({
         <img
           src="/GryphonWhite.png"
           alt="Gryphon Logo"
-          className="h-6 w-auto object-contain filter drop-shadow-md"
+          className="h-10 w-auto object-contain filter drop-shadow-md"
         />
         {isSynergy ? (
-          <img src="/SNSlogo.png" alt="Synergy Sphere" className="h-6 w-auto object-contain" />
+          <img src="/SNSlogo.png" alt="Synergy Sphere" className="h-10 w-auto object-contain" />
         ) : (
-          <img src="/mc01.png" alt="Masterclass 3.0" className="h-6 w-auto object-contain" />
+          <img src="/mc01.png" alt="Masterclass 3.0" className="h-10 w-auto object-contain" />
         )}
       </div>
 

@@ -448,14 +448,14 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
             {showMenu && (
               <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-10 py-1 animation-fade-in origin-top-right">
                 <Link
-                  href={`/bidding-present/${poll.id}?theme=${theme}&cohort=HR`}
+                  href={`/bidding-present/${poll.id}?theme=synergy_sphere&cohort=HR`}
                   className="w-full text-left px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50/50 flex items-center gap-2"
                   onClick={() => setShowMenu(false)}
                 >
                   <Play className="w-4 h-4 text-emerald-600" /> Present HR Run
                 </Link>
                 <Link
-                  href={`/bidding-present/${poll.id}?theme=${theme}&cohort=ACADEMIA`}
+                  href={`/bidding-present/${poll.id}?theme=masterclass&cohort=ACADEMIA`}
                   className="w-full text-left px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50/50 flex items-center gap-2"
                   onClick={() => setShowMenu(false)}
                 >

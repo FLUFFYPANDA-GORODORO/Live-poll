@@ -46,21 +46,26 @@ export default function BiddingPresentPage() {
   }, [pollId, subscribeToBiddingPoll]);
 
   const cohortParam = searchParams.get("cohort");
+  const autoStartedRef = useRef(false);
 
-  // Automatically start question for a cohort if specified in the URL query params
+  // Automatically start question for a cohort once when the poll first loads.
+  // The ref guard ensures this fires exactly once — without it, every poll
+  // state update (triggered by startQuestion itself) would re-run this effect,
+  // creating an infinite reload loop.
   useEffect(() => {
-    if (poll && cohortParam && startQuestion) {
-      const targetCohort = cohortParam.toUpperCase();
-      // Start if in standby, OR if the active cohort on the poll doesn't match the URL parameter
-      if (poll.activeQuestionIndex === -1 || (poll.currentCohort?.toUpperCase() !== targetCohort)) {
-        startQuestion(pollId, Math.max(0, poll.activeQuestionIndex), targetCohort).catch((err) =>
-          console.error("Auto start/switch cohort run failed:", err)
-        );
-      }
-    }
+    if (!poll || !cohortParam || !startQuestion) return;
+    if (autoStartedRef.current) return;
+    autoStartedRef.current = true;
+
+    const targetCohort = cohortParam.toUpperCase();
+    startQuestion(pollId, Math.max(0, poll.activeQuestionIndex ?? 0), targetCohort).catch((err) =>
+      console.error("Auto start/switch cohort run failed:", err)
+    );
   }, [poll, pollId, cohortParam, startQuestion]);
 
-  const theme = poll?.theme || searchParams.get("theme") || "synergy_sphere";
+  // URL theme param takes priority over the poll's stored theme so that
+  // cohort-specific links (?theme=masterclass vs ?theme=synergy_sphere) always win.
+  const theme = searchParams.get("theme") || poll?.theme || "synergy_sphere";
   const cleanTitle = poll?.title?.replace(/ ~(SS|MC)$/, "") || "Skill Bidding";
 
   if (loading) {
@@ -85,6 +90,7 @@ export default function BiddingPresentPage() {
       bubbleCounts={bubbleCounts}
       committedCount={committedCount}
       theme={theme}
+      cohortParam={cohortParam}
       cleanTitle={cleanTitle}
       pollId={pollId}
       stopBidding={stopBidding}

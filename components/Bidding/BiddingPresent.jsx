@@ -22,6 +22,7 @@ export default function BiddingPresent({
   bubbleCounts,
   committedCount,
   theme,
+  cohortParam,
   cleanTitle,
   pollId,
   stopBidding,
@@ -40,9 +41,14 @@ export default function BiddingPresent({
   const [shootImageOverride, setShootImageOverride] = useState(null);
   const activeShotsRef = useRef(0);
   const [reactions, setReactions] = useState([]);
-  
+
   // Cohort state: "HR" vs "ACADEMIA"
-  const [activeCohort, setActiveCohort] = useState(poll?.currentCohort || "HR");
+  // Initialize directly from the URL param (cohortParam) to avoid flashing the
+  // wrong theme before the poll data loads. Falls back to poll.currentCohort
+  // or "HR" if neither is available.
+  const [activeCohort, setActiveCohort] = useState(
+    cohortParam?.toUpperCase() || poll?.currentCohort || "HR"
+  );
 
   useEffect(() => {
     if (poll?.currentCohort) {
@@ -72,8 +78,8 @@ export default function BiddingPresent({
   const getBarrelCoords = () => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    const x = rect.width - 240; 
-    const y = rect.height - 260; 
+    const x = rect.width - 240;
+    const y = rect.height - 260;
     return { x, y };
   };
 
@@ -91,7 +97,7 @@ export default function BiddingPresent({
   const syncBubbleCounts = useCallback(() => {
     if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
     const d3 = window.d3;
-    
+
     const currentCounts = renderedCountsRef.current;
     const maxCount = Math.max(1, ...activeSkills.map((s) => currentCounts[s.id] || 0));
 
@@ -111,7 +117,7 @@ export default function BiddingPresent({
 
     // Update SVG
     const svg = d3.select(svgRef.current);
-    
+
     svg
       .selectAll(".bp-node circle:first-child")
       .data(nodes)
@@ -164,7 +170,7 @@ export default function BiddingPresent({
   const applyCountUpdate = useCallback((targetSkillId) => {
     if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
     const d3 = window.d3;
-    
+
     // ⚠️ DO NOT increment the count here! The server's 100ms debounce timer
     // broadcasts the correct aggregate count via ReceiveBubbleData BEFORE the
     // 350ms coin animation completes. By the time this runs, renderedCountsRef
@@ -221,13 +227,13 @@ export default function BiddingPresent({
     if (!d3Loaded || !svgRef.current || !simulationRef.current) return;
     const d3 = window.d3;
     const svg = d3.select(svgRef.current);
-    
+
     const nodes = simulationRef.current.nodes();
     const targetNode = nodes.find((n) => n.id === targetSkillId);
     if (!targetNode) return;
 
     const start = getBarrelCoords();
-    
+
     activeShotsRef.current += 1;
     setShootImageOverride("/character/CharacterSpriteShoot.png");
     setTimeout(() => {
@@ -251,7 +257,7 @@ export default function BiddingPresent({
 
     const timer = d3.timer((elapsed) => {
       const t = Math.min(1, elapsed / duration);
-      
+
       const transform = d3.zoomTransform(svgRef.current);
       const currentTargetX = transform.applyX(targetNode.x);
       const currentTargetY = transform.applyY(targetNode.y);
@@ -277,10 +283,10 @@ export default function BiddingPresent({
   // Sync bubble count updates to trigger coin shooting
   useEffect(() => {
     if (!bubbleCounts || !activeSkills?.length) return;
-    
+
     const prevCounts = prevBubbleCountsRef.current;
     let hasDecrements = false;
-    
+
     activeSkills.forEach((skill) => {
       const prevVal = prevCounts[skill.id] || 0;
       const newVal = bubbleCounts[skill.id] || 0;
@@ -326,8 +332,8 @@ export default function BiddingPresent({
     return () => unsubscribe();
   }, [pollId, subscribeToPresenter]);
 
-  const isSynergy = activeCohort === "HR";
-  const isMasterclass = activeCohort === "ACADEMIA";
+  const isSynergy = theme === "synergy_sphere";
+  const isMasterclass = theme === "masterclass";
 
   // Dynamic D3 injection
   useEffect(() => {
@@ -508,7 +514,7 @@ export default function BiddingPresent({
 
     // Gradient definitions for bubbles
     const defs = svg.append("defs");
-    
+
     // Add distinct gradients
     const gradients = [
       { id: "grad-emerald", start: "#10b981", end: "#047857" },
@@ -709,16 +715,16 @@ export default function BiddingPresent({
   const bgUrl = isSynergy
     ? "/SynegrysphereBG.png"
     : isMasterclass
-    ? "/MasterClassNewBg.png"
-    : null;
+      ? "/MasterClassNewBg.png"
+      : null;
 
   const bgClass = bgUrl
     ? "bg-cover bg-center bg-no-repeat"
     : isSynergy
-    ? "bg-gradient-to-br from-stone-950 via-stone-900 to-rose-950"
-    : isMasterclass
-    ? "bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950"
-    : "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900";
+      ? "bg-gradient-to-br from-stone-950 via-stone-900 to-rose-950"
+      : isMasterclass
+        ? "bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-950"
+        : "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900";
 
   const accentColor = isSynergy ? "#f43f5e" : isMasterclass ? "#10b981" : "#6366f1";
 
@@ -881,7 +887,7 @@ export default function BiddingPresent({
         {/* Right: Stats, QR, Character and Fullscreen */}
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
           {/* Looping Character Sprite */}
-          <div 
+          <div
             className="absolute bottom-full right-4 mb-2 pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
             onClick={() => {
               if (activeSkills?.length) {
@@ -906,17 +912,16 @@ export default function BiddingPresent({
 
           <button
             onClick={() => setShowQrCode(!showQrCode)}
-            className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-              showQrCode
-                ? "text-white border-white/20"
-                : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"
-            }`}
+            className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQrCode
+              ? "text-white border-white/20"
+              : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"
+              }`}
             style={showQrCode ? { background: accentColor, borderColor: `${accentColor}33` } : {}}
             title="Toggle QR Code"
           >
             QR
           </button>
-          
+
           <button
             onClick={toggleFullscreen}
             className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5"
@@ -960,11 +965,11 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4" onClick={onClose}>
-      <div 
+      <div
         className="relative w-full max-w-sm rounded-3xl p-8 text-center border shadow-2xl transition-all"
-        style={{ 
-          background: isSynergy ? "#1c0a0a" : isMasterclass ? "#051a10" : "#1e293b", 
-          borderColor: `${accentColor}33` 
+        style={{
+          background: isSynergy ? "#1c0a0a" : isMasterclass ? "#051a10" : "#1e293b",
+          borderColor: `${accentColor}33`
         }}
         onClick={e => e.stopPropagation()}
       >

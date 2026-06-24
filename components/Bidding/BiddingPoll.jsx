@@ -30,8 +30,8 @@ export default function BiddingPoll({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const debounceCall = useDebounce();
 
-  const isSynergy = currentCohort ? currentCohort.toUpperCase() === "HR" : theme === "synergy_sphere";
-  const isMasterclass = currentCohort ? currentCohort.toUpperCase() === "ACADEMIA" : theme === "masterclass";
+  const isSynergy = theme === "synergy_sphere";
+  const isMasterclass = theme === "masterclass";
 
   // Load transactions and submitted status from localStorage on mount
   useEffect(() => {
@@ -63,15 +63,21 @@ export default function BiddingPoll({
     sendEmoji?.(poll?.id, "coin2");
   };
 
-  const handleSetBid = (skillId, val) => {
-    const key = `${activeQuestionIndex}_${skillId}`;
-    const currentBid = transactions[key] || 0;
-    
-    const maxAllowed = currentBid + remainingCoins;
-    const newBid = Math.min(maxAllowed, Math.max(0, val));
+  const stateRef = useRef({ transactions, remainingCoins, activeQuestionIndex });
+  useEffect(() => {
+    stateRef.current = { transactions, remainingCoins, activeQuestionIndex };
+  }, [transactions, remainingCoins, activeQuestionIndex]);
+
+  const changeBidBy = useCallback((skillId, delta) => {
+    const { transactions: txs, remainingCoins: coins, activeQuestionIndex: qIdx } = stateRef.current;
+    const key = `${qIdx}_${skillId}`;
+    const currentBid = txs[key] || 0;
+
+    const maxAllowed = currentBid + coins;
+    const newBid = Math.max(0, Math.min(maxAllowed, currentBid + delta));
 
     const updatedTransactions = {
-      ...transactions,
+      ...txs,
       [key]: newBid,
     };
     if (newBid === 0) {
@@ -79,7 +85,7 @@ export default function BiddingPoll({
     }
 
     saveTransactions(updatedTransactions);
-  };
+  }, []);
 
   const isQuestionSubmitted = submittedQuestions[activeQuestionIndex] === true;
 
@@ -129,15 +135,83 @@ export default function BiddingPoll({
     }
   };
 
+  // Inject Google Fonts and define global CSS for bidding-poll-container
+  useEffect(() => {
+    const fontId = "bidding-poll-fonts";
+    if (!document.getElementById(fontId)) {
+      const link = document.createElement("link");
+      link.id = fontId;
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700;800;900&display=swap";
+      document.head.appendChild(link);
+    }
+
+    const styleId = "bidding-poll-styles";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .bidding-poll-container {
+          font-family: 'Epilogue', sans-serif !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   const containerBgStyle = isSynergy
     ? { backgroundImage: "url('/SynegrysphereBG.png')", backgroundSize: "cover", backgroundPosition: "center" }
     : isMasterclass
-    ? { backgroundImage: "url('/MasterClassNewBg.png')", backgroundSize: "cover", backgroundPosition: "center" }
-    : { background: "radial-gradient(circle at center, #102c1b 0%, #040f08 100%)" };
+      ? { backgroundImage: "url('/MasterClassNewBg.png')", backgroundSize: "cover", backgroundPosition: "center" }
+      : { background: "radial-gradient(circle at center, #102c1b 0%, #040f08 100%)" };
+
+  const isBiddingClosed = poll?.biddingClosed;
+
+  if (isBiddingClosed) {
+    return (
+      <div
+        className="bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none"
+        style={containerBgStyle}
+      >
+        {/* Background Overlay */}
+        <div className="absolute inset-0 bg-black/45 pointer-events-none z-0" />
+
+        {/* Top Header Logos */}
+        <div className="w-full max-w-md flex items-center justify-between z-10 shrink-0">
+          <img
+            src="/GryphonWhite.png"
+            alt="Gryphon Logo"
+            className="h-10 w-auto object-contain filter drop-shadow-md"
+          />
+          {isSynergy ? (
+            <img src="/SNSlogo.png" alt="Synergy Sphere" className="h-10 w-auto object-contain" />
+          ) : (
+            <img src="/mc01.png" alt="Masterclass 3.0" className="h-10 w-auto object-contain" />
+          )}
+        </div>
+
+        {/* Ending Screen Card */}
+        <div className="w-full max-w-md bg-white/95 text-slate-900 rounded-[28px] p-6 shadow-2xl border border-slate-100 z-10 text-center my-auto flex flex-col justify-center items-center backdrop-blur-md">
+          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
+            <Trophy className="w-8 h-8 text-emerald-600 animate-bounce" />
+          </div>
+          <h2 className="text-xl font-black mb-2 text-slate-950">
+            Bidding Concluded!
+          </h2>
+          <p className="text-slate-500 text-xs mb-4 max-w-xs leading-relaxed">
+            Thank you for participating in the Skill Bidding Arena. Your final allocations have been locked.
+          </p>
+          <p className="text-slate-400 text-[10px] italic">
+            Check the presenter screen to see the final results!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
-      className="h-screen w-full relative flex flex-col items-center justify-between py-4 px-4 font-[Epilogue] text-white overflow-hidden select-none"
+      className="bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none"
       style={containerBgStyle}
     >
       {/* Background Overlay */}
@@ -148,84 +222,118 @@ export default function BiddingPoll({
         <img
           src="/GryphonWhite.png"
           alt="Gryphon Logo"
-          className="h-8 w-auto object-contain filter drop-shadow-md"
+          className="h-10 w-auto object-contain filter drop-shadow-md"
         />
         {isSynergy ? (
-          <img src="/SNSlogo.png" alt="Synergy Sphere" className="h-8 w-auto object-contain" />
+          <img src="/SNSlogo.png" alt="Synergy Sphere" className="h-10 w-auto object-contain" />
         ) : (
-          <img src="/mc01.png" alt="Masterclass 3.0" className="h-8 w-auto object-contain" />
+          <img src="/mc01.png" alt="Masterclass 3.0" className="h-10 w-auto object-contain" />
         )}
       </div>
 
       {/* Standby/Waiting Screen when no question is active */}
       {activeQuestionIndex === -1 ? (
-        <div className="w-full max-w-md bg-white/95 text-slate-900 rounded-[28px] p-6 shadow-2xl z-10 text-center border border-white/10 my-auto flex flex-col justify-center items-center backdrop-blur-md">
-          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
-            <Trophy className="w-8 h-8 text-emerald-600 animate-pulse" />
+        <div className="w-full max-w-md z-10 my-auto flex flex-col items-center">
+          {/* Poll Title */}
+          <h1 className="text-white text-2xl font-black text-center mt-4 px-4 leading-tight">
+            {poll?.title?.replace(/ ~(SS|MC)$/, "") || "Skill Bidding"}
+          </h1>
+          {/* Room Code */}
+          <div className="bg-black/30 border border-white/10 text-amber-400 text-xs font-bold px-4 py-1.5 rounded-full mt-3 font-mono uppercase tracking-widest">
+            {poll?.id}
           </div>
-          <h2 className="text-xl font-black mb-2 text-slate-950">
-            Waiting Arena
-          </h2>
-          <p className="text-slate-500 text-xs mb-4 max-w-xs leading-relaxed">
-            Waiting for the facilitator to open the cohort question...
-          </p>
-          <div className="flex items-center gap-2 text-slate-400 text-xs mt-2 bg-slate-50 border border-slate-100 px-4 py-2 rounded-xl">
-            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-            <span>Ready to receive live questions</span>
+
+          {/* Card containing instructions */}
+          <div className="w-full bg-white text-slate-900 rounded-[28px] p-5 shadow-2xl border border-slate-100 mt-6 flex flex-col backdrop-blur-md">
+            {/* Top Half: Welcome */}
+            <div className="text-center pb-4 border-b border-slate-100 flex flex-col items-center">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-3">
+                <Trophy className="w-6 h-6 text-amber-500 animate-pulse" />
+              </div>
+              <h2 className="text-lg font-black text-slate-950 leading-tight uppercase tracking-tight">
+                {isMasterclass ? "Masterclass Bidding Arena" : isSynergy ? "Synergy Sphere Bidding Arena" : "Bidding Arena"}
+              </h2>
+              <p className="text-slate-500 text-xs mt-1 max-w-xs leading-normal">
+                The bidding session will begin shortly...
+              </p>
+            </div>
+
+            {/* Bottom Half: Instructions */}
+            <div className="py-4 flex flex-col gap-2">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Instructions:</span>
+              
+              <div className="space-y-2">
+                <div className="flex gap-2.5 items-start">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold mt-0.5 shrink-0">1</div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    You are given a total budget of <strong>100 coins</strong>.
+                  </p>
+                </div>
+
+                <div className="flex gap-2.5 items-start">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold mt-0.5 shrink-0">2</div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    You are given a set of <strong>10 questions</strong>.
+                  </p>
+                </div>
+
+                <div className="flex gap-2.5 items-start">
+                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold mt-0.5 shrink-0">3</div>
+                  <p className="text-[11px] text-slate-600 leading-snug">
+                    You can spend an average of <strong>10 coins per question</strong>. Spend it on the best skills that you think are most valuable!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Waiting Footer */}
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-xs">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+              <span className="font-medium">Waiting for facilitator to start...</span>
+            </div>
           </div>
         </div>
       ) : (
         /* Active Question Bidding Screen */
         <div className="w-full max-w-md z-10 flex flex-col justify-center my-auto">
           {/* Dynamic Circular/Horizontal Budget Bar */}
-          <div className="w-full bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl p-4 mb-4 flex items-center justify-between">
+          <div className="w-full bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl py-2.5 px-4 mb-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src="/coin2.png" alt="Coin" className="w-8 h-8 object-contain" />
-              <div className="text-left">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 block">Remaining Budget</span>
-                <span className="text-base font-black text-yellow-400">{remainingCoins} Coins</span>
+              <div className="text-left flex flex-col justify-center leading-none">
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/50 mb-1">Remaining Budget</span>
+                <span className="text-base font-extrabold text-amber-400">{remainingCoins} Coins</span>
               </div>
             </div>
             {/* Visual Progress Ring */}
-            <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
-              <svg className="w-full h-full transform -rotate-90">
+            <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
+              <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 40 40">
                 <circle
-                  cx="24"
-                  cy="24"
-                  r="18"
+                  cx="20"
+                  cy="20"
+                  r="16"
                   className="stroke-white/10"
-                  strokeWidth="4"
+                  strokeWidth="3.5"
                   fill="transparent"
                 />
                 <circle
-                  cx="24"
-                  cy="24"
-                  r="18"
-                  className="stroke-amber-400 transition-all duration-300"
-                  strokeWidth="4"
-                  fill="transparent"
-                  strokeDasharray={2 * Math.PI * 18}
-                  strokeDashoffset={2 * Math.PI * 18 * (1 - remainingCoins / 10)}
+                  strokeDasharray={2 * Math.PI * 16}
+                  strokeDashoffset={2 * Math.PI * 16 * (1 - remainingCoins / 10)}
+                  strokeLinecap="round"
                 />
               </svg>
-              <span className="absolute text-[10px] font-bold text-white">{Math.round((remainingCoins / 10) * 100)}%</span>
+              <span className="absolute text-[9px] font-extrabold text-white">{Math.round((remainingCoins / 10) * 100)}%</span>
             </div>
           </div>
 
           {/* Main Question & Stepper Card */}
-          <div className="w-full bg-white text-slate-900 rounded-[28px] p-5 shadow-2xl border border-slate-100 relative flex flex-col">
-            <div className="flex justify-between items-center mb-3">
-              <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-full">
-                Cohort: {currentCohort || "General"}
-              </span>
-            </div>
-
-            <h2 className="text-lg font-black text-slate-950 mb-4 leading-tight text-center">
+          <div className="w-full bg-white text-slate-900 rounded-2xl p-3.5 shadow-2xl border border-slate-100 relative flex flex-col">
+            <h2 className="text-sm font-black text-slate-950 mb-2.5 leading-tight text-center">
               {activeQuestion?.text || activeQuestion?.title}
             </h2>
 
             {/* Steppers Option List */}
-            <div className="space-y-2.5 mb-2 max-h-[45vh] overflow-y-auto pr-1">
+            <div className="space-y-1.5 mb-2 max-h-[50vh] overflow-y-auto pr-1">
               {activeSkills.length === 0 ? (
                 <p className="text-slate-400 text-center text-xs py-8 italic">No options defined for this question.</p>
               ) : (
@@ -235,32 +343,23 @@ export default function BiddingPoll({
                   return (
                     <div
                       key={skill.id}
-                      className={`w-full p-3 rounded-xl border transition-all flex items-center justify-between text-xs ${
-                        currentBid > 0
+                      className={`w-full py-1.5 px-2.5 rounded-lg border transition-all flex items-center justify-between text-[11px] ${currentBid > 0
                           ? "border-emerald-500 bg-emerald-50/30 text-emerald-950 font-bold"
                           : "border-slate-100 text-slate-700 bg-slate-50/40"
-                      }`}
+                        }`}
                     >
                       <div className="pr-3 leading-snug flex-1">
-                        <p className="font-semibold text-slate-800 text-sm">{skill.name}</p>
+                        <p className="font-semibold text-slate-800 text-xs">{skill.name}</p>
                       </div>
 
-                      {/* Coins Input */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <input
-                          type="number"
-                          min={0}
-                          max={10}
-                          value={currentBid || ""}
-                          disabled={isQuestionSubmitted}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value, 10) || 0;
-                            handleSetBid(skill.id, val);
-                          }}
-                          className="w-16 text-center text-sm font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-lg py-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-75"
-                          placeholder="0"
-                        />
-                      </div>
+                      {/* Coins Input with Stepper Buttons */}
+                      <BiddingStepper
+                        skillId={skill.id}
+                        currentBid={currentBid}
+                        remainingCoins={remainingCoins}
+                        isQuestionSubmitted={isQuestionSubmitted}
+                        changeBidBy={changeBidBy}
+                      />
                     </div>
                   );
                 })
@@ -268,22 +367,22 @@ export default function BiddingPoll({
             </div>
 
             {/* Submit Button */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-col items-center">
+            <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-col items-center">
               {isQuestionSubmitted ? (
-                <div className="w-full py-3 bg-emerald-50 text-emerald-700 font-bold rounded-xl text-center text-sm border border-emerald-100 flex items-center justify-center gap-2">
+                <div className="w-full py-2 bg-emerald-50 text-emerald-700 font-bold rounded-lg text-center text-xs border border-emerald-100 flex items-center justify-center gap-1.5">
                   <span>Bids Submitted Successfully</span>
-                  <span className="text-base font-black">✓</span>
+                  <span className="text-sm font-black">✓</span>
                 </div>
               ) : (
                 <button
                   type="button"
                   onClick={handleSubmitBids}
                   disabled={isSubmitting}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 text-white font-bold rounded-xl text-center text-sm transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2"
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 text-white font-bold rounded-lg text-center text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-1.5"
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       <span>Submitting Bids...</span>
                     </>
                   ) : (
@@ -295,17 +394,102 @@ export default function BiddingPoll({
           </div>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Static Floating Coin Reaction Button (Bottom Right Corner) */}
-      <div className="fixed bottom-4 right-4 z-40 shrink-0">
-        <button
-          onClick={handleSendCoinReaction}
-          className="w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 border-2 border-yellow-300 flex items-center justify-center shadow-lg transition-transform active:scale-90"
-          title="Spam Coin to Presenter"
-        >
-          <img src="/coin2.png" alt="Coin Reaction" className="w-8 h-8 object-contain" />
-        </button>
-      </div>
+function BiddingStepper({ skillId, currentBid, remainingCoins, isQuestionSubmitted, changeBidBy }) {
+  const increment = useCallback(() => {
+    if (remainingCoins > 0) {
+      changeBidBy(skillId, 1);
+    }
+  }, [skillId, remainingCoins, changeBidBy]);
+
+  const decrement = useCallback(() => {
+    if (currentBid > 0) {
+      changeBidBy(skillId, -1);
+    }
+  }, [skillId, currentBid, changeBidBy]);
+
+  const latestIncrement = useRef(increment);
+  const latestDecrement = useRef(decrement);
+  useEffect(() => {
+    latestIncrement.current = increment;
+    latestDecrement.current = decrement;
+  }, [increment, decrement]);
+
+  const timerRef = useRef(null);
+  const intervalRef = useRef(null);
+
+  const stop = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
+
+  const start = useCallback((type) => {
+    stop();
+    const execute = () => {
+      if (type === "inc") latestIncrement.current();
+      else if (type === "dec") latestDecrement.current();
+    };
+    execute();
+
+    timerRef.current = setTimeout(() => {
+      intervalRef.current = setInterval(() => {
+        execute();
+      }, 70);
+    }, 300);
+  }, [stop]);
+
+  // Clean up on unmount
+  useEffect(() => stop, [stop]);
+
+  const getHandlers = (type, disabled) => {
+    if (disabled) return {};
+    return {
+      onMouseDown: () => start(type),
+      onMouseUp: stop,
+      onMouseLeave: stop,
+      onTouchStart: (e) => {
+        e.preventDefault();
+        start(type);
+      },
+      onTouchEnd: stop,
+      onTouchCancel: stop,
+    };
+  };
+
+  return (
+    <div className="flex items-center gap-1 shrink-0">
+      <button
+        type="button"
+        disabled={isQuestionSubmitted || currentBid <= 0}
+        {...getHandlers("dec", isQuestionSubmitted || currentBid <= 0)}
+        className="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-extrabold rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed select-none"
+      >
+        -
+      </button>
+      <input
+        type="number"
+        min={0}
+        max={100}
+        value={currentBid || ""}
+        disabled={isQuestionSubmitted}
+        onChange={(e) => {
+          const val = parseInt(e.target.value, 10) || 0;
+          changeBidBy(skillId, val - currentBid);
+        }}
+        className="w-10 text-center text-xs font-black text-slate-800 bg-slate-50 border border-slate-200 rounded-md py-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/30 disabled:opacity-75"
+        placeholder="0"
+      />
+      <button
+        type="button"
+        disabled={isQuestionSubmitted || remainingCoins <= 0}
+        {...getHandlers("inc", isQuestionSubmitted || remainingCoins <= 0)}
+        className="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-extrabold rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed select-none"
+      >
+        +
+      </button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { Loader2 } from "lucide-react";
 
 import BiddingPresent from "@/components/Bidding/BiddingPresent";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // Generate a unique session ID
 const getSessionId = () => {
@@ -58,7 +59,7 @@ export default function BiddingPresentPage() {
     autoStartedRef.current = true;
 
     const targetCohort = cohortParam.toUpperCase();
-    startQuestion(pollId, Math.max(0, poll.activeQuestionIndex ?? 0), targetCohort).catch((err) =>
+    startQuestion(pollId, poll.activeQuestionIndex ?? -1, targetCohort).catch((err) =>
       console.error("Auto start/switch cohort run failed:", err)
     );
   }, [poll, pollId, cohortParam, startQuestion]);
@@ -85,21 +86,23 @@ export default function BiddingPresentPage() {
   }
 
   return (
-    <BiddingPresent
-      poll={poll}
-      bubbleCounts={bubbleCounts}
-      committedCount={committedCount}
-      theme={theme}
-      cohortParam={cohortParam}
-      cleanTitle={cleanTitle}
-      pollId={pollId}
-      stopBidding={stopBidding}
-      deleteBiddingPoll={deleteBiddingPoll}
-      restartBiddingPoll={restartBiddingPoll}
-      isBiddingActive={poll?.isBiddingActive}
-      biddingClosed={poll?.biddingClosed}
-      subscribeToPresenter={subscribeToPresenter}
-      startQuestion={startQuestion}
-    />
+    <ProtectedRoute>
+      <BiddingPresent
+        poll={poll}
+        bubbleCounts={bubbleCounts}
+        committedCount={committedCount}
+        theme={theme}
+        cohortParam={cohortParam}
+        cleanTitle={cleanTitle}
+        pollId={pollId}
+        stopBidding={stopBidding}
+        deleteBiddingPoll={deleteBiddingPoll}
+        restartBiddingPoll={restartBiddingPoll}
+        isBiddingActive={poll?.isBiddingActive}
+        biddingClosed={poll?.biddingClosed}
+        subscribeToPresenter={subscribeToPresenter}
+        startQuestion={startQuestion}
+      />
+    </ProtectedRoute>
   );
 }

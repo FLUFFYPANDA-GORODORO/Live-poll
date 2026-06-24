@@ -16,6 +16,7 @@ import {
   FolderOpen
 } from "lucide-react";
 import PollCard from "@/components/Dashboard/PollCard";
+import { parseTheme } from "@/lib/themeHelper";
 
 // Share Modal Component
 function ShareModal({ poll, onClose }) {
@@ -122,7 +123,9 @@ export default function MyPolls() {
     loading,
     fetchPolls,
     deletePoll,
-    restartPoll
+    restartPoll,
+    createPoll,
+    fetchPollById
   } = usePollStore();
 
   const [shareModal, setShareModal] = useState(null);
@@ -156,6 +159,47 @@ export default function MyPolls() {
       toast.success("Poll restarted");
     } catch (err) {
       toast.error("Failed to restart");
+    } finally {
+      setProcessingPoll(null);
+    }
+  };
+
+  const handleClonePoll = async (poll) => {
+    setProcessingPoll(poll.id);
+    const loadingToast = toast.loading("Cloning poll...");
+    try {
+      // 1. Fetch full poll data to get questions and options
+      const fullPoll = await fetchPollById(poll.id);
+      if (!fullPoll || !fullPoll.questions) {
+        toast.dismiss(loadingToast);
+        toast.error("Failed to load poll details for cloning");
+        return;
+      }
+
+      // 2. Map questions for creation payload
+      const clonedQuestions = fullPoll.questions.map((q) => ({
+        text: q.text,
+        type: q.type,
+        options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
+      }));
+
+      // Parse theme and append suffix
+      const { cleanTitle, theme } = parseTheme(fullPoll.title || "");
+      let suffix = "";
+      if (theme === "synergy_sphere") suffix = " ~SS";
+      else if (theme === "masterclass") suffix = " ~MC";
+
+      // 3. Create the cloned poll
+      await createPoll(`${cleanTitle} (Copy)${suffix}`, clonedQuestions, fullPoll.theme);
+
+      // 4. Refresh polls list
+      await fetchPolls(user.uid);
+      toast.dismiss(loadingToast);
+      toast.success("Poll cloned successfully!");
+    } catch (err) {
+      console.error("Error cloning poll:", err);
+      toast.dismiss(loadingToast);
+      toast.error("Failed to clone poll");
     } finally {
       setProcessingPoll(null);
     }
@@ -205,6 +249,7 @@ export default function MyPolls() {
                   poll={poll} 
                   onDelete={handleDeletePoll} 
                   onRestart={handleRestartPoll} 
+                  onClone={handleClonePoll}
                   onShare={(p) => setShareModal(p)}
                 />
               ))}

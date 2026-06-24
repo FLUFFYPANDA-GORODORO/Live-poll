@@ -19,18 +19,18 @@ export default function Sidebar({ user, logout }) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+    // { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: List, label: "My Polls", href: "/dashboard/my-polls" },
-    { icon: LayoutTemplate, label: "Templates", href: "/dashboard/templates" },
+    // { icon: LayoutTemplate, label: "Templates", href: "/dashboard/templates" },
     { icon: Award, label: "Skill Bidding", href: "/dashboard/bidding" },
-    { icon: HelpCircle, label: "Help", href: "/dashboard/help" },
+    // { icon: HelpCircle, label: "Help", href: "/dashboard/help" },
   ];
 
   return (
     <>
       {/* Mobile Top Bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-50">
-        <Link href="/dashboard" className="flex items-center">
+        <Link href="/dashboard/my-polls" className="flex items-center">
           <span className="text-2xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
             Rapid poll
           </span>

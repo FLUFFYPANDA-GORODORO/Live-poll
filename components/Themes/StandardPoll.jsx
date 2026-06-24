@@ -432,38 +432,35 @@ export default function StandardPoll({
                 const isOptionUnselected = hasVoted && selectedOption !== idx;
 
                 if (isMasterclass) {
-                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${
-                    isOptionSelected
+                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${isOptionSelected
                       ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default"
                       : isOptionUnselected
-                      ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
-                      : poll.currentQuestionActive && !voting
-                      ? "bg-slate-50 hover:bg-emerald-50/50 border-emerald-100/50 hover:border-emerald-450 cursor-pointer active:scale-[0.98]"
-                      : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60"
-                  }`;
+                        ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
+                        : poll.currentQuestionActive && !voting
+                          ? "bg-slate-50 hover:bg-emerald-50/50 border-emerald-100/50 hover:border-emerald-450 cursor-pointer active:scale-[0.98]"
+                          : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60"
+                    }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
                   badgeStyle = { backgroundColor: MASTERCLASS_CHART_COLORS[idx % MASTERCLASS_CHART_COLORS.length] };
                 } else if (isSynergy) {
-                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${
-                    isOptionSelected
+                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${isOptionSelected
                       ? "bg-rose-50 border-rose-500 shadow-md font-bold text-stone-900 cursor-default"
                       : isOptionUnselected
-                      ? "bg-stone-100/50 border-stone-200 opacity-40 cursor-default"
-                      : poll.currentQuestionActive && !voting
-                      ? "bg-stone-50 hover:bg-rose-50/50 border-rose-100/50 hover:border-rose-400 cursor-pointer active:scale-[0.98]"
-                      : "bg-stone-100 border-stone-200 cursor-not-allowed opacity-60"
-                  }`;
+                        ? "bg-stone-100/50 border-stone-200 opacity-40 cursor-default"
+                        : poll.currentQuestionActive && !voting
+                          ? "bg-stone-50 hover:bg-rose-50/50 border-rose-100/50 hover:border-rose-400 cursor-pointer active:scale-[0.98]"
+                          : "bg-stone-100 border-stone-200 cursor-not-allowed opacity-60"
+                    }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 bg-gradient-to-br from-red-500 to-rose-600 shadow-md";
                 } else {
-                  buttonStyleClass = `w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 border-2 ${
-                    isOptionSelected
+                  buttonStyleClass = `w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 border-2 ${isOptionSelected
                       ? "bg-[#F8FAFC] border-[var(--color-primary)] shadow-sm font-bold text-[#1E293B] cursor-default"
                       : isOptionUnselected
-                      ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
-                      : poll.currentQuestionActive && !voting
-                      ? "bg-[#F8FAFC] hover:bg-slate-100 border-transparent hover:border-[var(--color-primary)] cursor-pointer active:scale-[0.98]"
-                      : "bg-[#F1F5F9] border-transparent cursor-not-allowed opacity-60"
-                  }`;
+                        ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
+                        : poll.currentQuestionActive && !voting
+                          ? "bg-[#F8FAFC] hover:bg-slate-100 border-transparent hover:border-[var(--color-primary)] cursor-pointer active:scale-[0.98]"
+                          : "bg-[#F1F5F9] border-transparent cursor-not-allowed opacity-60"
+                    }`;
                   badgeClass = "w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0";
                   badgeStyle = { backgroundColor: STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
                 }

@@ -38,9 +38,9 @@ export default function BiddingPresent({
   const [loadingD3, setLoadingD3] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [spriteIndex, setSpriteIndex] = useState(0);
-  const [shootImageOverride, setShootImageOverride] = useState(null);
   const activeShotsRef = useRef(0);
-  const [reactions, setReactions] = useState([]);
+  const [shootImageOverride, setShootImageOverride] = useState(null);
+
 
   // Cohort state: "HR" vs "ACADEMIA"
   // Initialize directly from the URL param (cohortParam) to avoid flashing the
@@ -310,27 +310,7 @@ export default function BiddingPresent({
     prevBubbleCountsRef.current = { ...bubbleCounts };
   }, [bubbleCounts, activeSkills, shootCoin, syncBubbleCounts]);
 
-  // Subscribe to floating presenter reaction emojis
-  useEffect(() => {
-    if (!pollId || !subscribeToPresenter) return;
-    const unsubscribe = subscribeToPresenter(pollId, (emoji) => {
-      const id = Date.now() + Math.random();
-      setReactions((prev) => [
-        ...prev,
-        {
-          id,
-          emoji,
-          left: Math.random() * 80 - 40,
-          rotate: Math.random() * 40 - 20,
-          scale: 0.7 + Math.random() * 0.6,
-        },
-      ]);
-      setTimeout(() => {
-        setReactions((prev) => prev.filter((r) => r.id !== id));
-      }, 2000);
-    });
-    return () => unsubscribe();
-  }, [pollId, subscribeToPresenter]);
+
 
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
@@ -823,26 +803,6 @@ export default function BiddingPresent({
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         {/* Left: Exit/End controls */}
         <div className="relative pointer-events-auto flex items-center gap-2">
-          {/* Floating Coins Container */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 pointer-events-none w-48 h-72 overflow-visible flex justify-center items-end">
-            {reactions.map((r) => (
-              <div
-                key={r.id}
-                className="absolute animate-float-coin-up select-none pointer-events-none"
-                style={{
-                  left: `calc(50% + ${r.left}px)`,
-                  transform: `rotate(${r.rotate}deg) scale(${r.scale})`,
-                }}
-              >
-                <img
-                  src="/coin2.png"
-                  alt="coin"
-                  className="w-12 h-12 object-contain drop-shadow-[0_0_10px_rgba(250,204,21,0.7)]"
-                />
-              </div>
-            ))}
-          </div>
-
           <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl">
             <button
               onClick={handleExitPoll}

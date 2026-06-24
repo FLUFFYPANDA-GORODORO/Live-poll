@@ -47,7 +47,7 @@ export default function BiddingPollPage() {
     return () => unsubscribe();
   }, [pollId, subscribeToBiddingPoll, sessionId]);
 
-  const theme = poll?.theme || searchParams.get("theme") || "synergy_sphere";
+  const theme = searchParams.get("theme") || poll?.theme || "synergy_sphere";
 
   // Loading state
   if (loading) {

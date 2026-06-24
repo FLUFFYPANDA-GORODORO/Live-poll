@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Loader2, Trophy, Info } from "lucide-react";
+import { Loader2, Trophy, Info, QrCode, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { QRCodeSVG } from "qrcode.react";
 
 // Simple debounce helper
 const useDebounce = () => {
@@ -14,6 +15,15 @@ const useDebounce = () => {
     timeoutRef.current = setTimeout(callback, delay);
   }, []);
 };
+
+const SPRITE_SEQUENCE = [
+  "/character/CharacterSpriteU.png",
+  "/character/CharacterSprite2U.png",
+  "/character/CharacterSprite3U.png",
+  "/character/CharacterSprite2U.png",
+  "/character/CharacterSpriteU.png",
+  "/character/CharacterSprite4U.png"
+];
 
 export default function BiddingPoll({
   poll,
@@ -28,7 +38,22 @@ export default function BiddingPoll({
   const [transactions, setTransactions] = useState({}); // { [questionIdx_skillId]: amount }
   const [submittedQuestions, setSubmittedQuestions] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showQr, setShowQr] = useState(false);
+  const [spriteIndex, setSpriteIndex] = useState(0);
   const debounceCall = useDebounce();
+
+  useEffect(() => {
+    SPRITE_SEQUENCE.forEach((src) => {
+      const img = new Image();
+      img.src = src;
+    });
+
+    const interval = setInterval(() => {
+      setSpriteIndex((prev) => (prev + 1) % SPRITE_SEQUENCE.length);
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
@@ -235,63 +260,130 @@ export default function BiddingPoll({
       {activeQuestionIndex === -1 ? (
         <div className="w-full max-w-md z-10 my-auto flex flex-col items-center">
           {/* Poll Title */}
-          <h1 className="text-white text-2xl font-black text-center mt-4 px-4 leading-tight">
+          <h1 className="text-white text-xl md:text-2xl font-bold uppercase tracking-widest text-center mt-4 px-4 leading-tight font-mono filter drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
             {poll?.title?.replace(/ ~(SS|MC)$/, "") || "Skill Bidding"}
           </h1>
-          {/* Room Code */}
-          <div className="bg-black/30 border border-white/10 text-amber-400 text-xs font-bold px-4 py-1.5 rounded-full mt-3 font-mono uppercase tracking-widest">
-            {poll?.id}
+
+          {/* Scroll container containing instructions */}
+          <div className="w-[calc(100%+1.5rem)] md:w-[calc(100%+2rem)] -mx-3 md:-mx-4 flex flex-col mt-6 relative select-none">
+            {/* Scroll Top */}
+            <img 
+              src="/GameSprites/ScrollTop.webp" 
+              alt="Scroll Top" 
+              className="w-full h-auto object-contain block select-none pointer-events-none relative z-10" 
+              style={{ transform: "scale(1.1)", transformOrigin: "bottom center", filter: "drop-shadow(0 6px 4px rgba(0,0,0,0.35))" }}
+            />
+            
+            {/* Scroll Middle (CSS Parchment) */}
+            <div 
+              className="w-full px-6 py-5 md:py-8 flex flex-col relative z-0 -mt-[6%] -mb-[6%] retro-scroll-middle"
+              style={{
+                backgroundColor: "#dfcaa7",
+                backgroundImage: "linear-gradient(to right, rgba(74,44,15,0.15) 0%, rgba(255,255,255,0.1) 6%, rgba(255,255,255,0.2) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.2) 88%, rgba(255,255,255,0.1) 94%, rgba(74,44,15,0.15) 100%)",
+                boxShadow: "inset 10px 0 15px -10px rgba(0,0,0,0.5), inset -10px 0 15px -10px rgba(0,0,0,0.5)"
+              }}
+            >
+              <style>{`
+                @media (min-height: 720px) {
+                  .retro-scroll-middle {
+                    padding-top: 2.25rem !important;
+                    padding-bottom: 2.25rem !important;
+                  }
+                  .retro-instructions {
+                    padding-top: 1.25rem !important;
+                    padding-bottom: 1.25rem !important;
+                    gap: 0.75rem !important;
+                  }
+                  .retro-instruction-list {
+                    margin-top: 0.5rem !important;
+                    gap: 0.75rem !important;
+                  }
+                  .retro-sprite-container {
+                    margin-top: 1.5rem !important;
+                  }
+                  .retro-sprite {
+                    height: 5.5rem !important;
+                  }
+                  .retro-title {
+                    font-size: 0.875rem !important;
+                  }
+                  .retro-desc {
+                    font-size: 0.75rem !important;
+                  }
+                  .retro-item-text {
+                    font-size: 0.75rem !important;
+                  }
+                }
+              `}</style>
+
+              {/* Top Half: Welcome */}
+              <div className="text-center pb-3 border-b-2 border-dashed border-amber-950/20 flex flex-col items-center pt-0 font-mono">
+                <h2 className="text-xs md:text-sm font-bold text-amber-950 leading-tight uppercase tracking-widest -mt-1.5 retro-title">
+                  {isMasterclass ? "Masterclass Bidding Arena" : isSynergy ? "Synergy Sphere Bidding Arena" : "Bidding Arena"}
+                </h2>
+                <div className="text-[9px] text-amber-950/40 my-0.5">✦ ✦ ✦</div>
+                <p className="text-amber-900 text-[10px] font-semibold uppercase tracking-wider retro-desc">
+                  The bidding session will begin shortly
+                </p>
+              </div>
+
+              {/* Bottom Half: Instructions */}
+              <div className="py-3 flex flex-col gap-2 pb-1 font-mono retro-instructions">
+                <span className="text-[9px] font-bold text-amber-900/70 uppercase tracking-widest block text-center mb-0.5">
+                  -- INSTRUCTIONS --
+                </span>
+                
+                <div className="space-y-2 retro-instruction-list">
+                  <div className="flex gap-2 items-start">
+                    <span className="text-amber-950 font-black text-xs shrink-0 select-none">[1]</span>
+                    <p className="text-[10.5px] text-amber-950 font-bold uppercase tracking-wide leading-snug retro-item-text">
+                      You are given a set of <span className="underline decoration-2 decoration-amber-950">questions</span>.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 items-start">
+                    <span className="text-amber-950 font-black text-xs shrink-0 select-none">[2]</span>
+                    <p className="text-[10.5px] text-amber-950 font-bold uppercase tracking-wide leading-snug retro-item-text">
+                      You can spend <span className="underline decoration-2 decoration-amber-950">10 coins per question</span>. Spend it on the best skill that you think are the most valueable!
+                    </p>
+                  </div>
+
+                  <div className="flex gap-2 items-start">
+                    <span className="text-amber-950 font-black text-xs shrink-0 select-none">[3]</span>
+                    <p className="text-[10.5px] text-amber-950 font-bold uppercase tracking-wide leading-snug retro-item-text">
+                      SUBMIT YOUR BIDS FOR EACH QUESTION AS THEY GO LIVE!
+                    </p>
+                  </div>
+                </div>
+
+                {/* Looping Character Sprite */}
+                <div className="flex justify-center mt-4 mb-0.5 retro-sprite-container">
+                  <img
+                    src={SPRITE_SEQUENCE[spriteIndex]}
+                    alt="Character Sprite"
+                    className="h-16 md:h-20 w-auto object-contain select-none pointer-events-none filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)] retro-sprite"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Scroll Bottom */}
+            <img 
+              src="/GameSprites/ScrollBottom.webp" 
+              alt="Scroll Bottom" 
+              className="w-full h-auto object-contain block select-none pointer-events-none relative z-10" 
+              style={{ transform: "scale(1.1)", transformOrigin: "top center", filter: "drop-shadow(0 -6px 4px rgba(0,0,0,0.35))" }}
+            />
           </div>
 
-          {/* Card containing instructions */}
-          <div className="w-full bg-white text-slate-900 rounded-[28px] p-5 shadow-2xl border border-slate-100 mt-6 flex flex-col backdrop-blur-md">
-            {/* Top Half: Welcome */}
-            <div className="text-center pb-4 border-b border-slate-100 flex flex-col items-center">
-              <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mb-3">
-                <Trophy className="w-6 h-6 text-amber-500 animate-pulse" />
-              </div>
-              <h2 className="text-lg font-black text-slate-950 leading-tight uppercase tracking-tight">
-                {isMasterclass ? "Masterclass Bidding Arena" : isSynergy ? "Synergy Sphere Bidding Arena" : "Bidding Arena"}
-              </h2>
-              <p className="text-slate-500 text-xs mt-1 max-w-xs leading-normal">
-                The bidding session will begin shortly...
-              </p>
-            </div>
-
-            {/* Bottom Half: Instructions */}
-            <div className="py-4 flex flex-col gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Instructions:</span>
-              
-              <div className="space-y-2">
-                <div className="flex gap-2.5 items-start">
-                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold mt-0.5 shrink-0">1</div>
-                  <p className="text-[11px] text-slate-600 leading-snug">
-                    You are given a total budget of <strong>100 coins</strong>.
-                  </p>
-                </div>
-
-                <div className="flex gap-2.5 items-start">
-                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold mt-0.5 shrink-0">2</div>
-                  <p className="text-[11px] text-slate-600 leading-snug">
-                    You are given a set of <strong>10 questions</strong>.
-                  </p>
-                </div>
-
-                <div className="flex gap-2.5 items-start">
-                  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-[10px] font-bold mt-0.5 shrink-0">3</div>
-                  <p className="text-[11px] text-slate-600 leading-snug">
-                    You can spend an average of <strong>10 coins per question</strong>. Spend it on the best skills that you think are most valuable!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Waiting Footer */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-center gap-2 text-slate-400 text-xs">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-              <span className="font-medium">Waiting for facilitator to start...</span>
-            </div>
-          </div>
+          {/* QR Code Button at bottom right */}
+          <button
+            onClick={() => setShowQr(true)}
+            className="absolute bottom-3 right-3 md:bottom-4 md:right-4 bg-black/40 border border-white/10 text-white p-3 rounded-full hover:bg-black/60 transition-colors z-20 flex items-center justify-center shadow-lg cursor-pointer"
+            title="Show Join QR Code"
+          >
+            <QrCode className="w-5 h-5 text-amber-400" />
+          </button>
         </div>
       ) : (
         /* Active Question Bidding Screen */
@@ -390,6 +482,56 @@ export default function BiddingPoll({
                   )}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Modal Overlay */}
+      {showQr && (
+        <div 
+          onClick={() => setShowQr(false)}
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="rounded-2xl p-6 max-w-sm w-full flex flex-col items-center relative shadow-2xl border-4 border-amber-950 font-mono"
+            style={{
+              backgroundColor: "#dfcaa7",
+              backgroundImage: "linear-gradient(to right, rgba(74,44,15,0.08) 0%, rgba(255,255,255,0.05) 6%, rgba(255,255,255,0.1) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.1) 88%, rgba(255,255,255,0.05) 94%, rgba(74,44,15,0.08) 100%)",
+              boxShadow: "inset 0 0 20px rgba(74,44,15,0.2), 0 20px 25px -5px rgba(0,0,0,0.5)"
+            }}
+          >
+            {/* Retro Close Button */}
+            <button
+              onClick={() => setShowQr(false)}
+              className="absolute top-4 right-4 text-amber-950 hover:text-amber-900 font-black text-sm p-1 cursor-pointer select-none"
+            >
+              [X]
+            </button>
+
+            {/* QR Title */}
+            <h3 className="text-amber-950 font-extrabold text-sm text-center mb-1 uppercase tracking-widest">
+              -- SCAN TO JOIN --
+            </h3>
+            <p className="text-amber-900/70 text-[10px] text-center mb-6 uppercase tracking-wider font-semibold">
+              Scan code to participate
+            </p>
+
+            {/* QR SVG */}
+            <div className="bg-[#f2e5d0] p-4 rounded-xl border-2 border-amber-950/20 flex items-center justify-center mb-6 shadow-inner">
+              <QRCodeSVG 
+                value={typeof window !== "undefined" ? window.location.href : ""} 
+                size={200}
+                level="H"
+                bgColor="#f2e5d0"
+                fgColor="#2d1704"
+              />
+            </div>
+
+            {/* Room Code Indicator */}
+            <div className="w-full text-amber-950 text-xs font-bold text-center uppercase tracking-widest">
+              [ ROOM ID: <span className="underline decoration-2 decoration-amber-950">{poll?.id}</span> ]
             </div>
           </div>
         </div>

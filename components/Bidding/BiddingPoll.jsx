@@ -48,9 +48,12 @@ export default function BiddingPoll({
     localStorage.setItem("bidding_transactions_v2", JSON.stringify(newTxs));
   };
 
-  // Calculate remaining coins: 100 - sum of all bids
-  const totalSpent = Object.values(transactions).reduce((sum, val) => sum + val, 0);
-  const remainingCoins = 100 - totalSpent;
+  // Calculate remaining coins: 10 - sum of bids for this active question
+  const activeQuestionTxs = Object.entries(transactions)
+    .filter(([key]) => key.startsWith(`${activeQuestionIndex}_`))
+    .map(([_, val]) => val);
+  const totalSpent = activeQuestionTxs.reduce((sum, val) => sum + val, 0);
+  const remainingCoins = 10 - totalSpent;
 
   // Active question details from the presenter state
   const activeQuestion = poll?.questions?.[activeQuestionIndex];
@@ -202,10 +205,10 @@ export default function BiddingPoll({
                   strokeWidth="4"
                   fill="transparent"
                   strokeDasharray={2 * Math.PI * 18}
-                  strokeDashoffset={2 * Math.PI * 18 * (1 - remainingCoins / 100)}
+                  strokeDashoffset={2 * Math.PI * 18 * (1 - remainingCoins / 10)}
                 />
               </svg>
-              <span className="absolute text-[10px] font-bold text-white">{remainingCoins}%</span>
+              <span className="absolute text-[10px] font-bold text-white">{Math.round((remainingCoins / 10) * 100)}%</span>
             </div>
           </div>
 
@@ -247,7 +250,7 @@ export default function BiddingPoll({
                         <input
                           type="number"
                           min={0}
-                          max={100}
+                          max={10}
                           value={currentBid || ""}
                           disabled={isQuestionSubmitted}
                           onChange={(e) => {

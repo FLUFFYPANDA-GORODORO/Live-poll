@@ -184,11 +184,15 @@ export default function BiddingPoll({
     }
   }, []);
 
-  const containerBgStyle = isSynergy
-    ? { backgroundImage: "url('/SynegrysphereBG.png')", backgroundSize: "cover", backgroundPosition: "center" }
+  const containerBgStyle = isSynergy || isMasterclass
+    ? {}
+    : { background: "radial-gradient(circle at center, #102c1b 0%, #040f08 100%)" };
+
+  const responsiveBgClass = isSynergy
+    ? "bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat"
     : isMasterclass
-      ? { backgroundImage: "url('/MasterClassNewBg.png')", backgroundSize: "cover", backgroundPosition: "center" }
-      : { background: "radial-gradient(circle at center, #102c1b 0%, #040f08 100%)" };
+      ? "bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat"
+      : "";
 
   const isBiddingClosed = poll?.biddingClosed;
 
@@ -196,7 +200,11 @@ export default function BiddingPoll({
     return (
       <div
         className="bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none"
-        style={containerBgStyle}
+        style={isSynergy
+          ? { backgroundImage: "url('/SynegrysphereBG.png')", backgroundSize: "cover", backgroundPosition: "center" }
+          : isMasterclass
+            ? { backgroundImage: "url('/MasterClassNewBg.png')", backgroundSize: "cover", backgroundPosition: "center" }
+            : { background: "radial-gradient(circle at center, #102c1b 0%, #040f08 100%)" }}
       >
         {/* Background Overlay */}
         <div className="absolute inset-0 bg-black/45 pointer-events-none z-0" />
@@ -236,7 +244,7 @@ export default function BiddingPoll({
 
   return (
     <div
-      className="bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none"
+      className={`bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none ${responsiveBgClass}`}
       style={containerBgStyle}
     >
       {/* Background Overlay */}

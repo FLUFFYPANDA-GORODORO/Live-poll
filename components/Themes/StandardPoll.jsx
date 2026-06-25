@@ -141,7 +141,7 @@ export default function StandardPoll({
     let subTitleText = "The poll will begin shortly...";
 
     if (isMasterclass) {
-      waitingClass = "min-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
+      waitingClass = "min-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
       textClass = "text-white";
       codeClass = "text-sm bg-slate-800/80 px-3 py-1 rounded-lg text-emerald-350 mb-8 inline-block border border-emerald-900/30";
       cardClass = "bg-slate-950/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-900/30 shadow-2xl";
@@ -151,7 +151,7 @@ export default function StandardPoll({
       titleText = "Masterclass Waiting Room";
       subTitleText = "The masterclass will begin shortly...";
     } else if (isSynergy) {
-      waitingClass = "min-h-screen bg-stone-900 flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
+      waitingClass = "min-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
       textClass = "text-white";
       codeClass = "text-sm bg-stone-800 px-3 py-1 rounded-lg text-rose-350 mb-8 inline-block border border-rose-900/30";
       cardClass = "bg-stone-950 rounded-2xl p-8 border border-rose-900/30 shadow-2xl";
@@ -229,7 +229,7 @@ export default function StandardPoll({
     let subTitleText = "Thank you for participating!";
 
     if (isMasterclass) {
-      endedClass = "min-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
+      endedClass = "min-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
       textClass = "text-white";
       cardTextClass = "text-slate-300";
       cardClass = "bg-slate-950/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-900/30 shadow-2xl";
@@ -239,7 +239,7 @@ export default function StandardPoll({
       titleText = "Masterclass Ended";
       subTitleText = "Your answers have been saved. Masterclass concluded!";
     } else if (isSynergy) {
-      endedClass = "min-h-screen bg-stone-900 flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
+      endedClass = "min-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
       textClass = "text-white";
       cardTextClass = "text-stone-400";
       cardClass = "bg-stone-950 rounded-2xl p-8 border border-rose-900/30 shadow-2xl";
@@ -300,12 +300,12 @@ export default function StandardPoll({
   let emojiPanelClass = "bg-white/80 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] shadow-sm p-4 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in";
 
   if (isMasterclass) {
-    mainWrapperClass = "h-screen max-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-white font-sans flex flex-col justify-between overflow-y-auto";
+    mainWrapperClass = "h-screen max-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-white font-sans flex flex-col justify-between overflow-y-auto";
     contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1";
     cardClass = "bg-white rounded-2xl border border-emerald-100 shadow-xl overflow-hidden";
     emojiPanelClass = "bg-white/80 backdrop-blur-[1px] rounded-2xl border border-emerald-100 shadow-md p-3.5 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in";
   } else if (isSynergy) {
-    mainWrapperClass = "h-screen max-h-screen bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-rose-50 font-sans flex flex-col justify-between overflow-y-auto relative";
+    mainWrapperClass = "h-screen max-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-rose-50 font-sans flex flex-col justify-between overflow-y-auto relative";
     contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1 z-10 relative";
     cardClass = "bg-white rounded-2xl border border-rose-100 shadow-xl overflow-hidden";
     emojiPanelClass = "p-4 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in";

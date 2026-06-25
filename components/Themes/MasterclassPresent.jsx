@@ -218,12 +218,12 @@ function ConfettiBurst({ active, onComplete }) {
 }
 
 function getQuestionFontSize(text) {
-  if (!text) return "text-3xl md:text-4xl";
+  if (!text) return "text-2xl md:text-3xl 2xl:text-5xl";
   const len = text.length;
-  if (len <= 40) return "text-3xl md:text-4xl";
-  if (len <= 80) return "text-2xl md:text-3xl";
-  if (len <= 140) return "text-xl md:text-2xl";
-  return "text-base md:text-lg";
+  if (len <= 40) return "text-2xl md:text-3xl 2xl:text-5xl";
+  if (len <= 80) return "text-xl md:text-2xl 2xl:text-4xl";
+  if (len <= 140) return "text-lg md:text-xl 2xl:text-3xl";
+  return "text-sm md:text-base 2xl:text-xl";
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -365,7 +365,7 @@ export default function MasterclassPresent({
     const onKey = (e) => {
       if (isTransitioning) return;
       if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
-      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) handleNextQuestion();
+      else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
       else if (e.key.toLowerCase() === "c") setConfettiActive(true);
       else if (e.key.toLowerCase() === "q") setShowQR(!showQR);
@@ -389,38 +389,47 @@ export default function MasterclassPresent({
     <div className="h-screen max-h-screen bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col text-emerald-50 font-epilogue font-light overflow-hidden relative select-none">
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 w-auto object-contain" /></div>
-          <div><img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" /></div>
+        <div className="w-full px-6 py-4 flex items-center justify-between">
+          <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md" /></div>
+          <div><img src="/mc01.png" alt="Masterclass Logo" className="h-16 2xl:h-20 w-auto object-contain filter drop-shadow-md" /></div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative max-w-7xl w-full mx-auto bg-transparent rounded-3xl my-4">
+      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative w-full mx-auto bg-transparent rounded-3xl my-4">
         {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
-            <h1 className="text-5xl md:text-7xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+            <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
               Welcome to Masterclass 3.0
             </h1>
-            <p className="text-emerald-350 font-epilogue text-lg md:text-xl mt-4 opacity-80 tracking-widest uppercase">
+            <p className="text-emerald-350 font-epilogue text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase">
               The Adventurous Intelligence
+            </p>
+          </div>
+        ) : currentQuestionIndex === totalQuestions ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
+            <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+              Thank You for Your Participation
+            </h1>
+            <p className="text-emerald-350 font-epilogue text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase">
+              The Live Poll of Masterclass 3.0 has Ended
             </p>
           </div>
         ) : (
           <>
-            <div className="text-center w-full max-w-4xl mx-auto mb-6 mt-2">
+            <div className="text-center w-full max-w-6xl mx-auto mb-6 mt-2">
               <h2 className={`${getQuestionFontSize(currentQuestion?.text)} font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide`}>
                 {currentQuestion?.text || "No question"}
               </h2>
             </div>
 
             {isWordCloud ? (
-              <div className="w-full flex-1 flex flex-col justify-center items-center max-w-5xl mx-auto my-auto mb-6 pt-4">
+              <div className="w-full flex-1 flex flex-col justify-center items-center mx-auto my-auto mb-6 pt-4">
                 {wordsList.length > 0 ? (
                   <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
                 ) : (
                   <div className="flex items-center justify-center w-full h-[480px] min-h-[400px]">
-                    <svg viewBox="0 0 24 24" className="w-24 h-24 text-emerald-450">
+                    <svg viewBox="0 0 24 24" className="w-24 h-24 text-emerald-455">
                       <path
                         d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
                         fill="none"
@@ -442,15 +451,15 @@ export default function MasterclassPresent({
               </div>
             ) : (
               <div className="w-full flex-1 flex flex-col justify-end mb-6">
-                <div className="flex items-end justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto border-b border-white/40 pb-0">
+                <div className="flex items-end justify-center gap-6 md:gap-12 w-full mx-auto border-b border-white/40 pb-0">
                   {currentQuestion?.options?.map((option, idx) => {
                     const votes = getVoteCount(idx);
                     const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
                     const gradient = CHART_COLORS[idx % CHART_COLORS.length];
                     return (
-                      <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] h-[35vh] justify-end">
+                      <div key={idx} className="flex flex-col items-center flex-1 max-w-[140px] 2xl:max-w-[180px] h-[35vh] justify-end">
                         <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
-                          <div className="text-white font-bold text-2xl mb-2 drop-shadow-md">{votes}</div>
+                          <div className="text-white font-black text-xl 2xl:text-3xl mb-2 drop-shadow-md">{votes}</div>
                           {votes > 0 && (
                             <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
                               style={{ background: gradient, boxShadow: "0 4px 20px rgba(255,255,255,0.1)" }} />
@@ -460,10 +469,10 @@ export default function MasterclassPresent({
                     );
                   })}
                 </div>
-                <div className="flex justify-center gap-6 md:gap-12 w-full max-w-5xl mx-auto mt-4">
+                <div className="flex justify-center gap-6 md:gap-12 w-full mx-auto mt-4">
                   {currentQuestion?.options?.map((option, idx) => (
-                    <div key={idx} className="flex-1 max-w-[120px] text-center">
-                      <div className="text-slate-200 font-semibold text-xs md:text-sm whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
+                    <div key={idx} className="flex-1 max-w-[140px] 2xl:max-w-[180px] text-center">
+                      <div className="text-slate-200 font-bold text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
                         {option.text}
                       </div>
                     </div>
@@ -504,7 +513,7 @@ export default function MasterclassPresent({
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="bg-white/10 border border-white/10 text-white px-3 py-0.5 rounded font-mono text-sm font-bold min-w-[2rem] text-center">{currentQuestionIndex + 1}</div>
-          <button onClick={handleNextQuestion} disabled={isTransitioning || currentQuestionIndex >= totalQuestions - 1} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
+          <button onClick={handleNextQuestion} disabled={isTransitioning || currentQuestionIndex >= totalQuestions} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
             <ChevronRight className="w-4 h-4" />
           </button>
           <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all">End</button>

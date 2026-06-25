@@ -21,12 +21,12 @@ const CHART_COLORS = [
 ];
 
 function getQuestionFontSize(text) {
-  if (!text) return "text-2xl md:text-3xl";
+  if (!text) return "text-xl md:text-2xl 2xl:text-4xl";
   const len = text.length;
-  if (len <= 40) return "text-2xl md:text-3xl";
-  if (len <= 80) return "text-xl md:text-2xl";
-  if (len <= 140) return "text-lg md:text-xl";
-  return "text-sm md:text-base";
+  if (len <= 40) return "text-xl md:text-2xl 2xl:text-4xl";
+  if (len <= 80) return "text-lg md:text-xl 2xl:text-3xl";
+  if (len <= 140) return "text-base md:text-lg 2xl:text-2xl";
+  return "text-xs md:text-sm 2xl:text-lg";
 }
 
 export default function StandardPresent({
@@ -58,7 +58,7 @@ export default function StandardPresent({
       if (isTransitioning) return;
       if (e.key === "ArrowLeft" && currentQuestionIndex > 0) {
         handlePrevQuestion();
-      } else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions - 1) {
+      } else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions) {
         handleNextQuestion();
       } else if (e.key.toLowerCase() === "k") {
         if (isVotingActive) {
@@ -91,12 +91,11 @@ export default function StandardPresent({
   return (
     <div className="h-screen max-h-screen bg-[url('/SSbackground.jpg')] bg-cover bg-center bg-no-repeat flex flex-col text-white font-sans overflow-y-auto relative">
 
-
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
+        <div className="w-full px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-20 w-auto object-contain flex-shrink-0" />
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 2xl:h-20 w-auto object-contain flex-shrink-0 filter drop-shadow-md" />
           </div>
 
           <div className="flex items-center gap-3 justify-end flex-1 flex-shrink-0">
@@ -121,7 +120,7 @@ export default function StandardPresent({
       </header>
 
       {/* Main Content (Centered & Clear) */}
-      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-4 pb-20 z-10 relative max-w-7xl w-full mx-auto bg-black/20 backdrop-blur-[1px] rounded-3xl border border-white/5 shadow-2xl my-4">
+      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-4 pb-20 z-10 relative w-full mx-auto bg-black/20 backdrop-blur-[1px] rounded-3xl border border-white/5 shadow-2xl my-4">
         {/* QR Code */}
         {showQR && (
           <div className="absolute top-4 right-12 bg-black/90 backdrop-blur-md p-5 rounded-2xl shadow-2xl border border-white/10 flex flex-col items-center z-30 max-w-[240px]">
@@ -137,17 +136,26 @@ export default function StandardPresent({
 
         {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
-            <h1 className="text-5xl md:text-7xl font-extrabold text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+            <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-extrabold text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
               Welcome to Masterclass 3.0
             </h1>
-            <p className="text-zinc-300 text-lg md:text-xl mt-4 opacity-80 tracking-widest uppercase">
+            <p className="text-zinc-300 text-lg md:text-xl 2xl:text-3xl mt-4 opacity-80 tracking-widest uppercase">
               Interactive Presentation
+            </p>
+          </div>
+        ) : currentQuestionIndex === totalQuestions ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
+            <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-extrabold text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+              Thank You for Your Participation
+            </h1>
+            <p className="text-zinc-300 text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase">
+              The Live Poll of Masterclass 3.0 has Ended
             </p>
           </div>
         ) : (
           <>
             {/* Question Title - Centered */}
-            <div className="text-center w-full max-w-4xl mx-auto mb-3 mt-1">
+            <div className="text-center w-full max-w-6xl mx-auto mb-3 mt-1">
               <h2 className={`${getQuestionFontSize(currentQuestion?.text)} font-extrabold text-white leading-tight drop-shadow-lg tracking-tight`}>
                 {currentQuestion?.text || "No question"}
               </h2>
@@ -163,7 +171,7 @@ export default function StandardPresent({
             </div>
 
             {/* Huge Bars Container */}
-            <div className="flex-1 flex items-end justify-center gap-6 md:gap-12 w-full max-w-7xl mx-auto my-auto mt-2">
+            <div className="flex-1 flex items-end justify-center gap-6 md:gap-12 w-full mx-auto my-auto mt-2">
               {currentQuestion?.options?.map((option, idx) => {
                 const votes = getVoteCount(idx);
                 const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
@@ -171,9 +179,9 @@ export default function StandardPresent({
                 const gradient = CHART_COLORS[idx % CHART_COLORS.length];
 
                 return (
-                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[250px] h-[36vh] justify-end">
+                  <div key={idx} className="flex flex-col items-center flex-1 max-w-[140px] 2xl:max-w-[180px] h-[36vh] justify-end">
                     {/* Percentage above bar */}
-                    <div className="text-white font-black text-3xl mb-3 drop-shadow-md">
+                    <div className="text-white font-black text-2xl 2xl:text-4xl mb-3 drop-shadow-md">
                       {percentage}%
                     </div>
 
@@ -191,7 +199,7 @@ export default function StandardPresent({
 
                     {/* Label under bar */}
                     <div className="text-center mt-2 w-full h-20 flex items-start justify-center">
-                      <div className="text-zinc-100 font-bold text-sm md:text-base lg:text-lg whitespace-normal break-words w-full drop-shadow-sm px-1" title={option.text}>
+                      <div className="text-zinc-100 font-bold text-sm md:text-base lg:text-lg 2xl:text-xl whitespace-normal break-words w-full drop-shadow-sm px-1" title={option.text}>
                         {option.text}
                       </div>
                     </div>
@@ -235,7 +243,7 @@ export default function StandardPresent({
 
         <button
           onClick={handleNextQuestion}
-          disabled={isTransitioning || currentQuestionIndex >= totalQuestions - 1}
+          disabled={isTransitioning || currentQuestionIndex >= totalQuestions}
           className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 hover:text-white disabled:opacity-20 disabled:cursor-not-allowed transition-all text-xs font-semibold"
         >
           Next

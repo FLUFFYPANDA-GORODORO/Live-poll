@@ -605,13 +605,19 @@ export default function BiddingPresent({
     else if (width > 1850) scale = 1.45;
     else if (width > 1400) scale = 1.15;
 
+    const minYBoundary = 180 * scale;
+    const totalRadii = activeSkills.length * 90 * scale;
+    const availableHeight = height - minYBoundary - 100;
+    const availableWidth = width - (height * 0.35) - 100;
+    const spaceScale = Math.min(1, Math.min(availableWidth, availableHeight) / totalRadii);
+
     // Initialize bubble sizes and layout positions
     const nodes = activeSkills.map((skill) => ({
       id: skill.id,
       name: skill.name,
       category: skill.category,
       count: counts[skill.id] || 0,
-      radius: Math.max(50, 45 + (counts[skill.id] || 0) / maxCount * 75) * scale,
+      radius: Math.max(45, 40 + (counts[skill.id] || 0) / maxCount * 60) * scale * spaceScale,
     }));
 
     const simulation = d3
@@ -624,6 +630,9 @@ export default function BiddingPresent({
       .force("center", d3.forceCenter(width / 2, height / 2 + 90))
       .force("x", d3.forceX(width / 2).strength(0.08))
       .force("y", d3.forceY(height / 2 + 90).strength(0.08));
+
+    let currentWidth = width;
+    let currentHeight = height;
 
     const g = svg.append("g");
 
@@ -809,14 +818,33 @@ export default function BiddingPresent({
       .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11 * scale))}px`)
       .text((d) => `${d.count} Coins`);
 
-    const minYBoundary = 180 * scale;
-
     simulation.on("tick", () => {
       nodes.forEach((d) => {
-        // Clamp Y to prevent overlapping with top question banner
+        // Clamp Y to prevent overlapping with top question banner and bottom screen edge
         const minY = minYBoundary + d.radius;
-        if (d.y < minY) {
-          d.y = minY;
+        const maxY = currentHeight - d.radius - 15;
+        if (d.y < minY) d.y = minY;
+        if (d.y > maxY) d.y = maxY;
+
+        // Clamp X to screen boundaries
+        const minX = d.radius + 15;
+        const maxX = currentWidth - d.radius - 15;
+        if (d.x < minX) d.x = minX;
+        if (d.x > maxX) d.x = maxX;
+
+        // Keep out of character/platform zone (bottom-right: 35vh width, 40vh height)
+        const charWidth = currentHeight * 0.35;
+        const charHeight = currentHeight * 0.40;
+        const charLeftBound = currentWidth - charWidth - 15;
+        const charTopBound = currentHeight - charHeight - 15;
+        if (d.x > charLeftBound - d.radius && d.y > charTopBound - d.radius) {
+          const distLeft = d.x - (charLeftBound - d.radius);
+          const distUp = d.y - (charTopBound - d.radius);
+          if (distLeft < distUp) {
+            d.x = charLeftBound - d.radius;
+          } else {
+            d.y = charTopBound - d.radius;
+          }
         }
       });
       nodeGroup.attr("transform", (d) => `translate(${d.x},${d.y})`);
@@ -827,6 +855,8 @@ export default function BiddingPresent({
     const handleResize = () => {
       if (!containerRef.current) return;
       const { width: w, height: h } = containerRef.current.getBoundingClientRect();
+      currentWidth = w;
+      currentHeight = h;
       svg.attr("width", w).attr("height", h);
       simulation.force("center", d3.forceCenter(w / 2, h / 2 + 90));
       simulation.alpha(0.3).restart();

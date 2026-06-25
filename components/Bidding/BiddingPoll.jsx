@@ -250,6 +250,16 @@ export default function BiddingPoll({
   const isBiddingClosed = poll?.biddingClosed;
 
   if (isBiddingClosed) {
+    let titleText = "Thank You for Your Participation";
+    let subTitleText = "The Live Poll has Ended";
+    if (isMasterclass) {
+      titleText = "Thank You for Your Participation";
+      subTitleText = "The Live Poll of Masterclass 3.0 has Ended";
+    } else if (isSynergy) {
+      titleText = "Thank You for Your Participation";
+      subTitleText = "The Live Poll of Synergy Sphere has Ended";
+    }
+
     return (
       <div
         className="bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none"
@@ -276,19 +286,17 @@ export default function BiddingPoll({
           )}
         </div>
 
-        {/* Ending Screen Card */}
-        <div className="w-full max-w-md bg-white/95 text-slate-900 rounded-[28px] p-6 shadow-2xl border border-slate-100 z-10 text-center my-auto flex flex-col justify-center items-center backdrop-blur-md">
-          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4">
-            <Trophy className="w-8 h-8 text-emerald-600 animate-bounce" />
-          </div>
-          <h2 className="text-xl font-black mb-2 text-slate-950">
-            Bidding Concluded!
-          </h2>
-          <p className="text-slate-500 text-xs mb-4 max-w-xs leading-relaxed">
-            Thank you for participating in the Skill Bidding Arena. Your final allocations have been locked.
-          </p>
-          <p className="text-slate-400 text-[10px] italic">
-            Check the presenter screen to see the final results!
+        {/* Ending Screen Text Only */}
+        <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
+          <h1 className={`text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none ${
+            isMasterclass || isSynergy ? "font-baskerville font-light" : "font-extrabold"
+          }`}>
+            {titleText}
+          </h1>
+          <p className={`mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue ${
+            isMasterclass ? "text-emerald-350" : isSynergy ? "text-rose-400" : "text-zinc-300"
+          }`}>
+            {subTitleText}
           </p>
         </div>
       </div>

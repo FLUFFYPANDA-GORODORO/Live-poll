@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 const STANDARD_CHART_COLORS = [
   "var(--color-primary)",
@@ -184,36 +185,22 @@ export default function StandardPoll({
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
     let waitingClass = "min-h-screen bg-[#F8FAFC] flex flex-col justify-between p-4 md:p-6";
-    let textClass = "text-[#1E293B]";
-    let codeClass = "text-sm bg-[#E2E8F0] px-3 py-1 rounded-lg text-[#64748B] mb-8 inline-block";
-    let cardClass = "bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-sm";
-    let iconBgClass = "w-16 h-16 rounded-full bg-[var(--color-primary)]/10 flex items-center justify-center mx-auto mb-6";
-    let iconClass = "w-8 h-8 text-[var(--color-primary)]";
-    let dotClass = "w-2 h-2 bg-[var(--color-primary)] rounded-full animate-pulse";
     let titleText = "Waiting for Host";
-    let subTitleText = "The poll will begin shortly...";
+    let subTitleText = "The poll will begin shortly";
 
     if (isMasterclass) {
       waitingClass = "min-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
-      textClass = "text-white";
-      codeClass = "text-sm bg-slate-800/80 px-3 py-1 rounded-lg text-emerald-350 mb-8 inline-block border border-emerald-900/30";
-      cardClass = "bg-slate-950/80 backdrop-blur-md rounded-2xl p-8 border border-emerald-900/30 shadow-2xl";
-      iconBgClass = "w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center mx-auto mb-6 border border-emerald-500/20";
-      iconClass = "w-8 h-8 text-emerald-400";
-      dotClass = "w-2 h-2 bg-emerald-500 rounded-full animate-bounce";
       titleText = "Masterclass Waiting Room";
-      subTitleText = "The masterclass will begin shortly...";
+      subTitleText = "Masterclass 3.0 will begin shortly";
     } else if (isSynergy) {
       waitingClass = "min-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
-      textClass = "text-white";
-      codeClass = "text-sm bg-stone-800 px-3 py-1 rounded-lg text-rose-350 mb-8 inline-block border border-rose-900/30";
-      cardClass = "bg-stone-950 rounded-2xl p-8 border border-rose-900/30 shadow-2xl";
-      iconBgClass = "w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-6 border border-rose-500/20";
-      iconClass = "w-8 h-8 text-rose-400";
-      dotClass = "w-2 h-2 bg-rose-500 rounded-full animate-bounce";
       titleText = "Sphere Waiting Room";
-      subTitleText = "The host is preparing the session...";
+      subTitleText = "Synergy Sphere 2.0 will begin shortly";
     }
+
+    const pollUrl = typeof window !== "undefined"
+      ? `${window.location.origin}/poll/${pollId}`
+      : "";
 
     return (
       <div className={waitingClass}>
@@ -237,29 +224,29 @@ export default function StandardPoll({
           </div>
         )}
 
-        {/* Main Content Card */}
-        <div className="max-w-lg text-center mx-auto my-auto z-10 relative">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            {isSynergy && <Sparkles className="w-6 h-6 text-rose-500 animate-pulse" />}
-            <h1 className={`text-3xl font-extrabold tracking-tight ${textClass}`}>{cleanTitle}</h1>
-          </div>
-          <code className={codeClass}>
-            {pollId}
-          </code>
-
-          <div className={cardClass}>
-            <div className={iconBgClass}>
-              <Lock className={iconClass} />
-            </div>
-            <h2 className={`text-xl font-bold mb-3 ${textClass}`}>{titleText}</h2>
-            <p className={`${isMasterclass ? "text-slate-355" : isSynergy ? "text-stone-400" : "text-[#64748B]"} mb-6`}>
+        {/* Main Content */}
+        <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
+          <div className="flex flex-col items-center">
+            <h1 className={`text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none ${
+              isMasterclass || isSynergy ? "font-baskerville font-light" : "font-extrabold"
+            }`}>
+              {titleText}
+            </h1>
+            <p className={`mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue ${
+              isMasterclass ? "text-emerald-350" : isSynergy ? "text-rose-400" : "text-zinc-300"
+            }`}>
               {subTitleText}
             </p>
-            <div className="flex items-center justify-center gap-2">
-              <div className={dotClass} />
-              <div className={dotClass} style={{ animationDelay: "0.2s" }} />
-              <div className={dotClass} style={{ animationDelay: "0.4s" }} />
+          </div>
+
+          {/* QR Code and Join Code directly below the text */}
+          <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex flex-col items-center max-w-[140px] pointer-events-auto">
+            <div className="bg-white p-1.5 rounded-xl">
+              <QRCodeSVG value={pollUrl} size={100} />
             </div>
+            <p className="text-xs text-center mt-2 text-emerald-400 font-mono font-bold tracking-wider select-all">
+              {pollId}
+            </p>
           </div>
         </div>
 

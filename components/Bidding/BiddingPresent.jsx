@@ -281,7 +281,7 @@ export default function BiddingPresent({
       .style("pointer-events", "none")
       .style("z-index", 100);
 
-    const duration = 350;
+    const duration = 150;
 
     const timer = d3.timer((elapsed) => {
       const t = Math.min(1, elapsed / duration);
@@ -932,9 +932,9 @@ export default function BiddingPresent({
 
       {/* Active Question Display in the Center (Styled like standard presenter screen) */}
       {activeQuestionIndex !== -1 && activeQuestion ? (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl xl:max-w-4xl 2xl:max-w-7xl px-6 w-full select-none bp-fadeIn pointer-events-none">
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl xl:max-w-4xl 2xl:max-w-6xl px-6 w-full select-none bp-fadeIn pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 md:px-8 md:py-5 lg:px-10 lg:py-6 rounded-3xl shadow-2xl">
-            <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
               {activeQuestion.text || activeQuestion.title}
             </h2>
           </div>
@@ -1050,7 +1050,7 @@ export default function BiddingPresent({
       <div className="fixed bottom-0 right-0 z-20 pointer-events-none w-[35vh] h-[40vh]">
         {/* Looping Character Sprite */}
         <div
-          className="absolute bottom-[22vh] right-[6vh] w-[25vh] h-[25vh] pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          className="absolute bottom-[22vh] right-[6vh] w-[25vh] h-[25vh] pointer-events-auto z-30 cursor-pointer hover:scale-105 transition-transform"
           onClick={() => {
             if (activeSkills?.length) {
               const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];

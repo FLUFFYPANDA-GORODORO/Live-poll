@@ -88,7 +88,7 @@ export default function BiddingPresent({
 
   // Preload sprites
   useEffect(() => {
-    [...SPRITE_SEQUENCE, ...WELCOME_SPRITE_SEQUENCE, "/character/CharacterSpriteShootU.png"].forEach((src) => {
+    [...SPRITE_SEQUENCE, ...WELCOME_SPRITE_SEQUENCE, "/character/CharacterSpriteShootU.png", "/character/BowCharacter.webp"].forEach((src) => {
       const img = new Image();
       img.src = src;
     });
@@ -535,7 +535,7 @@ export default function BiddingPresent({
   const handlePageQuestion = async (direction) => {
     if (!startQuestion || !poll?.questions) return;
     const nextIdx = activeQuestionIndex + direction;
-    if (nextIdx >= -1 && nextIdx < poll.questions.length) {
+    if (nextIdx >= -1 && nextIdx <= poll.questions.length) {
       try {
         await startQuestion(pollId, nextIdx, activeCohort);
       } catch (err) {
@@ -913,38 +913,22 @@ export default function BiddingPresent({
           {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain wide-logo-event" />}
         </div>
 
-        {/* Center Concluded Card */}
-        <div className="z-20 text-center select-none w-full max-w-lg mx-auto my-auto px-4">
-          <div className="bg-black/80 backdrop-blur-lg border border-white/15 px-10 py-10 rounded-3xl shadow-2xl flex flex-col items-center gap-6">
-            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center">
-              <Trophy className="w-10 h-10 text-emerald-500 animate-bounce" />
-            </div>
-            <div>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-emerald-400">
-                Bidding Arena
-              </span>
-              <h2 className="text-3xl font-black text-white mt-2">
-                Session Concluded
-              </h2>
-            </div>
-            <p className="text-white/60 text-sm leading-relaxed max-w-md">
-              The Skill Bidding session has ended. Thank you to all participants for entering their bids!
-            </p>
-
-            <button
-              onClick={() => router.push("/dashboard/bidding")}
-              className={`py-3 px-8 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] ${
-                isSynergy
-                  ? "bg-rose-600 hover:bg-rose-500"
-                  : isMasterclass
-                    ? "bg-emerald-600 hover:bg-emerald-500"
-                    : "bg-slate-700 hover:bg-slate-600"
-              }`}
-            >
-              Exit to Dashboard
-            </button>
-          </div>
+        {/* Ending Screen Text Only */}
+        <div className="z-20 text-center select-none w-full max-w-5xl mx-auto mt-[25vh] mb-auto px-6 flex flex-col items-center">
+          <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in font-baskerville mb-6" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            Thank You for Your Participation
+          </h1>
+          <p className="opacity-85 tracking-widest uppercase text-lg md:text-xl 2xl:text-3xl font-epilogue text-white">
+            {isMasterclass
+              ? "The Skill Bidding of Masterclass 3.0 has Ended"
+              : isSynergy
+                ? "The Skill Bidding of Synergy Sphere has Ended"
+                : "The Skill Bidding Session has Ended"}
+          </p>
         </div>
+
+        {/* Bottom Spacer to balance top header under justify-between */}
+        <div className="h-12 flex-shrink-0 hidden md:block z-20" />
       </div>
     );
   }
@@ -969,13 +953,26 @@ export default function BiddingPresent({
       </div>
 
       {/* Active Question Display in the Center (Styled like standard presenter screen) */}
-      {activeQuestionIndex !== -1 && activeQuestion ? (
+      {activeQuestionIndex !== -1 && activeQuestionIndex < poll.questions.length && activeQuestion ? (
         <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl xl:max-w-4xl 2xl:max-w-6xl px-6 w-full select-none bp-fadeIn pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 md:px-8 md:py-5 lg:px-10 lg:py-6 rounded-3xl shadow-2xl">
             <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
               {activeQuestion.text || activeQuestion.title}
             </h2>
           </div>
+        </div>
+      ) : activeQuestionIndex === poll.questions.length ? (
+        <div className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-15 flex flex-col items-center select-none bp-fadeIn pointer-events-none text-center px-6 w-full">
+          <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in font-baskerville mb-6" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            Thank You for Your Participation
+          </h1>
+          <p className="opacity-85 tracking-widest uppercase text-lg md:text-xl 2xl:text-3xl font-epilogue text-white">
+            {isMasterclass
+              ? "The Skill Bidding of Masterclass 3.0 has Ended"
+              : isSynergy
+                ? "The Skill Bidding of Synergy Sphere has Ended"
+                : "The Skill Bidding Session has Ended"}
+          </p>
         </div>
       ) : (
         <div className="absolute inset-0 z-15 flex flex-col items-center justify-center select-none bp-fadeIn pointer-events-none text-center">
@@ -989,7 +986,7 @@ export default function BiddingPresent({
       )}
 
       {/* SVG Canvas for Bubbles */}
-      {activeQuestionIndex !== -1 && (
+      {activeQuestionIndex !== -1 && activeQuestionIndex < poll.questions.length && (
         <div ref={containerRef} className="absolute inset-0 z-10">
           <svg ref={svgRef} width="100%" height="100%" style={{ display: "block" }} />
         </div>
@@ -1038,11 +1035,11 @@ export default function BiddingPresent({
             <ChevronLeft className="w-4 h-4" />
           </button>
           <span className="text-white/60 text-xs font-bold px-2 select-none min-w-[3rem] text-center">
-            {activeQuestionIndex === -1 ? "0" : activeQuestionIndex + 1} / {poll.questions.length}
+            {activeQuestionIndex === -1 ? "0" : Math.min(activeQuestionIndex + 1, poll.questions.length)} / {poll.questions.length}
           </span>
           <button
             onClick={() => handlePageQuestion(1)}
-            disabled={activeQuestionIndex >= poll.questions.length - 1}
+            disabled={activeQuestionIndex >= poll.questions.length}
             className="p-1 rounded-lg bg-white/5 hover:bg-white/15 disabled:opacity-30 disabled:hover:bg-transparent text-white transition-all"
             title="Next Question"
           >
@@ -1099,13 +1096,15 @@ export default function BiddingPresent({
           <img
             src={
               shootImageOverride ||
-              (activeQuestionIndex === -1
-                ? WELCOME_SPRITE_SEQUENCE[spriteIndex % WELCOME_SPRITE_SEQUENCE.length]
-                : SPRITE_SEQUENCE[spriteIndex % SPRITE_SEQUENCE.length])
+              (activeQuestionIndex === poll.questions.length
+                ? "/character/BowCharacter.webp"
+                : activeQuestionIndex === -1
+                  ? WELCOME_SPRITE_SEQUENCE[spriteIndex % WELCOME_SPRITE_SEQUENCE.length]
+                  : SPRITE_SEQUENCE[spriteIndex % SPRITE_SEQUENCE.length])
             }
             alt="Looping Character"
             className="w-full h-full object-contain select-none"
-            style={{ transform: "scaleX(-1)" }}
+            style={{ transform: activeQuestionIndex === poll.questions.length ? "scaleX(1)" : "scaleX(-1)" }}
           />
         </div>
 

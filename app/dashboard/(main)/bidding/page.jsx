@@ -396,15 +396,35 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
 
   const { cleanTitle, theme } = parseTheme(poll.title || "");
   const isSynergy = theme === "synergy_sphere";
+  const isMasterclass = theme === "masterclass";
   const createdDate = poll.createdAt ? new Date(poll.createdAt).toLocaleDateString() : "—";
   const isLive = poll.isBiddingActive;
   const isClosed = poll.biddingClosed;
   const questionsCount = poll.questions?.length || 0;
 
-  const getStatusColor = () => {
-    if (isLive) return "bg-green-100 text-green-700";
-    if (isClosed) return "bg-slate-100 text-slate-500";
-    return "bg-amber-100 text-amber-700";
+  const status = isLive ? "live" : isClosed ? "ended" : "draft";
+
+  const getStatusColor = (statusVal) => {
+    switch (statusVal) {
+      case "live":
+        return isSynergy
+          ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+          : isMasterclass
+          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+          : "bg-green-100 text-green-700";
+      case "ended":
+        return isSynergy
+          ? "bg-stone-800 text-stone-400 border border-stone-700/50"
+          : isMasterclass
+          ? "bg-slate-800 text-slate-400 border border-slate-700/50"
+          : "bg-slate-100 text-slate-500";
+      default:
+        return isSynergy
+          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+          : isMasterclass
+          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+          : "bg-amber-100 text-amber-700";
+    }
   };
 
   const getStatusText = () => {
@@ -413,90 +433,105 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
     return "Draft";
   };
 
+  // Theme-specific styles
+  let cardClass = "bg-white border-slate-200 hover:shadow-lg text-slate-900";
+  let titleClass = "text-slate-900";
+  let dateClass = "text-slate-400";
+  let menuBtnClass = "text-slate-400 hover:bg-slate-100";
+  let dropdownClass = "bg-white border-slate-100 text-slate-700";
+  let dropdownBtnClass = "text-slate-700 hover:bg-slate-50";
+
+  if (isSynergy) {
+    cardClass = "bg-[url('/SynegrysphereBG.png')] bg-cover bg-center border-rose-950/40 text-stone-100 hover:shadow-rose-950/40 hover:shadow-2xl hover:border-rose-500/40";
+    titleClass = "text-white group-hover:text-rose-200 drop-shadow-sm";
+    dateClass = "text-stone-400";
+    menuBtnClass = "text-stone-300 hover:bg-white/10";
+    dropdownClass = "bg-stone-950 border-stone-800 text-stone-200";
+    dropdownBtnClass = "text-stone-300 hover:bg-stone-900";
+  } else if (isMasterclass) {
+    cardClass = "bg-[url('/MasterClassNewBg.png')] bg-cover bg-center border-emerald-950/40 text-emerald-100 hover:shadow-emerald-950/40 hover:shadow-2xl hover:border-emerald-500/40";
+    titleClass = "text-white group-hover:text-emerald-200 drop-shadow-sm";
+    dateClass = "text-slate-400";
+    menuBtnClass = "text-stone-300 hover:bg-white/10";
+    dropdownClass = "bg-slate-950 border-slate-800 text-slate-200";
+    dropdownBtnClass = "text-stone-300 hover:bg-stone-900";
+  }
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-lg transition-all group relative flex flex-col justify-between">
+    <div className={`rounded-2xl border p-4 transition-all group relative min-h-[145px] flex flex-col justify-between ${cardClass}`}>
       <div>
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex justify-between items-start w-full">
           <div className="flex-1 pr-4 min-w-0">
-            <h3 className="font-bold text-lg text-slate-900 truncate mb-1" title={cleanTitle}>
-              {cleanTitle || "Untitled Session"}
-            </h3>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${getStatusColor()}`}>
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <h3 className={`font-bold text-base line-clamp-1 transition-colors ${titleClass}`} title={cleanTitle}>
+                {cleanTitle || "Untitled Session"}
+              </h3>
+              <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${getStatusColor(status)}`}>
                 {getStatusText()}
               </span>
-              {isSynergy ? (
-                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-700">
-                  SynergySphere
-                </span>
-              ) : (
-                <span className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-                  Masterclass
-                </span>
-              )}
             </div>
           </div>
 
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2 -mr-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
+              className={`p-2 -mr-2 rounded-lg transition-colors ${menuBtnClass}`}
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreVertical className="w-4 h-4" />
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-100 z-10 py-1 animation-fade-in origin-top-right">
+              <div className={`absolute right-0 top-full mt-1 w-48 rounded-xl shadow-xl border z-20 py-1 animation-fade-in origin-top-right ${dropdownClass}`}>
                 <Link
                   href={`/bidding-present/${poll.id}?theme=synergy_sphere&cohort=HR`}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50/50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                   onClick={() => setShowMenu(false)}
                 >
-                  <Play className="w-4 h-4 text-emerald-600" /> Present HR Run
+                  <Play className="w-4 h-4 text-emerald-500" /> Present HR Run
                 </Link>
                 <Link
                   href={`/bidding-present/${poll.id}?theme=masterclass&cohort=ACADEMIA`}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50/50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                   onClick={() => setShowMenu(false)}
                 >
-                  <Play className="w-4 h-4 text-indigo-600" /> Present Academia Run
+                  <Play className="w-4 h-4 text-indigo-500" /> Present Academia Run
                 </Link>
                 <Link
                   href={`/bidding-poll/${poll.id}?theme=${theme}`}
                   target="_blank"
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                   onClick={() => setShowMenu(false)}
                 >
-                  <Eye className="w-4 h-4 text-emerald-600" /> Participant View
+                  <Eye className="w-4 h-4 text-sky-500" /> Participant View
                 </Link>
                 <button
                   onClick={() => { setShowMenu(false); onEdit(poll); }}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                 >
-                  <Layers className="w-4 h-4 text-indigo-600" /> Manage Questions
+                  <Layers className="w-4 h-4 text-amber-500" /> Manage Questions
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); onClone(poll.id); }}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                 >
-                  <CopyIcon className="w-4 h-4 text-purple-600" /> Clone config
+                  <CopyIcon className="w-4 h-4 text-purple-500" /> Clone config
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); onShare(poll); }}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                 >
-                  <Share2 className="w-4 h-4 text-blue-600" /> Share
+                  <Share2 className="w-4 h-4 text-blue-500" /> Share
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); onRestart(poll); }}
-                  className="w-full text-left px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                 >
                   <RotateCcw className="w-4 h-4 text-orange-500" /> Restart Run
                 </button>
-                <div className="h-px bg-slate-100 my-1" />
+                <div className={`h-px my-1 ${isSynergy || isMasterclass ? "bg-stone-800" : "bg-slate-100"}`} />
                 <button
                   onClick={() => { setShowMenu(false); onDelete(poll.id); }}
-                  className="w-full text-left px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/10 flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" /> Delete
                 </button>
@@ -505,37 +540,36 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
           </div>
         </div>
 
-        {/* Dynamic Run Progress Tags */}
-        <div className="mt-3 border-t border-slate-100 pt-3 space-y-2">
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-slate-500">HR Cohort Run</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              isLive && poll.currentCohort?.toUpperCase() === "HR" ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-400"
+        {/* Decorative center element to keep card size and show theme graphic */}
+        <div className={`h-14 flex items-center justify-between px-3.5 mt-2.5 w-full rounded-xl border ${
+          isSynergy 
+            ? "bg-black/40 backdrop-blur-sm border-rose-500/10" 
+            : isMasterclass 
+            ? "bg-black/40 backdrop-blur-sm border-emerald-500/10" 
+            : "bg-slate-50 border-slate-100"
+        }`}>
+          <div className="flex items-center gap-2">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm border ${
+              isSynergy 
+                ? "bg-rose-500/15 border-rose-500/30 text-rose-300" 
+                : isMasterclass 
+                ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300" 
+                : "bg-slate-100 border-slate-200 text-slate-700"
             }`}>
-              {isLive && poll.currentCohort?.toUpperCase() === "HR" ? "In Progress" : "Standby"}
-            </span>
-          </div>
-          <div className="flex justify-between items-center text-xs">
-            <span className="font-semibold text-slate-500">Academia Cohort Run</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              isLive && poll.currentCohort?.toUpperCase() === "ACADEMIA" ? "bg-indigo-50 text-indigo-600" : "bg-slate-100 text-slate-400"
-            }`}>
-              {isLive && poll.currentCohort?.toUpperCase() === "ACADEMIA" ? "In Progress" : "Standby"}
-            </span>
+              {questionsCount}
+            </div>
+            <div className="text-left">
+              <span className={`text-[9px] uppercase tracking-widest font-black ${
+                isSynergy ? "text-rose-400" : "text-emerald-400"
+              } drop-shadow-sm block`}>
+                {isSynergy ? "Synergy Sphere" : "Masterclass"}
+              </span>
+              <p className={`text-[8px] font-bold ${isSynergy || isMasterclass ? "text-stone-400" : "text-slate-400"}`}>
+                Bidding Question{questionsCount !== 1 ? "s" : ""}
+              </p>
+            </div>
           </div>
         </div>
-
-        <div className="grid grid-cols-1 gap-3 mb-4 mt-3">
-          <div className="bg-slate-50 rounded-xl p-3 text-center">
-            <div className="text-xl font-bold text-[var(--color-primary)]">{questionsCount}</div>
-            <div className="text-[10px] uppercase font-bold text-slate-400">Total Bidding Questions</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5 mt-2 border-t border-slate-100 pt-2">
-        <Calendar className="w-3.5 h-3.5" />
-        Launched: {createdDate}
       </div>
     </div>
   );

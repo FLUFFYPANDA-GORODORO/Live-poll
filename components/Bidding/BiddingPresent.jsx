@@ -79,8 +79,12 @@ export default function BiddingPresent({
   const getBarrelCoords = () => {
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
-    const x = rect.width - 240;
-    const y = rect.height - 260;
+    const vh = window.innerHeight / 100;
+    // Character is at bottom-[22vh] right-[6vh] with size 25vh.
+    // The gun muzzle is at the left-most edge of the sprite (right-[6vh + 25vh] = right-[31vh])
+    // and about 66% up the sprite's height (bottom-[22vh + (25vh * 0.66)] = bottom-[38.5vh]).
+    const x = rect.width - (31 * vh);
+    const y = rect.height - (38.5 * vh);
     return { x, y };
   };
 
@@ -96,8 +100,15 @@ export default function BiddingPresent({
   }, [bubbleCounts]);
 
   const syncBubbleCounts = useCallback(() => {
-    if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
+    if (!window.d3 || !simulationRef.current || !activeSkills?.length || !containerRef.current) return;
     const d3 = window.d3;
+    const rect = containerRef.current.getBoundingClientRect();
+    const width = rect.width;
+
+    let scale = 1.0;
+    if (width > 2500) scale = 1.7;
+    else if (width > 1850) scale = 1.45;
+    else if (width > 1400) scale = 1.15;
 
     const currentCounts = renderedCountsRef.current;
     const maxCount = Math.max(1, ...activeSkills.map((s) => currentCounts[s.id] || 0));
@@ -107,7 +118,7 @@ export default function BiddingPresent({
       const newCount = currentCounts[node.id] || 0;
       node.count = newCount;
       // Make bubbles expand as coins are added or shrink as they are removed
-      node.radius = Math.max(50, 45 + (newCount / maxCount) * 75);
+      node.radius = Math.max(50, 45 + (newCount / maxCount) * 75) * scale;
     });
 
     simulationRef.current.force(
@@ -145,10 +156,10 @@ export default function BiddingPresent({
       .data(nodes)
       .transition()
       .duration(300)
-      .attr("x", (d) => -d.radius * 0.85)
-      .attr("y", (d) => -d.radius * 0.85)
-      .attr("width", (d) => d.radius * 1.7)
-      .attr("height", (d) => d.radius * 1.7);
+      .attr("x", (d) => -d.radius * 0.95)
+      .attr("y", (d) => -d.radius * 0.95)
+      .attr("width", (d) => d.radius * 1.9)
+      .attr("height", (d) => d.radius * 1.9);
 
     svg
       .selectAll(".bp-node foreignObject div")
@@ -159,13 +170,13 @@ export default function BiddingPresent({
       .selectAll(".bp-node .skill-name")
       .data(nodes)
       .text((d) => d.name)
-      .style("font-size", (d) => `${Math.max(10, Math.min(d.radius * 0.22, 13))}px`);
+      .style("font-size", (d) => `${Math.max(10, Math.min(d.radius * 0.22, 13 * scale))}px`);
 
     svg
       .selectAll(".bp-node .skill-coins")
       .data(nodes)
       .text((d) => `${d.count} Coins`)
-      .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11))}px`);
+      .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11 * scale))}px`);
   }, [activeSkills]);
 
   const applyCountUpdate = useCallback((targetSkillId) => {
@@ -398,6 +409,47 @@ export default function BiddingPresent({
         backdrop-filter: blur(8px);
         border: 1px solid rgba(255,255,255,0.1);
       }
+      @media (min-width: 2500px) {
+        .wide-logo-gryphon {
+          height: 7rem !important;
+        }
+        .wide-logo-event {
+          height: 6rem !important;
+        }
+        .wide-qr-modal {
+          max-width: 48rem !important;
+          padding: 3rem !important;
+        }
+        .wide-qr-modal h3 {
+          font-size: 3rem !important;
+          margin-bottom: 1rem !important;
+        }
+        .wide-qr-modal p {
+          font-size: 1.5rem !important;
+          margin-bottom: 2.5rem !important;
+        }
+        .wide-qr-container {
+          padding: 2.5rem !important;
+          margin-bottom: 2.5rem !important;
+        }
+        .wide-qr-container svg {
+          width: 550px !important;
+          height: 550px !important;
+        }
+        .wide-qr-modal input, .wide-qr-modal button {
+          font-size: 1.25rem !important;
+          padding-top: 1rem !important;
+          padding-bottom: 1rem !important;
+          border-radius: 1.25rem !important;
+        }
+        .wide-qr-modal .tracking-widest {
+          font-size: 4.5rem !important;
+          margin-top: 1rem !important;
+        }
+        .wide-qr-modal .uppercase {
+          font-size: 1.25rem !important;
+        }
+      }
     `;
     document.head.appendChild(style);
     return () => {
@@ -496,13 +548,18 @@ export default function BiddingPresent({
     const counts = renderedCountsRef.current || {};
     const maxCount = Math.max(1, ...activeSkills.map((s) => counts[s.id] || 0));
 
+    let scale = 1.0;
+    if (width > 2500) scale = 1.7;
+    else if (width > 1850) scale = 1.45;
+    else if (width > 1400) scale = 1.15;
+
     // Initialize bubble sizes and layout positions
     const nodes = activeSkills.map((skill) => ({
       id: skill.id,
       name: skill.name,
       category: skill.category,
       count: counts[skill.id] || 0,
-      radius: Math.max(50, 45 + (counts[skill.id] || 0) / maxCount * 75),
+      radius: Math.max(50, 45 + (counts[skill.id] || 0) / maxCount * 75) * scale,
     }));
 
     const simulation = d3
@@ -512,9 +569,9 @@ export default function BiddingPresent({
         d3.forceCollide().radius((d) => d.radius + 6)
       )
       .force("manyBody", d3.forceManyBody().strength(-40))
-      .force("center", d3.forceCenter(width / 2, height / 2 + 30))
+      .force("center", d3.forceCenter(width / 2, height / 2 + 90))
       .force("x", d3.forceX(width / 2).strength(0.08))
-      .force("y", d3.forceY(height / 2 + 30).strength(0.08));
+      .force("y", d3.forceY(height / 2 + 90).strength(0.08));
 
     const g = svg.append("g");
 
@@ -661,10 +718,10 @@ export default function BiddingPresent({
     // Render text block inside foreignObject (ensures text is wrapped and fully contained inside the sphere)
     const fo = nodeGroup
       .append("foreignObject")
-      .attr("x", (d) => -d.radius * 0.85)
-      .attr("y", (d) => -d.radius * 0.85)
-      .attr("width", (d) => d.radius * 1.7)
-      .attr("height", (d) => d.radius * 1.7)
+      .attr("x", (d) => -d.radius * 0.95)
+      .attr("y", (d) => -d.radius * 0.95)
+      .attr("width", (d) => d.radius * 1.9)
+      .attr("height", (d) => d.radius * 1.9)
       .style("pointer-events", "none");
 
     const bodyDiv = fo
@@ -689,7 +746,7 @@ export default function BiddingPresent({
       .style("margin", "0")
       .style("font-weight", "800")
       .style("line-height", "1.15")
-      .style("font-size", (d) => `${Math.max(10, Math.min(d.radius * 0.22, 13))}px`)
+      .style("font-size", (d) => `${Math.max(10, Math.min(d.radius * 0.22, 13 * scale))}px`)
       .text((d) => d.name);
 
     bodyDiv.append("p")
@@ -697,10 +754,19 @@ export default function BiddingPresent({
       .style("margin", "4px 0 0 0")
       .style("font-weight", "700")
       .style("color", "#fbbf24")
-      .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11))}px`)
+      .style("font-size", (d) => `${Math.max(9, Math.min(d.radius * 0.18, 11 * scale))}px`)
       .text((d) => `${d.count} Coins`);
 
+    const minYBoundary = 180 * scale;
+
     simulation.on("tick", () => {
+      nodes.forEach((d) => {
+        // Clamp Y to prevent overlapping with top question banner
+        const minY = minYBoundary + d.radius;
+        if (d.y < minY) {
+          d.y = minY;
+        }
+      });
       nodeGroup.attr("transform", (d) => `translate(${d.x},${d.y})`);
     });
 
@@ -710,7 +776,7 @@ export default function BiddingPresent({
       if (!containerRef.current) return;
       const { width: w, height: h } = containerRef.current.getBoundingClientRect();
       svg.attr("width", w).attr("height", h);
-      simulation.force("center", d3.forceCenter(w / 2, h / 2 + 30));
+      simulation.force("center", d3.forceCenter(w / 2, h / 2 + 90));
       simulation.alpha(0.3).restart();
     };
 
@@ -760,9 +826,9 @@ export default function BiddingPresent({
 
         {/* Top Header */}
         <div className="z-20 p-6 flex items-center justify-between w-full">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-14 w-auto object-contain" />
-          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain" />}
-          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" />}
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-14 w-auto object-contain wide-logo-gryphon" />
+          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain wide-logo-event" />}
+          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain wide-logo-event" />}
         </div>
 
         {/* Center Concluded Card */}
@@ -805,20 +871,20 @@ export default function BiddingPresent({
           <img
             src="/GryphonWhite.png"
             alt="Gryphon Logo"
-            className="h-14 w-auto object-contain filter drop-shadow-md"
+            className="h-14 w-auto object-contain filter drop-shadow-md wide-logo-gryphon"
           />
         </div>
         <div className="flex items-center gap-4">
-          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain" />}
-          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain" />}
+          {isSynergy && <img src="/SNSlogo.png" alt="Synergy Sphere Logo" className="h-12 w-auto object-contain wide-logo-event" />}
+          {isMasterclass && <img src="/mc01.png" alt="Masterclass Logo" className="h-12 w-auto object-contain wide-logo-event" />}
         </div>
       </div>
 
       {/* Active Question Display in the Center (Styled like standard presenter screen) */}
       {activeQuestionIndex !== -1 && activeQuestion ? (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl px-6 w-full select-none bp-fadeIn pointer-events-none">
-          <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 rounded-3xl shadow-2xl">
-            <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl xl:max-w-4xl 2xl:max-w-7xl px-6 w-full select-none bp-fadeIn pointer-events-none">
+          <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 md:px-8 md:py-5 lg:px-10 lg:py-6 rounded-3xl shadow-2xl">
+            <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-5xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
               {activeQuestion.text || activeQuestion.title}
             </h2>
           </div>
@@ -908,31 +974,34 @@ export default function BiddingPresent({
         </div>
       </div>
 
-      {/* Looping Character Sprite */}
-      <div
-        className="fixed bottom-35 right-10 pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-        onClick={() => {
-          if (activeSkills?.length) {
-            const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
-            shootCoin(randomSkill.id, false);
-          }
-        }}
-      >
-        <img
-          src={shootImageOverride || SPRITE_SEQUENCE[spriteIndex]}
-          alt="Looping Character"
-          className="w-[11rem] h-[11rem] object-contain select-none"
-          style={{ transform: "scaleX(-1)" }}
-        />
-      </div>
+      {/* Character and Platform Wrapper - 40% screen height */}
+      <div className="fixed bottom-0 right-0 z-20 pointer-events-none w-[35vh] h-[40vh]">
+        {/* Looping Character Sprite */}
+        <div
+          className="absolute bottom-[22vh] right-[6vh] w-[25vh] h-[25vh] pointer-events-auto z-30 cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+          onClick={() => {
+            if (activeSkills?.length) {
+              const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
+              shootCoin(randomSkill.id, false);
+            }
+          }}
+        >
+          <img
+            src={shootImageOverride || SPRITE_SEQUENCE[spriteIndex]}
+            alt="Looping Character"
+            className="w-full h-full object-contain select-none"
+            style={{ transform: "scaleX(-1)" }}
+          />
+        </div>
 
-      {/* Branch Sprite */}
-      <div className="fixed bottom-[-5rem] right-[-2rem] pointer-events-none z-20">
-        <img
-          src={isSynergy ? "/GameSprites/platform.png" : "/GameSprites/branch.png"}
-          alt="Branch Platform"
-          className="w-[15rem] h-auto object-contain select-none"
-        />
+        {/* Branch Sprite */}
+        <div className="absolute bottom-[-8vh] right-[-3vh] w-[33vh] h-auto pointer-events-none z-20">
+          <img
+            src={isSynergy ? "/GameSprites/platform.png" : "/GameSprites/branch.png"}
+            alt="Branch Platform"
+            className="w-full h-auto object-contain select-none"
+          />
+        </div>
       </div>
 
       {/* QR Code Modal */}
@@ -965,7 +1034,7 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-lg rounded-3xl p-8 text-center border shadow-2xl transition-all"
+        className="relative w-full max-w-lg rounded-3xl p-8 text-center border shadow-2xl transition-all wide-qr-modal"
         style={{
           background: isSynergy ? "#1c0a0a" : isMasterclass ? "#051a10" : "#1e293b",
           borderColor: `${accentColor}33`
@@ -981,7 +1050,7 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
           Scan the QR code to enter the bidding wallet on your phone
         </p>
 
-        <div className="bg-white p-6 rounded-2xl inline-block shadow-lg border border-white/10 mb-6 bp-glow">
+        <div className="bg-white p-6 rounded-2xl inline-block shadow-lg border border-white/10 mb-6 bp-glow wide-qr-container">
           <QRCodeSVG value={participantUrl} size={400} />
         </div>
 

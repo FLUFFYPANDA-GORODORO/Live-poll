@@ -24,6 +24,8 @@ import {
   FolderOpen,
   CopyIcon,
   Layers,
+  Download,
+  Upload
 } from "lucide-react";
 import Link from "next/link";
 
@@ -380,7 +382,7 @@ function SessionModal({ isOpen, onClose, onSave, initialPoll = null }) {
 }
 
 // ── BIDDING POLL CARD COMPONENT ──
-function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }) {
+function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone, onExport }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
 
@@ -530,6 +532,13 @@ function BiddingPollCard({ poll, onDelete, onRestart, onShare, onEdit, onClone }
                 </button>
                 <div className={`h-px my-1 ${isSynergy || isMasterclass ? "bg-stone-800" : "bg-slate-100"}`} />
                 <button
+                  onClick={() => { setShowMenu(false); onExport(poll); }}
+                  className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
+                >
+                  <Download className="w-4 h-4 text-emerald-500" /> Export JSON
+                </button>
+                <div className={`h-px my-1 ${isSynergy || isMasterclass ? "bg-stone-800" : "bg-slate-100"}`} />
+                <button
                   onClick={() => { setShowMenu(false); onDelete(poll.id); }}
                   className="w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/10 flex items-center gap-2"
                 >
@@ -651,6 +660,110 @@ export default function BiddingAdmin() {
     }
   };
 
+  const handleExportBidding = (poll) => {
+    if (!poll.questions) {
+      toast.error("No questions to export");
+      return;
+    }
+
+    const exportData = {
+      title: poll.title,
+      theme: poll.theme || "synergy_sphere",
+      questions: poll.questions.map((q) => ({
+        text: q.text,
+        skills: q.skills ? q.skills.map((s) => ({
+          name: s.name,
+          category: s.category || "General",
+        })) : [],
+      })),
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const { cleanTitle } = parseTheme(poll.title || "");
+    a.href = url;
+    a.download = `${cleanTitle || "bidding-session"}-config.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Bidding configuration exported!");
+  };
+
+  const handleImportBidding = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const importData = JSON.parse(event.target.result);
+          if (!importData || !Array.isArray(importData.questions)) {
+            toast.error("Invalid JSON format. Must contain a 'questions' array.");
+            return;
+          }
+
+          const cleanedQuestions = [];
+          for (let i = 0; i < importData.questions.length; i++) {
+            const q = importData.questions[i];
+            if (!q.text || typeof q.text !== "string" || !q.text.trim()) {
+              toast.error(`Question ${i + 1} is missing text`);
+              return;
+            }
+
+            if (!Array.isArray(q.skills) || q.skills.length === 0) {
+              toast.error(`Question ${i + 1} must contain a 'skills' array with at least 1 skill`);
+              return;
+            }
+
+            const cleanedSkills = q.skills.map((s, sIdx) => {
+              const name = typeof s === "string" ? s.trim() : (s.name || "").trim();
+              const category = typeof s === "object" && s.category ? s.category.trim() : "General";
+              return {
+                name,
+                category,
+                index: sIdx
+              };
+            }).filter(s => s.name !== "");
+
+            if (cleanedSkills.length === 0) {
+              toast.error(`Question ${i + 1} must have at least one valid skill name`);
+              return;
+            }
+
+            cleanedQuestions.push({
+              text: q.text.trim(),
+              index: i,
+              skills: cleanedSkills
+            });
+          }
+
+          const loadingToast = toast.loading("Creating bidding session from imported JSON...");
+          const theme = importData.theme || "synergy_sphere";
+          const { cleanTitle } = parseTheme(importData.title || "Imported Bidding Session");
+          const titleWithSuffix = `${cleanTitle} ${theme === "synergy_sphere" ? "~SS" : "~MC"}`;
+
+          await createBiddingPoll({
+            title: titleWithSuffix,
+            theme: theme,
+            questions: cleanedQuestions,
+          });
+          if (user) fetchBiddingPolls(user.uid);
+          toast.dismiss(loadingToast);
+          toast.success("Bidding session imported and created successfully!");
+        } catch (err) {
+          console.error("Error importing JSON:", err);
+          toast.error("Failed to parse JSON file");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   const handleRestartSession = async (poll) => {
     if (!confirm("Restart bidding session run? This clears active bids.")) return;
     setIsProcessing(true);
@@ -696,6 +809,13 @@ export default function BiddingAdmin() {
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
             </button>
             <button
+              onClick={handleImportBidding}
+              className="border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4 text-blue-500" />
+              Import JSON
+            </button>
+            <button
               onClick={() => setShowLaunchModal(true)}
               className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] hover:shadow-xl transition-all flex items-center gap-2"
             >
@@ -734,6 +854,7 @@ export default function BiddingAdmin() {
                   onShare={(p) => setSharePoll(p)}
                   onEdit={(p) => setEditingSession(p)}
                   onClone={handleCloneSession}
+                  onExport={handleExportBidding}
                 />
               ))}
             </div>

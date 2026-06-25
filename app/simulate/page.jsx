@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square, Trophy } from "lucide-react";
+import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square, Trophy, RotateCcw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 
-const GLOBAL_STYLE_ID = "bidding-present-styles";
+const GLOBAL_STYLE_ID = "bidding-present-styles-simulate";
 
 const SPRITE_SEQUENCE = [
   "/character/CharacterSpriteU.png",
@@ -25,23 +25,56 @@ const WELCOME_SPRITE_SEQUENCE = [
   "/character/StaticCharacter.png"
 ];
 
-export default function BiddingPresent({
-  poll,
-  bubbleCounts,
-  committedCount,
-  theme,
-  cohortParam,
-  cleanTitle,
-  pollId,
-  stopBidding,
-  subscribeToPresenter,
-  startQuestion,
-  biddingClosed,
-}) {
+const MOCK_POLL = {
+  id: "sim-1234",
+  title: "Future of Technology Bidding",
+  theme: "synergy_sphere",
+  activeQuestionIndex: 0,
+  questions: [
+    {
+      id: "q1",
+      text: "Which emerging skill is most critical for the future of AI Agents?",
+      skills: [
+        { id: "s1", name: "Multi-Agent Orchestration", category: "AI" },
+        { id: "s2", name: "Prompt Engineering & RAG", category: "AI" },
+        { id: "s3", name: "Reinforcement Learning", category: "AI" },
+        { id: "s4", name: "Dynamic Tool Integration", category: "AI" },
+        { id: "s5", name: "Vector Databases", category: "Data" },
+        { id: "s6", name: "Human-in-the-Loop Design", category: "UI" },
+      ]
+    },
+    {
+      id: "q2",
+      text: "What are your top areas for Backend Platform Optimization?",
+      skills: [
+        { id: "s7", name: "WebSocket Scalability", category: "Backend" },
+        { id: "s8", name: "Distributed Caching", category: "Backend" },
+        { id: "s9", name: "Query Performance", category: "Backend" },
+        { id: "s10", name: "State Rehydration", category: "Backend" },
+        { id: "s11", name: "Event-Driven Architecture", category: "Backend" }
+      ]
+    }
+  ],
+  currentCohort: "HR",
+  isBiddingActive: true,
+  biddingClosed: false
+};
+
+export default function BiddingSimulatePage() {
   const router = useRouter();
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const simulationRef = useRef(null);
+  
+  // Custom mock simulation states
+  const [poll, setPoll] = useState(MOCK_POLL);
+  const [bubbleCounts, setBubbleCounts] = useState({});
+  const [simTheme, setSimTheme] = useState("synergy_sphere");
+  const [activeCohort, setActiveCohort] = useState("HR");
+  
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [coinsSimulated, setCoinsSimulated] = useState(0);
+  
   const [d3Loaded, setD3Loaded] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
   const [loadingD3, setLoadingD3] = useState(true);
@@ -51,9 +84,12 @@ export default function BiddingPresent({
   const [shootImageOverride, setShootImageOverride] = useState(null);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
 
+  // Auto-send random emojis periodically during simulation
   useEffect(() => {
-    if (!pollId || !subscribeToPresenter) return;
-    const unsubscribe = subscribeToPresenter(pollId, (emoji) => {
+    if (!isSimulating) return;
+    const interval = setInterval(() => {
+      const emojis = ["👍", "❤️", "🔥", "😮", "🎉", "💯", "🚀", "👏"];
+      const emoji = emojis[Math.floor(Math.random() * emojis.length)];
       const id = Date.now() + Math.random();
       const flow = ["one", "two", "three"][Math.floor(Math.random() * 3)];
       const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
@@ -62,28 +98,13 @@ export default function BiddingPresent({
       setTimeout(() => {
         setFloatingEmojis((prev) => prev.filter((r) => r.id !== id));
       }, timing * 1000 + 200);
-    });
-    return () => unsubscribe();
-  }, [pollId, subscribeToPresenter]);
-
-
-  // Cohort state: "HR" vs "ACADEMIA"
-  // Initialize directly from the URL param (cohortParam) to avoid flashing the
-  // wrong theme before the poll data loads. Falls back to poll.currentCohort
-  // or "HR" if neither is available.
-  const [activeCohort, setActiveCohort] = useState(
-    cohortParam?.toUpperCase() || poll?.currentCohort || "HR"
-  );
-
-  useEffect(() => {
-    if (poll?.currentCohort) {
-      setActiveCohort(poll.currentCohort);
-    }
-  }, [poll?.currentCohort]);
+    }, 400);
+    return () => clearInterval(interval);
+  }, [isSimulating]);
 
   // Retrieve active question index and active skills
-  const activeQuestionIndex = poll?.activeQuestionIndex ?? -1;
-  const activeQuestion = poll?.questions?.[activeQuestionIndex];
+  const activeQuestionIndex = poll.activeQuestionIndex;
+  const activeQuestion = poll.questions[activeQuestionIndex];
   const activeSkills = activeQuestion?.skills || [];
 
   // Preload sprites
@@ -104,9 +125,6 @@ export default function BiddingPresent({
     if (!containerRef.current) return { x: 0, y: 0 };
     const rect = containerRef.current.getBoundingClientRect();
     const vh = window.innerHeight / 100;
-    // Character is at bottom-[22vh] right-[6vh] with size 25vh.
-    // The gun muzzle is at the left-most edge of the sprite (right-[6vh + 25vh] = right-[31vh])
-    // and about 66% up the sprite's height (bottom-[22vh + (25vh * 0.66)] = bottom-[38.5vh]).
     const x = rect.width - (31 * vh);
     const y = rect.height - (38.5 * vh);
     return { x, y };
@@ -141,7 +159,6 @@ export default function BiddingPresent({
     nodes.forEach((node) => {
       const newCount = currentCounts[node.id] || 0;
       node.count = newCount;
-      // Make bubbles expand as coins are added or shrink as they are removed
       node.radius = Math.max(50, 45 + (newCount / maxCount) * 75) * scale;
     });
 
@@ -207,21 +224,14 @@ export default function BiddingPresent({
     if (!window.d3 || !simulationRef.current || !activeSkills?.length) return;
     const d3 = window.d3;
 
-    // ⚠️ DO NOT increment the count here! The server's 100ms debounce timer
-    // broadcasts the correct aggregate count via ReceiveBubbleData BEFORE the
-    // 350ms coin animation completes. By the time this runs, renderedCountsRef
-    // already has the correct server value. Incrementing it would cause a
-    // permanent double-count (e.g., server says 1, this makes it 2).
-    // The coin animation is purely decorative — the data comes from the server.
     syncBubbleCounts();
 
-    // Pulse bubble on impact — animate both the main circle and sheen
+    // Pulse bubble on impact
     const svg = d3.select(svgRef.current);
     const nodes = simulationRef.current.nodes();
     const targetGroup = svg.selectAll(".bp-node").filter((d) => d.id === targetSkillId);
     const targetNode = nodes.find((n) => n.id === targetSkillId);
     if (targetNode && targetGroup.size() > 0) {
-      // Main circle pulse
       targetGroup.select("circle:first-child")
         .interrupt()
         .transition()
@@ -235,7 +245,6 @@ export default function BiddingPresent({
         .attr("stroke-width", 3)
         .attr("stroke", "rgba(255,255,255,0.85)");
 
-      // Sheen circle follows
       targetGroup.select("circle:nth-child(2)")
         .interrupt()
         .transition()
@@ -245,7 +254,6 @@ export default function BiddingPresent({
         .duration(280)
         .attr("r", targetNode.radius);
 
-      // Ambient glow pulse
       targetGroup.select("circle:nth-child(3)")
         .interrupt()
         .transition()
@@ -317,8 +325,6 @@ export default function BiddingPresent({
   const prevBubbleCountsRef = useRef({});
 
   // Sync bubble count updates to trigger coin shooting in bursts
-  // Each burst fires up to 10 coins simultaneously (matching the 10-coin-per-person budget)
-  // Bursts are spaced 200ms apart so large loads (300-400 coins) complete quickly
   useEffect(() => {
     if (!bubbleCounts || !activeSkills?.length) return;
 
@@ -328,7 +334,6 @@ export default function BiddingPresent({
     const BURST_SIZE = 10;
     const BURST_INTERVAL = 200;
 
-    // Collect all pending coin shots across all skills
     const pendingShots = [];
     activeSkills.forEach((skill) => {
       const prevVal = prevCounts[skill.id] || 0;
@@ -348,7 +353,6 @@ export default function BiddingPresent({
       syncBubbleCounts();
     }
 
-    // Fire coins in bursts of BURST_SIZE, with BURST_INTERVAL ms between bursts
     if (pendingShots.length > 0) {
       const totalBursts = Math.ceil(pendingShots.length / BURST_SIZE);
       for (let burst = 0; burst < totalBursts; burst++) {
@@ -356,7 +360,6 @@ export default function BiddingPresent({
         const endIdx = Math.min(startIdx + BURST_SIZE, pendingShots.length);
         setTimeout(() => {
           for (let i = startIdx; i < endIdx; i++) {
-            // Small random stagger (0-50ms) within each burst for visual spread
             const stagger = Math.random() * 50;
             setTimeout(() => {
               shootCoin(pendingShots[i]);
@@ -369,10 +372,8 @@ export default function BiddingPresent({
     prevBubbleCountsRef.current = { ...bubbleCounts };
   }, [bubbleCounts, activeSkills, shootCoin, syncBubbleCounts]);
 
-
-
-  const isSynergy = theme === "synergy_sphere";
-  const isMasterclass = theme === "masterclass";
+  const isSynergy = simTheme === "synergy_sphere";
+  const isMasterclass = simTheme === "masterclass";
 
   // Dynamic D3 injection
   useEffect(() => {
@@ -545,67 +546,93 @@ export default function BiddingPresent({
     router.push("/dashboard/bidding");
   };
 
-  const handleEndPoll = async () => {
+  const handleEndPoll = () => {
     if (confirm("Conclude cohort bidding run? This concludes the session.")) {
-      if (stopBidding) {
-        await stopBidding(pollId);
-      }
-      router.push("/dashboard/bidding");
+      setPoll((prev) => ({
+        ...prev,
+        biddingClosed: true
+      }));
     }
   };
 
-  // Cohort question paging navigation
-  const handlePageQuestion = async (direction) => {
-    if (!startQuestion || !poll?.questions) return;
+  const handlePageQuestion = (direction) => {
     const nextIdx = activeQuestionIndex + direction;
     if (nextIdx >= -1 && nextIdx <= poll.questions.length) {
-      try {
-        await startQuestion(pollId, nextIdx, activeCohort);
-      } catch (err) {
-        toast.error("Failed to switch question: " + (err.message || err));
-      }
+      // Clear simulation if active
+      setIsSimulating(false);
+      setCoinsSimulated(0);
+      
+      setPoll((prev) => ({
+        ...prev,
+        activeQuestionIndex: nextIdx,
+        biddingClosed: false
+      }));
+      setBubbleCounts({});
+      prevBubbleCountsRef.current = {};
+      renderedCountsRef.current = {};
     }
   };
 
-  // Cohort Toggle handler
-  const handleCohortToggle = async (cohortVal) => {
-    setActiveCohort(cohortVal);
-    if (startQuestion && activeQuestionIndex >= 0) {
-      try {
-        await startQuestion(pollId, activeQuestionIndex, cohortVal);
-      } catch (err) {
-        toast.error("Failed to switch cohort: " + (err.message || err));
-      }
-    }
-  };
+  // Simulation Runner
+  const simIntervalRef = useRef(null);
+  
+  const startSimulation = () => {
+    if (isSimulating) return;
+    setIsSimulating(true);
+    setCoinsSimulated(0);
+    setBubbleCounts({});
+    prevBubbleCountsRef.current = {};
+    renderedCountsRef.current = {};
 
-  const pageQuestionRef = useRef(handlePageQuestion);
-  useEffect(() => {
-    pageQuestionRef.current = handlePageQuestion;
-  });
+    let currentCounts = {};
+    let totalAdded = 0;
+    const targetCoins = 500;
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (document.activeElement && (
-        document.activeElement.tagName === "INPUT" ||
-        document.activeElement.tagName === "TEXTAREA" ||
-        document.activeElement.isContentEditable
-      )) {
+    simIntervalRef.current = setInterval(() => {
+      if (!activeSkills.length) {
+        clearInterval(simIntervalRef.current);
+        setIsSimulating(false);
         return;
       }
 
-      if (event.key === "ArrowRight") {
-        pageQuestionRef.current(1);
-      } else if (event.key === "ArrowLeft") {
-        pageQuestionRef.current(-1);
-      } else if (event.key.toLowerCase() === "q") {
-        setShowQrCode((prev) => !prev);
-      }
-    };
+      // Shoot in batches of 10 to 20 coins
+      const batchSize = Math.floor(Math.random() * 11) + 10;
+      const remaining = targetCoins - totalAdded;
+      const toAdd = Math.min(batchSize, remaining);
 
-    window.addEventListener("keydown", handleKeyDown);
+      const nextCounts = { ...currentCounts };
+      for (let i = 0; i < toAdd; i++) {
+        const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
+        nextCounts[randomSkill.id] = (nextCounts[randomSkill.id] || 0) + 1;
+      }
+
+      currentCounts = nextCounts;
+      totalAdded += toAdd;
+      setCoinsSimulated(totalAdded);
+      setBubbleCounts({ ...nextCounts });
+
+      if (totalAdded >= targetCoins) {
+        clearInterval(simIntervalRef.current);
+        setIsSimulating(false);
+      }
+    }, 180);
+  };
+
+  const resetSimulation = () => {
+    if (simIntervalRef.current) {
+      clearInterval(simIntervalRef.current);
+    }
+    setIsSimulating(false);
+    setCoinsSimulated(0);
+    setBubbleCounts({});
+    prevBubbleCountsRef.current = {};
+    renderedCountsRef.current = {};
+    syncBubbleCounts();
+  };
+
+  useEffect(() => {
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      if (simIntervalRef.current) clearInterval(simIntervalRef.current);
     };
   }, []);
 
@@ -634,7 +661,6 @@ export default function BiddingPresent({
     const availableWidth = width - (height * 0.35) - 100;
     const spaceScale = Math.min(1, Math.min(availableWidth, availableHeight) / totalRadii);
 
-    // Initialize bubble sizes and layout positions
     const nodes = activeSkills.map((skill) => ({
       id: skill.id,
       name: skill.name,
@@ -664,10 +690,8 @@ export default function BiddingPresent({
     });
     svg.call(zoom);
 
-    // Gradient definitions for bubbles
     const defs = svg.append("defs");
 
-    // Add distinct gradients
     const gradients = [
       { id: "grad-emerald", start: "#10b981", end: "#047857" },
       { id: "grad-indigo", start: "#6366f1", end: "#4338ca" },
@@ -685,7 +709,6 @@ export default function BiddingPresent({
       grad.append("stop").attr("offset", "100%").attr("stop-color", gData.end);
     });
 
-    // Glow filter for bubbles
     const glowFilter = defs.append("filter")
       .attr("id", "bp-glow")
       .attr("x", "-20%")
@@ -699,7 +722,6 @@ export default function BiddingPresent({
     glowMerge.append("feMergeNode").attr("in", "blur");
     glowMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
-    // Ambient glow for bubble backgrounds
     const ambientGlow = defs.append("filter")
       .attr("id", "bp-ambient-glow")
       .attr("x", "-50%")
@@ -713,7 +735,6 @@ export default function BiddingPresent({
     ambientMerge.append("feMergeNode").attr("in", "blur");
     ambientMerge.append("feMergeNode").attr("in", "SourceGraphic");
 
-    // Inner highlight / sheen on bubbles
     gradients.forEach((gData) => {
       const sheenGrad = defs.append("radialGradient")
         .attr("id", `sheen-${gData.id}`)
@@ -749,7 +770,6 @@ export default function BiddingPresent({
           })
       );
 
-    // Render Options Bubbles
     nodeGroup
       .append("circle")
       .attr("r", (d) => d.radius)
@@ -761,7 +781,6 @@ export default function BiddingPresent({
       .style("cursor", "grab")
       .style("transition", "r 0.3s ease-out, stroke-width 0.2s ease-out, filter 0.2s ease-out");
 
-    // Sheen overlay for glossy effect
     nodeGroup
       .append("circle")
       .attr("r", (d) => d.radius)
@@ -769,7 +788,6 @@ export default function BiddingPresent({
       .attr("stroke", "none")
       .style("pointer-events", "none");
 
-    // Ambient glow ring behind bubble
     nodeGroup
       .append("circle")
       .attr("r", (d) => d.radius * 0.5)
@@ -782,7 +800,6 @@ export default function BiddingPresent({
       .attr("transform", "translate(0, 0)")
       .style("pointer-events", "none");
 
-    // Hover interaction: enlarge and brighten on mouse enter
     nodeGroup
       .on("mouseenter", function () {
         d3.select(this).select("circle:first-child")
@@ -799,7 +816,6 @@ export default function BiddingPresent({
           .attr("stroke-width", 3);
       });
 
-    // Render text block inside foreignObject (ensures text is wrapped and fully contained inside the sphere)
     const fo = nodeGroup
       .append("foreignObject")
       .attr("x", (d) => -d.radius * 0.95)
@@ -843,19 +859,16 @@ export default function BiddingPresent({
 
     simulation.on("tick", () => {
       nodes.forEach((d) => {
-        // Clamp Y to prevent overlapping with top question banner and bottom screen edge
         const minY = minYBoundary + d.radius;
         const maxY = currentHeight - d.radius - 15;
         if (d.y < minY) d.y = minY;
         if (d.y > maxY) d.y = maxY;
 
-        // Clamp X to screen boundaries
         const minX = d.radius + 15;
         const maxX = currentWidth - d.radius - 15;
         if (d.x < minX) d.x = minX;
         if (d.x > maxX) d.x = maxX;
 
-        // Keep out of character/platform zone (bottom-right: 35vh width, 40vh height)
         const charWidth = currentHeight * 0.35;
         const charHeight = currentHeight * 0.40;
         const charLeftBound = currentWidth - charWidth - 15;
@@ -916,13 +929,13 @@ export default function BiddingPresent({
         {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
         <div className="text-center z-10">
           <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4" style={{ color: accentColor }} />
-          <p className="text-white/60 font-[Epilogue]">Loading visualization...</p>
+          <p className="text-white/60 font-[Epilogue]">Loading simulation view...</p>
         </div>
       </div>
     );
   }
 
-  const isSessionEnded = biddingClosed || poll?.biddingClosed;
+  const isSessionEnded = poll.biddingClosed;
 
   if (isSessionEnded) {
     return (
@@ -948,6 +961,13 @@ export default function BiddingPresent({
                 ? "The Skill Bidding For Synergy Sphere has ended"
                 : "The Skill Bidding Session has Ended"}
           </p>
+
+          <button
+            onClick={() => setPoll(prev => ({ ...prev, biddingClosed: false }))}
+            className="mt-8 px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold font-[Epilogue] text-sm uppercase tracking-wider transition-all flex items-center gap-2"
+          >
+            <RotateCcw className="w-4 h-4" /> Restart Session
+          </button>
         </div>
 
         {/* Bottom Spacer to balance top header under justify-between */}
@@ -960,9 +980,85 @@ export default function BiddingPresent({
     <div className={`relative h-screen w-full ${bgClass} overflow-hidden`} style={bgUrl ? { backgroundImage: `url(${bgUrl})` } : {}}>
       {bgUrl && <div className="absolute inset-0 bg-black/40 z-0" />}
 
+      {/* Top Simulator Control Bar */}
+      <div className="absolute top-4 left-4 z-50 flex flex-wrap items-center gap-3 bg-black/80 backdrop-blur-md border border-amber-500/30 rounded-2xl p-3 shadow-2xl select-none font-[Epilogue]">
+        <div className="flex items-center gap-2 border-r border-white/10 pr-3 mr-1">
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+          <span className="text-amber-400 text-xs font-black uppercase tracking-widest">
+            Simulator
+          </span>
+        </div>
+
+        <button
+          onClick={startSimulation}
+          disabled={isSimulating || activeQuestionIndex === -1 || activeQuestionIndex >= poll.questions.length}
+          className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-30 disabled:hover:bg-amber-500 text-black font-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-1.5"
+        >
+          {isSimulating ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Voting ({coinsSimulated}/500)
+            </>
+          ) : (
+            <>
+              <Play className="w-3.5 h-3.5 fill-current" />
+              Start Voting (500 Coins)
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={resetSimulation}
+          className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs uppercase tracking-wider transition-all"
+        >
+          Reset
+        </button>
+
+        <div className="w-px h-5 bg-white/10" />
+
+        <div className="flex items-center gap-1.5 text-xs text-white/70 font-semibold">
+          Theme:
+          <select
+            value={simTheme}
+            onChange={(e) => {
+              setSimTheme(e.target.value);
+              setPoll(prev => ({
+                ...prev,
+                theme: e.target.value
+              }));
+            }}
+            className="bg-zinc-800 text-white font-bold px-2.5 py-1.5 rounded-xl border border-white/10 outline-none cursor-pointer focus:border-amber-500/50"
+          >
+            <option value="synergy_sphere">Synergy Sphere</option>
+            <option value="masterclass">Masterclass</option>
+            <option value="default">Default</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs text-white/70 font-semibold">
+          Cohort:
+          <select
+            value={activeCohort}
+            onChange={(e) => {
+              setActiveCohort(e.target.value);
+              setPoll(prev => ({
+                ...prev,
+                currentCohort: e.target.value
+              }));
+            }}
+            className="bg-zinc-800 text-white font-bold px-2.5 py-1.5 rounded-xl border border-white/10 outline-none cursor-pointer focus:border-amber-500/50"
+          >
+            <option value="HR">HR</option>
+            <option value="ACADEMIA">ACADEMIA</option>
+          </select>
+        </div>
+      </div>
+
       {/* Top Header info (cohort logos) */}
       <div className="absolute top-0 left-0 right-0 z-20 p-6 flex items-center justify-between bp-fadeIn">
         <div>
+          {/* Shift down when simulator panel is visible on small screens */}
+          <div className="h-16 md:h-0" />
           <img
             src="/GryphonWhite.png"
             alt="Gryphon Logo"
@@ -975,9 +1071,9 @@ export default function BiddingPresent({
         </div>
       </div>
 
-      {/* Active Question Display in the Center (Styled like standard presenter screen) */}
+      {/* Active Question Display in the Center */}
       {activeQuestionIndex !== -1 && activeQuestionIndex < poll.questions.length && activeQuestion ? (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl xl:max-w-4xl 2xl:max-w-6xl px-6 w-full select-none bp-fadeIn pointer-events-none">
+        <div className="absolute top-24 md:top-16 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl xl:max-w-4xl 2xl:max-w-6xl px-6 w-full select-none bp-fadeIn pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 md:px-8 md:py-5 lg:px-10 lg:py-6 rounded-3xl shadow-2xl">
             <h2 className="text-xl md:text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
               {activeQuestion.text || activeQuestion.title}
@@ -1018,7 +1114,8 @@ export default function BiddingPresent({
       {/* Bottom Controls Bar */}
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
-          {/* Float zone: emojis drift upward through here, relative to the container */}
+          
+          {/* Float zone for simulated floating emojis */}
           <div className="absolute bottom-full right-4 pointer-events-none z-50 w-36 h-72 overflow-visible flex justify-center items-end mb-2">
             {floatingEmojis.map((r) => (
               <span
@@ -1034,6 +1131,7 @@ export default function BiddingPresent({
               </span>
             ))}
           </div>
+
           {activeQuestionIndex === -1 && (
             <button
               onClick={() => handlePageQuestion(1)}
@@ -1104,7 +1202,7 @@ export default function BiddingPresent({
         </div>
       </div>
 
-      {/* Character and Platform Wrapper - 40% screen height */}
+      {/* Character and Platform Wrapper */}
       <div className="fixed bottom-0 right-0 z-20 pointer-events-none w-[35vh] h-[40vh]">
         {/* Looping Character Sprite */}
         <div
@@ -1113,6 +1211,18 @@ export default function BiddingPresent({
             if (activeSkills?.length) {
               const randomSkill = activeSkills[Math.floor(Math.random() * activeSkills.length)];
               shootCoin(randomSkill.id, false);
+              
+              // Trigger a single simulated emoji reactions
+              const emojis = ["👍", "❤️", "🔥", "😮", "🎉"];
+              const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+              const id = Date.now() + Math.random();
+              const flow = ["one", "two", "three"][Math.floor(Math.random() * 3)];
+              const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
+              const size = Math.floor(Math.random() * (30 - 22) + 22);
+              setFloatingEmojis((prev) => [...prev, { id, emoji, flow, timing, size }]);
+              setTimeout(() => {
+                setFloatingEmojis((prev) => prev.filter((r) => r.id !== id));
+              }, timing * 1000 + 200);
             }
           }}
         >
@@ -1131,7 +1241,7 @@ export default function BiddingPresent({
           />
         </div>
 
-        {/* Branch Sprite */}
+        {/* Branch Platform Sprite */}
         <div className="absolute bottom-[-8vh] right-[-3vh] w-[33vh] h-auto pointer-events-none z-20">
           <img
             src={isSynergy ? "/GameSprites/platform.png" : "/GameSprites/branch.png"}
@@ -1144,8 +1254,8 @@ export default function BiddingPresent({
       {/* QR Code Modal */}
       {showQrCode && (
         <QrCodeModal
-          theme={theme}
-          pollId={pollId}
+          theme={simTheme}
+          pollId={poll.id}
           onClose={() => setShowQrCode(false)}
           isSynergy={isSynergy}
           isMasterclass={isMasterclass}
@@ -1209,7 +1319,7 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
         </div>
 
         <div className="text-center font-[Epilogue]">
-          <p className="text-xs text-white/30 uppercase tracking-wider">Bidding Session Code</p>
+          <p className="text-xs text-white/30 uppercase tracking-wider">Bidding Session Code (Simulated)</p>
           <p className="text-3xl font-bold font-mono mt-1 text-white tracking-widest">{pollId}</p>
         </div>
       </div>

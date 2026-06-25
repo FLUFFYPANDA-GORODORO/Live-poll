@@ -13,7 +13,8 @@ import {
   Copy,
   Check,
   Download,
-  FolderOpen
+  FolderOpen,
+  Upload
 } from "lucide-react";
 import PollCard from "@/components/Dashboard/PollCard";
 import { parseTheme } from "@/lib/themeHelper";
@@ -125,7 +126,8 @@ export default function MyPolls() {
     deletePoll,
     restartPoll,
     createPoll,
-    fetchPollById
+    fetchPollById,
+    savePoll
   } = usePollStore();
 
   const [shareModal, setShareModal] = useState(null);
@@ -205,6 +207,115 @@ export default function MyPolls() {
     }
   };
 
+  const handleExportPoll = async (poll) => {
+    const loadingToast = toast.loading("Fetching poll details...");
+    try {
+      const fullPoll = await fetchPollById(poll.id);
+      if (!fullPoll || !fullPoll.questions) {
+        toast.dismiss(loadingToast);
+        toast.error("Failed to load poll details");
+        return;
+      }
+
+      const exportData = {
+        title: fullPoll.title,
+        theme: fullPoll.theme || "standard",
+        questions: fullPoll.questions.map((q) => ({
+          text: q.text,
+          type: q.type,
+          options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
+        })),
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const { cleanTitle } = parseTheme(fullPoll.title || "");
+      a.href = url;
+      a.download = `${cleanTitle || "poll"}-config.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.dismiss(loadingToast);
+      toast.success("JSON exported successfully!");
+    } catch (err) {
+      console.error("Error exporting poll:", err);
+      toast.dismiss(loadingToast);
+      toast.error("Failed to export poll");
+    }
+  };
+
+  const handleImportPoll = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const importData = JSON.parse(event.target.result);
+          if (!importData || !Array.isArray(importData.questions)) {
+            toast.error("Invalid JSON format. Must contain a 'questions' array.");
+            return;
+          }
+
+          const cleanedQuestions = [];
+          for (let i = 0; i < importData.questions.length; i++) {
+            const q = importData.questions[i];
+            if (!q.text || typeof q.text !== "string" || !q.text.trim()) {
+              toast.error(`Question ${i + 1} is missing text`);
+              return;
+            }
+
+            const isQWordCloud = q.type === "WordCloud" || q.type === 1 || String(q.type).toLowerCase() === "wordcloud" || !q.options || q.options.length === 0;
+
+            if (isQWordCloud) {
+              cleanedQuestions.push({
+                text: q.text.trim(),
+                type: "WordCloud",
+                options: []
+              });
+            } else {
+              if (!Array.isArray(q.options) || q.options.length < 2) {
+                toast.error(`Question ${i + 1} needs at least 2 options`);
+                return;
+              }
+              const validOptions = q.options
+                .map(o => typeof o === "string" ? o.trim() : (o.text || "").trim())
+                .filter(opt => opt !== "");
+
+              if (validOptions.length < 2) {
+                toast.error(`Question ${i + 1} needs at least 2 non-empty options`);
+                return;
+              }
+              cleanedQuestions.push({
+                text: q.text.trim(),
+                type: "MultipleChoice",
+                options: validOptions
+              });
+            }
+          }
+
+          const loadingToast = toast.loading("Creating poll from imported JSON...");
+          const theme = importData.theme || "standard";
+          const title = importData.title || "Imported Poll";
+          
+          await createPoll(title, cleanedQuestions, theme);
+          await fetchPolls(user.uid);
+          toast.dismiss(loadingToast);
+          toast.success("Poll imported and created successfully!");
+        } catch (err) {
+          console.error("Error importing JSON:", err);
+          toast.error("Failed to parse JSON file");
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  };
+
   return (
     <>
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -214,13 +325,22 @@ export default function MyPolls() {
             <h1 className="text-2xl font-bold text-slate-900">My Polls</h1>
             <p className="text-sm text-slate-500 mt-1">Manage all your polls in one place</p>
           </div>
-          <button 
-            onClick={() => router.push("/dashboard/create")}
-            className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] transition-all flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Create Poll
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleImportPoll}
+              className="border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4 text-blue-500" />
+              Import JSON
+            </button>
+            <button 
+              onClick={() => router.push("/dashboard/create")}
+              className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] transition-all flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Create Poll
+            </button>
+          </div>
         </header>
 
         {/* Content */}
@@ -251,6 +371,7 @@ export default function MyPolls() {
                   onRestart={handleRestartPoll} 
                   onClone={handleClonePoll}
                   onShare={(p) => setShareModal(p)}
+                  onExport={handleExportPoll}
                 />
               ))}
             </div>

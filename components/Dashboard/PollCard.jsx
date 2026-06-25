@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MoreVertical, Play, Share2, Edit2, RotateCcw, Trash2, Calendar, Copy } from "lucide-react";
+import { MoreVertical, Play, Share2, Edit2, RotateCcw, Trash2, Calendar, Copy, Download, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { parseTheme } from "@/lib/themeHelper";
 
-export default function PollCard({ poll, onDelete, onRestart, onClone, onShare }) {
+export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, onExport }) {
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
@@ -104,13 +104,13 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare }
                          onClick={() => { setShowMenu(false); router.push(`/present/${poll.id}`); }}
                          className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                     >
-                        <Play className="w-4 h-4 text-emerald-500" /> Present
+                         <Play className="w-4 h-4 text-emerald-500" /> Present
                     </button>
                     <button 
                          onClick={() => { setShowMenu(false); onShare(poll); }}
                          className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                     >
-                        <Share2 className="w-4 h-4 text-blue-500" /> Share
+                         <Share2 className="w-4 h-4 text-blue-500" /> Share
                     </button>
                     {poll.status === 'draft' && (
                          <button 
@@ -134,10 +134,17 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare }
                     </button>
                     <div className={`h-px my-1 ${isSynergy || isMasterclass ? "bg-stone-800" : "bg-slate-100"}`} />
                     <button 
+                         onClick={() => { setShowMenu(false); onExport(poll); }}
+                         className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
+                    >
+                         <Download className="w-4 h-4 text-emerald-500" /> Export JSON
+                    </button>
+                    <div className={`h-px my-1 ${isSynergy || isMasterclass ? "bg-stone-800" : "bg-slate-100"}`} />
+                    <button 
                          onClick={() => { setShowMenu(false); onDelete(poll.id); }}
                          className={`w-full text-left px-4 py-2.5 text-sm font-medium text-red-500 hover:bg-red-500/10 flex items-center gap-2`}
                     >
-                        <Trash2 className="w-4 h-4" /> Delete
+                         <Trash2 className="w-4 h-4" /> Delete
                     </button>
                 </div>
             )}

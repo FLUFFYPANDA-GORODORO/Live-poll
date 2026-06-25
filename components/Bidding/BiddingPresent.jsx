@@ -41,6 +41,22 @@ export default function BiddingPresent({
   const [spriteIndex, setSpriteIndex] = useState(0);
   const activeShotsRef = useRef(0);
   const [shootImageOverride, setShootImageOverride] = useState(null);
+  const [floatingEmojis, setFloatingEmojis] = useState([]);
+
+  useEffect(() => {
+    if (!pollId || !subscribeToPresenter) return;
+    const unsubscribe = subscribeToPresenter(pollId, (emoji) => {
+      const id = Date.now() + Math.random();
+      const flow = ["one", "two", "three"][Math.floor(Math.random() * 3)];
+      const timing = (Math.random() * (1.3 - 1.0) + 1.0).toFixed(1);
+      const size = Math.floor(Math.random() * (30 - 22) + 22);
+      setFloatingEmojis((prev) => [...prev, { id, emoji, flow, timing, size }]);
+      setTimeout(() => {
+        setFloatingEmojis((prev) => prev.filter((r) => r.id !== id));
+      }, timing * 1000 + 200);
+    });
+    return () => unsubscribe();
+  }, [pollId, subscribeToPresenter]);
 
 
   // Cohort state: "HR" vs "ACADEMIA"
@@ -349,6 +365,34 @@ export default function BiddingPresent({
     style.id = GLOBAL_STYLE_ID;
     style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;600;700;800&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
+
+      @keyframes sn-flowOne {
+        0%   { opacity: 0; bottom: 0;   left: 35%; }
+        40%  { opacity: .8; }
+        50%  { opacity: 1;  left: 45%; }
+        60%  { opacity: .2; }
+        80%  { bottom: 80%; }
+        100% { opacity: 0;  bottom: 100%; left: 68%; }
+      }
+      @keyframes sn-flowTwo {
+        0%   { opacity: 0; bottom: 0;  left: 45%; }
+        40%  { opacity: .8; }
+        50%  { opacity: 1;  left: 61%; }
+        60%  { opacity: .2; }
+        80%  { bottom: 60%; }
+        100% { opacity: 0;  bottom: 80%; left: 45%; }
+      }
+      @keyframes sn-flowThree {
+        0%   { opacity: 0; bottom: 0;  left: 45%; }
+        40%  { opacity: .8; }
+        50%  { opacity: 1;  left: 25%; }
+        60%  { opacity: .2; }
+        80%  { bottom: 70%; }
+        100% { opacity: 0;  bottom: 90%; left: 45%; }
+      }
+      .sn-flow-one   { animation: sn-flowOne   linear forwards; }
+      .sn-flow-two   { animation: sn-flowTwo   linear forwards; }
+      .sn-flow-three { animation: sn-flowThree linear forwards; }
 
       @keyframes bp-pulse {
         0%, 100% { transform: scale(1); }
@@ -785,7 +829,13 @@ export default function BiddingPresent({
 
             <button
               onClick={() => router.push("/dashboard/bidding")}
-              className="py-3 px-8 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+              className={`py-3 px-8 rounded-xl text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg hover:scale-[1.02] active:scale-[0.98] ${
+                isSynergy
+                  ? "bg-rose-600 hover:bg-rose-500"
+                  : isMasterclass
+                    ? "bg-emerald-600 hover:bg-emerald-500"
+                    : "bg-slate-700 hover:bg-slate-600"
+              }`}
             >
               Exit to Dashboard
             </button>
@@ -843,11 +893,33 @@ export default function BiddingPresent({
 
       {/* Bottom Controls Bar */}
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
-        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto">
+        <div className="bg-black/60 backdrop-blur-md border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
+          {/* Float zone: emojis drift upward through here, relative to the container */}
+          <div className="absolute bottom-full right-4 pointer-events-none z-50 w-36 h-72 overflow-visible flex justify-center items-end mb-2">
+            {floatingEmojis.map((r) => (
+              <span
+                key={r.id}
+                className={`sn-flow-${r.flow} absolute select-none pointer-events-none`}
+                style={{
+                  animationDuration: `${r.timing}s`,
+                  fontSize: `${r.size}px`,
+                  bottom: 0,
+                }}
+              >
+                {r.emoji}
+              </span>
+            ))}
+          </div>
           {activeQuestionIndex === -1 && (
             <button
               onClick={() => handlePageQuestion(1)}
-              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider transition-all"
+              className={`px-3 py-1.5 rounded-lg text-white font-bold text-xs uppercase tracking-wider transition-all ${
+                isSynergy
+                  ? "bg-rose-600 hover:bg-rose-500"
+                  : isMasterclass
+                    ? "bg-emerald-600 hover:bg-emerald-500"
+                    : "bg-slate-700 hover:bg-slate-600"
+              }`}
             >
               Start
             </button>

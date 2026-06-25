@@ -41,6 +41,59 @@ export default function BiddingPoll({
   const [showQr, setShowQr] = useState(false);
   const [spriteIndex, setSpriteIndex] = useState(0);
   const debounceCall = useDebounce();
+  const [particles, setParticles] = useState([]);
+  const [rings, setRings] = useState([]);
+
+  const EMOJI_COLORS = {
+    "❤️": "#f43f5e",
+    "🔥": "#f97316",
+    "👏": "#eab308",
+    "😂": "#eab308",
+    "🤯": "#eab308"
+  };
+
+  const handleEmojiClick = (e, emoji) => {
+    sendEmoji?.(poll?.id, emoji);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const color = EMOJI_COLORS[emoji] || "#fff";
+
+    const newParticles = [];
+    const count = 10;
+    const now = Date.now();
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * 2 * Math.PI + (Math.random() - 0.5) * 0.5;
+      const distance = 25 + Math.random() * 25;
+      const dx = `${Math.cos(angle) * distance}px`;
+      const dy = `${-60 - Math.random() * 60}px`;
+      const size = 6 + Math.random() * 6;
+
+      newParticles.push({
+        id: `${now}-${i}-${Math.random()}`,
+        x,
+        y,
+        dx,
+        dy,
+        size,
+        color,
+      });
+    }
+
+    const ringId = `${now}-ring-${Math.random()}`;
+    setRings((prev) => [...prev, { id: ringId, x, y, color }]);
+    setParticles((prev) => [...prev, ...newParticles]);
+
+    setTimeout(() => {
+      setParticles((prev) => prev.filter((p) => Date.now() - parseInt(p.id.split("-")[0], 10) < 1000));
+    }, 1000);
+
+    setTimeout(() => {
+      setRings((prev) => prev.filter((r) => r.id !== ringId));
+    }, 1000);
+  };
 
   useEffect(() => {
     SPRITE_SEQUENCE.forEach((src) => {
@@ -275,19 +328,19 @@ export default function BiddingPoll({
           {/* Scroll container containing instructions */}
           <div className="w-[calc(100%+1.5rem)] md:w-[calc(100%+2rem)] -mx-3 md:-mx-4 flex flex-col mt-6 relative select-none">
             {/* Scroll Top */}
-            <img 
-              src={isSynergy ? "/GameSprites/LogFire.webp" : "/GameSprites/ScrollTop.webp"} 
-              alt="Scroll Top" 
-              className="w-full h-auto object-contain block select-none pointer-events-none relative z-10" 
+            <img
+              src={isSynergy ? "/GameSprites/LogFire.webp" : "/GameSprites/ScrollTop.webp"}
+              alt="Scroll Top"
+              className="w-full h-auto object-contain block select-none pointer-events-none relative z-10"
               style={{ transform: "scale(1.1)", transformOrigin: "bottom center", filter: "drop-shadow(0 6px 4px rgba(0,0,0,0.35))" }}
             />
-            
+
             {/* Scroll Middle (CSS Parchment) */}
-            <div 
+            <div
               className="w-full px-6 py-5 md:py-8 flex flex-col relative z-0 retro-scroll-middle"
               style={{
                 backgroundColor: "#dfcaa7",
-                backgroundImage: isSynergy 
+                backgroundImage: isSynergy
                   ? "linear-gradient(to bottom, rgba(249, 115, 22, 0.25) 0%, rgba(249, 115, 22, 0) 15%, rgba(59, 130, 246, 0) 85%, rgba(59, 130, 246, 0.25) 100%), linear-gradient(to right, rgba(74,44,15,0.15) 0%, rgba(255,255,255,0.1) 6%, rgba(255,255,255,0.2) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.2) 88%, rgba(255,255,255,0.1) 94%, rgba(74,44,15,0.15) 100%)"
                   : "linear-gradient(to right, rgba(74,44,15,0.15) 0%, rgba(255,255,255,0.1) 6%, rgba(255,255,255,0.2) 12%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 75%, rgba(255,255,255,0.2) 88%, rgba(255,255,255,0.1) 94%, rgba(74,44,15,0.15) 100%)",
                 boxShadow: "inset 10px 0 15px -10px rgba(0,0,0,0.5), inset -10px 0 15px -10px rgba(0,0,0,0.5)",
@@ -347,7 +400,7 @@ export default function BiddingPoll({
                 <span className="text-[9px] font-bold text-amber-900/70 uppercase tracking-widest block text-center mb-0.5">
                   -- INSTRUCTIONS --
                 </span>
-                
+
                 <div className="space-y-2 retro-instruction-list">
                   <div className="flex gap-2 items-start">
                     <span className="text-amber-950 font-black text-xs shrink-0 select-none">[1]</span>
@@ -383,10 +436,10 @@ export default function BiddingPoll({
             </div>
 
             {/* Scroll Bottom */}
-            <img 
-              src={isSynergy ? "/GameSprites/logfreeze.webp" : "/GameSprites/ScrollBottom.webp"} 
-              alt="Scroll Bottom" 
-              className="w-full h-auto object-contain block select-none pointer-events-none relative z-10" 
+            <img
+              src={isSynergy ? "/GameSprites/logfreeze.webp" : "/GameSprites/ScrollBottom.webp"}
+              alt="Scroll Bottom"
+              className="w-full h-auto object-contain block select-none pointer-events-none relative z-10"
               style={{ transform: "scale(1.1)", transformOrigin: "top center", filter: "drop-shadow(0 -6px 4px rgba(0,0,0,0.35))" }}
             />
           </div>
@@ -403,38 +456,72 @@ export default function BiddingPoll({
       ) : (
         /* Active Question Bidding Screen */
         <div className="w-full max-w-md z-10 flex flex-col justify-center my-auto">
-          {/* Dynamic Circular/Horizontal Budget Bar */}
-          <div className="w-full bg-black/40 backdrop-blur-md border border-white/10 rounded-2xl py-2.5 px-4 mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src="/coin2.png" alt="Coin" className="w-8 h-8 object-contain" />
-              <div className="text-left flex flex-col justify-center leading-none">
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/50 mb-1">Remaining Budget</span>
-                <span className="text-base font-extrabold text-amber-400">{remainingCoins} Coins</span>
+          {/* Remaining Budget Bar */}
+          <div className="w-full bg-white rounded-xl p-4 mb-3.5 shadow-md border border-slate-200 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-sm animate-pulse" />
+                  <img
+                    src="/coin2.png"
+                    alt="Coin"
+                    className="w-12 h-12 object-contain relative z-10 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-transparent select-none uppercase tracking-widest leading-none mb-1">
+                    Available Balance
+                  </span>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-4xl font-black leading-none text-slate-800 tracking-tight">
+                      {remainingCoins}
+                    </span>
+                    <span className="text-xs font-bold text-slate-500 tracking-wider">
+                      COINS
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Indicator */}
+              <div className="flex flex-col items-end">
+                <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider opacity-0 select-none border ${
+                  remainingCoins === 0 
+                    ? "bg-slate-100 text-slate-500 border-slate-200" 
+                    : isSynergy 
+                      ? "bg-rose-50 text-rose-600 border-rose-100" 
+                      : "bg-emerald-50 text-emerald-600 border-emerald-100"
+                }`}>
+                  {remainingCoins === 0 ? "Allocated" : "Bidding"}
+                </span>
+                <span className="text-[10px] font-bold text-slate-400 mt-1">
+                  {10 - remainingCoins} / 10 Spent
+                </span>
               </div>
             </div>
-            {/* Visual Progress Ring */}
-            <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-              <svg className="w-10 h-10 transform -rotate-90" viewBox="0 0 40 40">
-                <circle
-                  cx="20"
-                  cy="20"
-                  r="16"
-                  className="stroke-white/10"
-                  strokeWidth="3.5"
-                  fill="transparent"
-                />
-                <circle
-                  strokeDasharray={2 * Math.PI * 16}
-                  strokeDashoffset={2 * Math.PI * 16 * (1 - remainingCoins / 10)}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <span className="absolute text-[9px] font-extrabold text-white">{Math.round((remainingCoins / 10) * 100)}%</span>
+
+            {/* Custom Visual Budget Bar (10 segments) */}
+            <div className="flex gap-1 w-full h-2 bg-slate-100 rounded-full p-[2px]">
+              {Array.from({ length: 10 }).map((_, idx) => {
+                const isRemaining = idx < remainingCoins;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex-1 h-full rounded-full transition-all duration-300 ${
+                      isRemaining
+                        ? isSynergy
+                          ? "bg-gradient-to-r from-rose-500 to-amber-500 shadow-[0_0_4px_rgba(244,63,94,0.3)]"
+                          : "bg-gradient-to-r from-emerald-500 to-amber-500 shadow-[0_0_4px_rgba(16,185,129,0.3)]"
+                        : "bg-slate-200"
+                    }`}
+                  />
+                );
+              })}
             </div>
           </div>
 
           {/* Main Question & Stepper Card */}
-          <div className="w-full bg-white text-slate-900 rounded-2xl p-3.5 shadow-2xl border border-slate-100 relative flex flex-col">
+          <div className="w-full bg-white text-slate-900 rounded-md p-3.5 shadow-md border border-slate-200 relative flex flex-col">
             <h2 className="text-sm font-black text-slate-950 mb-2.5 leading-tight text-center">
               {activeQuestion?.text || activeQuestion?.title}
             </h2>
@@ -450,9 +537,11 @@ export default function BiddingPoll({
                   return (
                     <div
                       key={skill.id}
-                      className={`w-full py-1.5 px-2.5 rounded-lg border transition-all flex items-center justify-between text-[11px] ${currentBid > 0
-                          ? "border-emerald-500 bg-emerald-50/30 text-emerald-950 font-bold"
-                          : "border-slate-100 text-slate-700 bg-slate-50/40"
+                      className={`w-full py-1.5 px-2.5 rounded-md border border-slate-200 transition-all flex items-center justify-between text-[11px] ${currentBid > 0
+                        ? (isSynergy
+                          ? "bg-rose-50/50 text-rose-950 font-bold"
+                          : "bg-emerald-50/50 text-emerald-950 font-bold")
+                        : "text-slate-700 bg-slate-50/40"
                         }`}
                     >
                       <div className="pr-3 leading-snug flex-1">
@@ -476,7 +565,7 @@ export default function BiddingPoll({
             {/* Submit Button */}
             <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-col items-center">
               {isQuestionSubmitted ? (
-                <div className="w-full py-2 bg-emerald-50 text-emerald-700 font-bold rounded-lg text-center text-xs border border-emerald-100 flex items-center justify-center gap-1.5">
+                <div className="w-full py-2 bg-emerald-50 text-emerald-700 font-bold rounded-md text-center text-xs border border-emerald-100 flex items-center justify-center gap-1.5">
                   <span>Bids Submitted Successfully</span>
                   <span className="text-sm font-black">✓</span>
                 </div>
@@ -485,7 +574,12 @@ export default function BiddingPoll({
                   type="button"
                   onClick={handleSubmitBids}
                   disabled={isSubmitting}
-                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 text-white font-bold rounded-lg text-center text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-1.5"
+                  className={`w-full py-2 disabled:bg-slate-300 text-white font-bold rounded-md text-center text-xs transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-1.5 ${isSynergy
+                    ? "bg-rose-600 hover:bg-rose-500"
+                    : isMasterclass
+                      ? "bg-emerald-600 hover:bg-emerald-500"
+                      : "bg-slate-800 hover:bg-slate-700"
+                    }`}
                 >
                   {isSubmitting ? (
                     <>
@@ -499,16 +593,34 @@ export default function BiddingPoll({
               )}
             </div>
           </div>
+
+          {/* Emoji Reactions Panel */}
+          {poll?.status === "live" && poll?.status !== undefined && (
+            <div className="p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md">
+              {["❤️", "🔥", "👏", "😂", "🤯"].map((emoji, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => handleEmojiClick(e, emoji)}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer ${isSynergy || isMasterclass
+                    ? "hover:bg-white/10 active:bg-white/20"
+                    : "hover:bg-slate-100 active:bg-slate-200"
+                    }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* QR Modal Overlay */}
       {showQr && (
-        <div 
+        <div
           onClick={() => setShowQr(false)}
           className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm"
         >
-          <div 
+          <div
             onClick={(e) => e.stopPropagation()}
             className="rounded-2xl p-6 max-w-sm w-full flex flex-col items-center relative shadow-2xl border-4 border-amber-950 font-mono"
             style={{
@@ -535,8 +647,8 @@ export default function BiddingPoll({
 
             {/* QR SVG */}
             <div className="bg-[#f2e5d0] p-4 rounded-xl border-2 border-amber-950/20 flex items-center justify-center mb-6 shadow-inner">
-              <QRCodeSVG 
-                value={typeof window !== "undefined" ? window.location.href : ""} 
+              <QRCodeSVG
+                value={typeof window !== "undefined" ? window.location.href : ""}
                 size={200}
                 level="H"
                 bgColor="#f2e5d0"
@@ -551,6 +663,8 @@ export default function BiddingPoll({
           </div>
         </div>
       )}
+      {/* Particles and Ripples Portal */}
+      <BiddingPollParticlesPortal particles={particles} rings={rings} />
     </div>
   );
 }
@@ -568,60 +682,12 @@ function BiddingStepper({ skillId, currentBid, remainingCoins, isQuestionSubmitt
     }
   }, [skillId, currentBid, changeBidBy]);
 
-  const latestIncrement = useRef(increment);
-  const latestDecrement = useRef(decrement);
-  useEffect(() => {
-    latestIncrement.current = increment;
-    latestDecrement.current = decrement;
-  }, [increment, decrement]);
-
-  const timerRef = useRef(null);
-  const intervalRef = useRef(null);
-
-  const stop = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    if (intervalRef.current) clearInterval(intervalRef.current);
-  }, []);
-
-  const start = useCallback((type) => {
-    stop();
-    const execute = () => {
-      if (type === "inc") latestIncrement.current();
-      else if (type === "dec") latestDecrement.current();
-    };
-    execute();
-
-    timerRef.current = setTimeout(() => {
-      intervalRef.current = setInterval(() => {
-        execute();
-      }, 70);
-    }, 300);
-  }, [stop]);
-
-  // Clean up on unmount
-  useEffect(() => stop, [stop]);
-
-  const getHandlers = (type, disabled) => {
-    if (disabled) return {};
-    return {
-      onMouseDown: () => start(type),
-      onMouseUp: stop,
-      onMouseLeave: stop,
-      onTouchStart: (e) => {
-        e.preventDefault();
-        start(type);
-      },
-      onTouchEnd: stop,
-      onTouchCancel: stop,
-    };
-  };
-
   return (
     <div className="flex items-center gap-1 shrink-0">
       <button
         type="button"
         disabled={isQuestionSubmitted || currentBid <= 0}
-        {...getHandlers("dec", isQuestionSubmitted || currentBid <= 0)}
+        onClick={decrement}
         className="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-extrabold rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed select-none"
       >
         -
@@ -642,11 +708,95 @@ function BiddingStepper({ skillId, currentBid, remainingCoins, isQuestionSubmitt
       <button
         type="button"
         disabled={isQuestionSubmitted || remainingCoins <= 0}
-        {...getHandlers("inc", isQuestionSubmitted || remainingCoins <= 0)}
+        onClick={increment}
         className="w-6 h-6 flex items-center justify-center bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 font-extrabold rounded-md text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed select-none"
       >
         +
       </button>
     </div>
+  );
+}
+
+// Particle rendering portal
+export function BiddingPollParticlesPortal({ particles = [], rings = [] }) {
+  return (
+    <>
+      {/* Floating click particles portal */}
+      {particles.map((p) => (
+        <span
+          key={p.id}
+          className="emoji-particle"
+          style={{
+            left: p.x,
+            top: p.y,
+            width: p.size,
+            height: p.size,
+            backgroundColor: p.color,
+            "--dx": p.dx,
+            "--dy": p.dy,
+            boxShadow: `0 0 8px ${p.color}`,
+            position: "fixed",
+            zIndex: 9999,
+          }}
+        />
+      ))}
+
+      {/* Expanding click rings portal */}
+      {rings.map((r) => (
+        <span
+          key={r.id}
+          className="emoji-click-ring"
+          style={{
+            left: r.x,
+            top: r.y,
+            borderColor: r.color,
+            boxShadow: `0 0 10px ${r.color}, inset 0 0 10px ${r.color}`,
+            position: "fixed",
+            zIndex: 9998,
+          }}
+        />
+      ))}
+
+      <style>{`
+        @keyframes particle-up {
+          0% {
+            transform: translate(-50%, -50%) translate(0, 0) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2);
+            opacity: 0;
+          }
+        }
+        @keyframes ring-expand {
+          0% {
+            width: 0px;
+            height: 0px;
+            opacity: 1;
+            border-width: 6px;
+          }
+          100% {
+            width: 80px;
+            height: 80px;
+            opacity: 0;
+            border-width: 2px;
+          }
+        }
+        .emoji-particle {
+          position: fixed;
+          pointer-events: none;
+          border-radius: 50%;
+          animation: particle-up 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+        }
+        .emoji-click-ring {
+          position: fixed;
+          pointer-events: none;
+          border-style: solid;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          animation: ring-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+        }
+      `}</style>
+    </>
   );
 }

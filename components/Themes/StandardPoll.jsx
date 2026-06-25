@@ -278,8 +278,8 @@ export default function StandardPoll({
     let buttonClass = "flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors";
     let iconBgClass = "w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-6";
     let iconClass = "w-10 h-10 text-green-500";
-    let titleText = "Poll Ended";
-    let subTitleText = "Thank you for participating!";
+    let titleText = "Thank You for Your Participation";
+    let subTitleText = "The Live Poll has Ended";
 
     if (isMasterclass) {
       endedClass = "min-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-emerald-50";
@@ -289,8 +289,8 @@ export default function StandardPoll({
       buttonClass = "flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors shadow-lg shadow-emerald-600/35 border border-emerald-500/30";
       iconBgClass = "w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-6 border border-emerald-500/35";
       iconClass = "w-10 h-10 text-emerald-500";
-      titleText = "Masterclass Ended";
-      subTitleText = "Your answers have been saved. Masterclass concluded!";
+      titleText = "Thank You for Your Participation";
+      subTitleText = "The Live Poll of Masterclass 3.0 has Ended";
     } else if (isSynergy) {
       endedClass = "min-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat flex flex-col justify-between p-4 md:p-6 text-rose-50 relative";
       textClass = "text-white";
@@ -299,8 +299,8 @@ export default function StandardPoll({
       buttonClass = "flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-700 px-6 py-3 rounded-xl font-semibold text-white mx-auto transition-colors shadow-lg shadow-rose-600/35 border border-rose-500/30";
       iconBgClass = "w-20 h-20 rounded-full bg-rose-500/20 flex items-center justify-center mx-auto mb-6 border border-rose-500/35";
       iconClass = "w-10 h-10 text-rose-500";
-      titleText = "Sphere Concluded";
-      subTitleText = "Your answers have been saved. Synergy Sphere concluded!";
+      titleText = "Thank You for Your Participation";
+      subTitleText = "The Live Poll of Synergy Sphere has Ended";
     }
 
     return (
@@ -326,18 +326,17 @@ export default function StandardPoll({
         )}
 
         {/* Main Content Card */}
-        <div className="max-w-md text-center mx-auto my-auto z-10 relative w-full px-4">
-          <div className={cardClass}>
-            <div className={iconBgClass}>
-              <Check className={iconClass} />
-            </div>
-            <h1 className={`text-2xl font-bold mb-4 ${textClass}`}>{titleText}</h1>
-            <p className={`${cardTextClass} mb-6`}>{subTitleText}</p>
-            <button onClick={() => router.push("/")} className={buttonClass}>
-              <Home className="w-5 h-5" />
-              Return Home
-            </button>
-          </div>
+        <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
+          <h1 className={`text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none ${
+            isMasterclass || isSynergy ? "font-baskerville font-light" : "font-extrabold"
+          }`}>
+            {titleText}
+          </h1>
+          <p className={`mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue ${
+            isMasterclass ? "text-emerald-350" : isSynergy ? "text-rose-400" : "text-zinc-300"
+          }`}>
+            {subTitleText}
+          </p>
         </div>
 
         {/* Bottom Spacer to balance top header under justify-between */}
@@ -593,7 +592,7 @@ export default function StandardPoll({
                 </div>
               )
             ) : hasVoted ? (
-              isMasterclass ? (
+              isWordCloud ? null : isMasterclass ? (
                 <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 rounded-md text-emerald-700 border border-emerald-100/50 text-xs font-semibold">
                   <Check className="w-4 h-4" />
                   <span>Answer recorded!</span>

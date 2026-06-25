@@ -165,7 +165,7 @@ export default function PresentationMode() {
   };
 
   const handleNextQuestion = async () => {
-    if (isTransitioning || currentQuestionIndex >= totalQuestions - 1) return;
+    if (isTransitioning || currentQuestionIndex >= totalQuestions) return;
     try {
       await nextQuestion(pollId, currentQuestionIndex, totalQuestions);
       toastSuccess("Next question started!");

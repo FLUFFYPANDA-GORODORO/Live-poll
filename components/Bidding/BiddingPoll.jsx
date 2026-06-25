@@ -111,19 +111,25 @@ export default function BiddingPoll({
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
 
-  // Load transactions and submitted status from localStorage on mount
+  // localStorage keys scoped by pollId to prevent cross-poll state leakage
+  const txKey = `bidding_transactions_v2_${poll?.id}`;
+  const submittedKey = `bidding_submitted_v2_${poll?.id}`;
+
+  // Load transactions and submitted status from localStorage on mount (scoped by pollId)
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedTransactions = JSON.parse(localStorage.getItem("bidding_transactions_v2") || "{}");
+    if (typeof window !== "undefined" && poll?.id) {
+      const savedTransactions = JSON.parse(localStorage.getItem(txKey) || "{}");
       setTransactions(savedTransactions);
-      const savedSubmitted = JSON.parse(localStorage.getItem("bidding_submitted_v2") || "{}");
+      const savedSubmitted = JSON.parse(localStorage.getItem(submittedKey) || "{}");
       setSubmittedQuestions(savedSubmitted);
     }
-  }, []);
+  }, [poll?.id, txKey, submittedKey]);
 
   const saveTransactions = (newTxs) => {
     setTransactions(newTxs);
-    localStorage.setItem("bidding_transactions_v2", JSON.stringify(newTxs));
+    if (poll?.id) {
+      localStorage.setItem(txKey, JSON.stringify(newTxs));
+    }
   };
 
   // Calculate remaining coins: 10 - sum of bids for this active question
@@ -199,10 +205,12 @@ export default function BiddingPoll({
         }
       }
 
-      // Save submission state locally
+      // Save submission state locally (scoped by pollId)
       const newSubmitted = { ...submittedQuestions, [activeQuestionIndex]: true };
       setSubmittedQuestions(newSubmitted);
-      localStorage.setItem("bidding_submitted_v2", JSON.stringify(newSubmitted));
+      if (poll?.id) {
+        localStorage.setItem(submittedKey, JSON.stringify(newSubmitted));
+      }
 
       toast.success("Bids submitted successfully!");
     } catch (err) {

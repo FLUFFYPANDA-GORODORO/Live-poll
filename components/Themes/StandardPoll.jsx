@@ -349,19 +349,19 @@ export default function StandardPoll({
   // 3. Main Active Poll Screen
   let mainWrapperClass = "h-screen max-h-screen bg-[#F8FAFC] p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative";
   let contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2";
-  let cardClass = "bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden";
-  let emojiPanelClass = "p-2 mt-12 flex items-center justify-center gap-2 max-w-sm mx-auto animate-fade-in";
+  let cardClass = "bg-white rounded-md border border-[#E2E8F0] shadow-sm overflow-hidden";
+  let emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
 
   if (isMasterclass) {
     mainWrapperClass = "h-screen max-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-white font-sans flex flex-col justify-between overflow-y-auto";
     contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1";
-    cardClass = "bg-white rounded-2xl border border-emerald-100 shadow-xl overflow-hidden";
-    emojiPanelClass = "p-2 mt-12 flex items-center justify-center gap-2 max-w-sm mx-auto animate-fade-in";
+    cardClass = "bg-white rounded-md border border-emerald-100 shadow-xl overflow-hidden";
+    emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
   } else if (isSynergy) {
     mainWrapperClass = "h-screen max-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-rose-50 font-sans flex flex-col justify-between overflow-y-auto relative overflow-hidden";
     contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1 z-10 relative";
-    cardClass = "bg-white rounded-2xl border border-rose-100 shadow-xl overflow-hidden";
-    emojiPanelClass = "p-2 mt-12 flex items-center justify-center gap-2 max-w-sm mx-auto animate-fade-in";
+    cardClass = "bg-white rounded-md border border-rose-100 shadow-xl overflow-hidden";
+    emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
   }
 
   return (
@@ -464,12 +464,9 @@ export default function StandardPoll({
                 <Check className={`w-6 h-6 ${isMasterclass ? "text-emerald-600" : isSynergy ? "text-rose-600" : "text-green-600"
                   }`} />
               </div>
-              <h3 className={`text-lg font-bold mb-1 ${isSynergy || isMasterclass ? "text-slate-800" : "text-slate-800"}`}>
-                Response Recorded!
+              <h3 className={`text-lg font-bold ${isSynergy || isMasterclass ? "text-slate-800" : "text-slate-800"}`}>
+                Answer Recorded!
               </h3>
-              <p className={`text-xs ${isSynergy ? "text-stone-500" : "text-slate-500"}`}>
-                Wait for the presenter to show the results.
-              </p>
             </div>
           )}
 
@@ -485,7 +482,7 @@ export default function StandardPoll({
                 const isOptionUnselected = hasVoted && selectedOption !== idx;
 
                 if (isMasterclass) {
-                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${isOptionSelected
+                  buttonStyleClass = `w-full p-2.5 rounded-md text-left transition-all flex items-center gap-3 border ${isOptionSelected
                     ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default"
                     : isOptionUnselected
                       ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
@@ -496,7 +493,7 @@ export default function StandardPoll({
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
                   badgeStyle = { backgroundColor: MASTERCLASS_CHART_COLORS[idx % MASTERCLASS_CHART_COLORS.length] };
                 } else if (isSynergy) {
-                  buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${isOptionSelected
+                  buttonStyleClass = `w-full p-2.5 rounded-md text-left transition-all flex items-center gap-3 border ${isOptionSelected
                     ? "bg-rose-50 border-rose-500 shadow-md font-bold text-stone-900 cursor-default"
                     : isOptionUnselected
                       ? "bg-stone-100/50 border-stone-200 opacity-40 cursor-default"
@@ -506,7 +503,7 @@ export default function StandardPoll({
                     }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 bg-gradient-to-br from-red-500 to-rose-600 shadow-md";
                 } else {
-                  buttonStyleClass = `w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 border-2 ${isOptionSelected
+                  buttonStyleClass = `w-full p-4 rounded-md text-left transition-all flex items-center gap-4 border-2 ${isOptionSelected
                     ? "bg-[#F8FAFC] border-[var(--color-primary)] shadow-sm font-bold text-[#1E293B] cursor-default"
                     : isOptionUnselected
                       ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
@@ -552,7 +549,7 @@ export default function StandardPoll({
                   placeholder="Type your response (max 50 characters)..."
                   maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
-                  className={`w-full p-3 border rounded-xl text-sm focus:outline-none focus:ring-1 bg-slate-50 disabled:opacity-60 text-slate-800 placeholder-slate-400 ${isMasterclass
+                  className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 disabled:opacity-60 text-slate-800 placeholder-slate-400 ${isMasterclass
                     ? "border-emerald-100 focus:border-emerald-500 focus:ring-emerald-500"
                     : isSynergy
                       ? "border-rose-100 focus:border-rose-500 focus:ring-rose-500"
@@ -563,7 +560,7 @@ export default function StandardPoll({
               <button
                 onClick={handleSubmitWord}
                 disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
-                className={`w-full py-3 text-white rounded-xl text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isMasterclass
+                className={`w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 ${isMasterclass
                   ? "bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 shadow-emerald-500/10"
                   : isSynergy
                     ? "bg-rose-600 hover:bg-rose-700 disabled:opacity-50 shadow-rose-500/10"
@@ -580,86 +577,85 @@ export default function StandardPoll({
           <div className={isMasterclass || isSynergy ? "px-3 pb-3" : "px-4 pb-4"}>
             {voting || localSubmitting ? (
               isMasterclass ? (
-                <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 rounded-lg text-emerald-650 border border-emerald-100/20 text-xs font-semibold">
+                <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 rounded-md text-emerald-650 border border-emerald-100/20 text-xs font-semibold">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Transmitting response...</span>
                 </div>
               ) : isSynergy ? (
-                <div className="flex items-center justify-center gap-2 p-2 bg-rose-50 rounded-lg text-rose-650 border border-rose-100/20 text-xs font-semibold">
+                <div className="flex items-center justify-center gap-2 p-2 bg-rose-50 rounded-md text-rose-650 border border-rose-100/20 text-xs font-semibold">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Transmitting sphere response...</span>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-2 p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
+                <div className="flex items-center justify-center gap-2 p-4 bg-[var(--color-primary)]/10 rounded-md text-[var(--color-primary)]">
                   <Loader2 className="w-5 h-5 animate-spin" />
                   <span className="font-medium">Recording response...</span>
                 </div>
               )
             ) : hasVoted ? (
               isMasterclass ? (
-                <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 rounded-lg text-emerald-700 border border-emerald-100/50 text-xs font-semibold">
+                <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 rounded-md text-emerald-700 border border-emerald-100/50 text-xs font-semibold">
                   <Check className="w-4 h-4" />
-                  <span>Answer recorded! Waiting for presenter to show results.</span>
+                  <span>Answer recorded!</span>
                 </div>
               ) : isSynergy ? (
-                <div className="flex items-center justify-center gap-2 p-2 bg-rose-50 rounded-lg text-rose-700 border border-rose-100/50 text-xs font-semibold">
+                <div className="flex items-center justify-center gap-2 p-2 bg-rose-50 rounded-md text-rose-700 border border-rose-100/50 text-xs font-semibold">
                   <Check className="w-4 h-4" />
-                  <span>Response logged! Waiting for presenter to show results.</span>
+                  <span>Answer recorded!</span>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-2 p-4 bg-green-100 rounded-xl text-green-700">
+                <div className="flex items-center justify-center gap-2 p-4 bg-green-100 rounded-md text-green-700">
                   <Check className="w-5 h-5" />
-                  <span className="font-medium">Your response is in! Waiting for presenter to show results.</span>
+                  <span className="font-medium">Answer recorded!</span>
                 </div>
               )
             ) : !poll.currentQuestionActive ? (
               isMasterclass ? (
-                <div className="flex items-center justify-center gap-2 p-2 bg-slate-100 rounded-lg text-slate-600 border border-slate-200 text-xs font-semibold">
+                <div className="flex items-center justify-center gap-2 p-2 bg-slate-100 rounded-md text-slate-600 border border-slate-200 text-xs font-semibold">
                   <Lock className="w-4 h-4" />
                   <span>Voting is currently locked.</span>
                 </div>
               ) : isSynergy ? (
-                <div className="flex items-center justify-center gap-2 p-2 bg-stone-100 rounded-lg text-stone-600 border border-stone-200 text-xs font-semibold">
+                <div className="flex items-center justify-center gap-2 p-2 bg-stone-100 rounded-md text-stone-600 border border-stone-200 text-xs font-semibold">
                   <Lock className="w-4 h-4" />
                   <span>Voting is currently locked.</span>
                 </div>
               ) : (
-                <div className="flex items-center justify-center gap-2 p-4 bg-yellow-100 rounded-xl text-yellow-700">
+                <div className="flex items-center justify-center gap-2 p-4 bg-yellow-100 rounded-md text-yellow-700">
                   <Lock className="w-5 h-5" />
                   <span className="font-medium">Voting locked. Wait for host.</span>
                 </div>
               )
             ) : isWordCloud ? (
               isMasterclass ? (
-                <div className="text-center p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100/30 text-xs font-semibold">
+                <div className="text-center p-2 bg-emerald-50 rounded-md text-emerald-600 border border-emerald-100/30 text-xs font-semibold">
                   <span>Enter a word and tap submit to record your response</span>
                 </div>
               ) : isSynergy ? (
-                <div className="text-center p-2 bg-rose-50 rounded-lg text-rose-600 border border-rose-100/30 text-xs font-semibold">
+                <div className="text-center p-2 bg-rose-50 rounded-md text-rose-600 border border-rose-100/30 text-xs font-semibold">
                   <span>Enter a word and tap submit to record your response</span>
                 </div>
               ) : (
-                <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
+                <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-md text-[var(--color-primary)]">
                   <span className="font-medium">Enter a word and tap submit to record your response</span>
                 </div>
               )
             ) : isMasterclass ? (
-              <div className="text-center p-2 bg-emerald-50 rounded-lg text-emerald-600 border border-emerald-100/30 text-xs font-semibold">
+              <div className="text-center p-2 bg-emerald-50 rounded-md text-emerald-600 border border-emerald-100/30 text-xs font-semibold">
                 <span>Tap an option to lock in your answer</span>
               </div>
             ) : isSynergy ? (
-              <div className="text-center p-2 bg-rose-50 rounded-lg text-rose-600 border border-rose-100/30 text-xs font-semibold">
+              <div className="text-center p-2 bg-rose-50 rounded-md text-rose-600 border border-rose-100/30 text-xs font-semibold">
                 <span>Tap an option to lock in your answer</span>
               </div>
             ) : (
-              <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-xl text-[var(--color-primary)]">
+              <div className="text-center p-4 bg-[var(--color-primary)]/10 rounded-md text-[var(--color-primary)]">
                 <span className="font-medium">Tap an option to vote</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Emoji Reactions Panel */}
         {/* Emoji Reactions Panel */}
         {poll.status === "live" && poll.status !== undefined && (
           <div className={emojiPanelClass}>

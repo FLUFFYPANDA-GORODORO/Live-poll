@@ -17,6 +17,14 @@ const SPRITE_SEQUENCE = [
   "/character/CharacterSprite4U.png"
 ];
 
+const WELCOME_SPRITE_SEQUENCE = [
+  "/character/StaticCharacter.png",
+  "/character/StaticCharacter2.png",
+  "/character/StaticCharacter3.png",
+  "/character/StaticCharacter2.png",
+  "/character/StaticCharacter.png"
+];
+
 export default function BiddingPresent({
   poll,
   bubbleCounts,
@@ -80,13 +88,13 @@ export default function BiddingPresent({
 
   // Preload sprites
   useEffect(() => {
-    [...SPRITE_SEQUENCE, "/character/CharacterSpriteShootU.png"].forEach((src) => {
+    [...SPRITE_SEQUENCE, ...WELCOME_SPRITE_SEQUENCE, "/character/CharacterSpriteShootU.png"].forEach((src) => {
       const img = new Image();
       img.src = src;
     });
 
     const interval = setInterval(() => {
-      setSpriteIndex((prev) => (prev + 1) % SPRITE_SEQUENCE.length);
+      setSpriteIndex((prev) => (prev + 1) % 420);
     }, 250);
 
     return () => clearInterval(interval);
@@ -1059,7 +1067,12 @@ export default function BiddingPresent({
           }}
         >
           <img
-            src={shootImageOverride || SPRITE_SEQUENCE[spriteIndex]}
+            src={
+              shootImageOverride ||
+              (activeQuestionIndex === -1
+                ? WELCOME_SPRITE_SEQUENCE[spriteIndex % WELCOME_SPRITE_SEQUENCE.length]
+                : SPRITE_SEQUENCE[spriteIndex % SPRITE_SEQUENCE.length])
+            }
             alt="Looping Character"
             className="w-full h-full object-contain select-none"
             style={{ transform: "scaleX(-1)" }}

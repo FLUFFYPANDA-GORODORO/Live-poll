@@ -106,6 +106,59 @@ export default function StandardPoll({
 }) {
   const [wordInput, setWordInput] = useState("");
   const [localSubmitting, setLocalSubmitting] = useState(false);
+  const [particles, setParticles] = useState([]);
+  const [rings, setRings] = useState([]);
+
+  const EMOJI_COLORS = {
+    "❤️": "#f43f5e",
+    "🔥": "#f97316",
+    "👏": "#eab308",
+    "😂": "#eab308",
+    "🤯": "#eab308"
+  };
+
+  const handleEmojiClick = (e, emoji) => {
+    handleSendEmoji(emoji);
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const color = EMOJI_COLORS[emoji] || "#fff";
+
+    const newParticles = [];
+    const count = 10;
+    const now = Date.now();
+
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * 2 * Math.PI + (Math.random() - 0.5) * 0.5;
+      const distance = 25 + Math.random() * 25;
+      const dx = `${Math.cos(angle) * distance}px`;
+      const dy = `${-60 - Math.random() * 60}px`;
+      const size = 6 + Math.random() * 6;
+
+      newParticles.push({
+        id: `${now}-${i}-${Math.random()}`,
+        x,
+        y,
+        dx,
+        dy,
+        size,
+        color,
+      });
+    }
+
+    const ringId = `${now}-ring-${Math.random()}`;
+    setRings((prev) => [...prev, { id: ringId, x, y, color }]);
+    setParticles((prev) => [...prev, ...newParticles]);
+
+    setTimeout(() => {
+      setParticles((prev) => prev.filter((p) => Date.now() - parseInt(p.id.split("-")[0], 10) < 1000));
+    }, 1000);
+
+    setTimeout(() => {
+      setRings((prev) => prev.filter((r) => r.id !== ringId));
+    }, 1000);
+  };
 
   const isWordCloud = activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || String(activeQuestion?.type).toLowerCase() === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
     const txt = typeof opt === "string" ? opt : (opt.text || "");
@@ -297,18 +350,18 @@ export default function StandardPoll({
   let mainWrapperClass = "h-screen max-h-screen bg-[#F8FAFC] p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative";
   let contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2";
   let cardClass = "bg-white rounded-2xl border border-[#E2E8F0] shadow-sm overflow-hidden";
-  let emojiPanelClass = "bg-white/80 backdrop-blur-sm rounded-2xl border border-[#E2E8F0] shadow-sm p-4 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in";
+  let emojiPanelClass = "p-2 mt-12 flex items-center justify-center gap-2 max-w-sm mx-auto animate-fade-in";
 
   if (isMasterclass) {
     mainWrapperClass = "h-screen max-h-screen bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-white font-sans flex flex-col justify-between overflow-y-auto";
     contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1";
     cardClass = "bg-white rounded-2xl border border-emerald-100 shadow-xl overflow-hidden";
-    emojiPanelClass = "bg-white/80 backdrop-blur-[1px] rounded-2xl border border-emerald-100 shadow-md p-3.5 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in";
+    emojiPanelClass = "p-2 mt-12 flex items-center justify-center gap-2 max-w-sm mx-auto animate-fade-in";
   } else if (isSynergy) {
-    mainWrapperClass = "h-screen max-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-rose-50 font-sans flex flex-col justify-between overflow-y-auto relative";
+    mainWrapperClass = "h-screen max-h-screen bg-[url('/SynergySphereMobileBg.png')] md:bg-[url('/SynegrysphereBG.png')] bg-cover bg-center bg-no-repeat p-4 md:p-6 text-rose-50 font-sans flex flex-col justify-between overflow-y-auto relative overflow-hidden";
     contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-1 z-10 relative";
     cardClass = "bg-white rounded-2xl border border-rose-100 shadow-xl overflow-hidden";
-    emojiPanelClass = "p-4 mt-4 flex items-center justify-center gap-4 max-w-sm mx-auto animate-fade-in";
+    emojiPanelClass = "p-2 mt-12 flex items-center justify-center gap-2 max-w-sm mx-auto animate-fade-in";
   }
 
   return (
@@ -433,33 +486,33 @@ export default function StandardPoll({
 
                 if (isMasterclass) {
                   buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${isOptionSelected
-                      ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default"
-                      : isOptionUnselected
-                        ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
-                        : poll.currentQuestionActive && !voting
-                          ? "bg-slate-50 hover:bg-emerald-50/50 border-emerald-100/50 hover:border-emerald-450 cursor-pointer active:scale-[0.98]"
-                          : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60"
+                    ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default"
+                    : isOptionUnselected
+                      ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
+                      : poll.currentQuestionActive && !voting
+                        ? "bg-slate-50 hover:bg-emerald-50/50 border-emerald-100/50 hover:border-emerald-450 cursor-pointer active:scale-[0.98]"
+                        : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60"
                     }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
                   badgeStyle = { backgroundColor: MASTERCLASS_CHART_COLORS[idx % MASTERCLASS_CHART_COLORS.length] };
                 } else if (isSynergy) {
                   buttonStyleClass = `w-full p-2.5 rounded-xl text-left transition-all flex items-center gap-3 border ${isOptionSelected
-                      ? "bg-rose-50 border-rose-500 shadow-md font-bold text-stone-900 cursor-default"
-                      : isOptionUnselected
-                        ? "bg-stone-100/50 border-stone-200 opacity-40 cursor-default"
-                        : poll.currentQuestionActive && !voting
-                          ? "bg-stone-50 hover:bg-rose-50/50 border-rose-100/50 hover:border-rose-400 cursor-pointer active:scale-[0.98]"
-                          : "bg-stone-100 border-stone-200 cursor-not-allowed opacity-60"
+                    ? "bg-rose-50 border-rose-500 shadow-md font-bold text-stone-900 cursor-default"
+                    : isOptionUnselected
+                      ? "bg-stone-100/50 border-stone-200 opacity-40 cursor-default"
+                      : poll.currentQuestionActive && !voting
+                        ? "bg-stone-50 hover:bg-rose-50/50 border-rose-100/50 hover:border-rose-400 cursor-pointer active:scale-[0.98]"
+                        : "bg-stone-100 border-stone-200 cursor-not-allowed opacity-60"
                     }`;
                   badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 bg-gradient-to-br from-red-500 to-rose-600 shadow-md";
                 } else {
                   buttonStyleClass = `w-full p-4 rounded-xl text-left transition-all flex items-center gap-4 border-2 ${isOptionSelected
-                      ? "bg-[#F8FAFC] border-[var(--color-primary)] shadow-sm font-bold text-[#1E293B] cursor-default"
-                      : isOptionUnselected
-                        ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
-                        : poll.currentQuestionActive && !voting
-                          ? "bg-[#F8FAFC] hover:bg-slate-100 border-transparent hover:border-[var(--color-primary)] cursor-pointer active:scale-[0.98]"
-                          : "bg-[#F1F5F9] border-transparent cursor-not-allowed opacity-60"
+                    ? "bg-[#F8FAFC] border-[var(--color-primary)] shadow-sm font-bold text-[#1E293B] cursor-default"
+                    : isOptionUnselected
+                      ? "bg-slate-100/50 border-slate-200 opacity-40 cursor-default"
+                      : poll.currentQuestionActive && !voting
+                        ? "bg-[#F8FAFC] hover:bg-slate-100 border-transparent hover:border-[var(--color-primary)] cursor-pointer active:scale-[0.98]"
+                        : "bg-[#F1F5F9] border-transparent cursor-not-allowed opacity-60"
                     }`;
                   badgeClass = "w-10 h-10 rounded-full flex items-center justify-center font-bold text-white flex-shrink-0";
                   badgeStyle = { backgroundColor: STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
@@ -607,19 +660,100 @@ export default function StandardPoll({
         </div>
 
         {/* Emoji Reactions Panel */}
+        {/* Emoji Reactions Panel */}
         {poll.status === "live" && poll.status !== undefined && (
           <div className={emojiPanelClass}>
             {["❤️", "🔥", "👏", "😂", "🤯"].map((emoji, idx) => (
               <button
                 key={idx}
-                onClick={() => handleSendEmoji(emoji)}
-                className="text-2xl hover:scale-125 active:scale-90 transition-all duration-150 cursor-pointer"
+                onClick={(e) => handleEmojiClick(e, emoji)}
+                className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl hover:scale-125 active:scale-95 transition-all duration-150 cursor-pointer ${isMasterclass || isSynergy
+                    ? "hover:bg-white/10 active:bg-white/20"
+                    : "hover:bg-slate-100 active:bg-slate-200"
+                  }`}
               >
                 {emoji}
               </button>
             ))}
           </div>
         )}
+
+        {/* Floating click particles portal */}
+        {particles.map((p) => (
+          <span
+            key={p.id}
+            className="emoji-particle"
+            style={{
+              left: p.x,
+              top: p.y,
+              width: p.size,
+              height: p.size,
+              backgroundColor: p.color,
+              "--dx": p.dx,
+              "--dy": p.dy,
+              boxShadow: `0 0 8px ${p.color}`,
+              position: "fixed",
+              zIndex: 9999,
+            }}
+          />
+        ))}
+
+        {/* Expanding click rings portal */}
+        {rings.map((r) => (
+          <span
+            key={r.id}
+            className="emoji-click-ring"
+            style={{
+              left: r.x,
+              top: r.y,
+              borderColor: r.color,
+              boxShadow: `0 0 10px ${r.color}, inset 0 0 10px ${r.color}`,
+              position: "fixed",
+              zIndex: 9998,
+            }}
+          />
+        ))}
+
+        <style>{`
+          @keyframes particle-up {
+            0% {
+              transform: translate(-50%, -50%) translate(0, 0) scale(1);
+              opacity: 1;
+            }
+            100% {
+              transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2);
+              opacity: 0;
+            }
+          }
+          @keyframes ring-expand {
+            0% {
+              width: 0px;
+              height: 0px;
+              opacity: 1;
+              border-width: 6px;
+            }
+            100% {
+              width: 80px;
+              height: 80px;
+              opacity: 0;
+              border-width: 2px;
+            }
+          }
+          .emoji-particle {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: particle-up 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+          }
+          .emoji-click-ring {
+            position: fixed;
+            pointer-events: none;
+            border-style: solid;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: ring-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+          }
+        `}</style>
       </div>
     </div>
   );

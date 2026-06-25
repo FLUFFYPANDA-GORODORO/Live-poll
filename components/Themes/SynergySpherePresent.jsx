@@ -483,12 +483,12 @@ export default function SynergySpherePresent({
       {/* QR Code Modal */}
       {showQR && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300">
-          <div className="bg-black/90 border border-white/15 p-8 rounded-3xl flex flex-col items-center max-w-md w-full shadow-2xl relative mx-4">
+          <div className="bg-black/90 border border-white/15 p-8 rounded-3xl flex flex-col items-center max-w-lg w-full shadow-2xl relative mx-4">
             <button onClick={() => setShowQR(false)} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors">
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-white font-bold text-xl mb-4 text-center">Join the Poll</h3>
-            <div className="bg-white p-4 rounded-2xl mb-4"><QRCodeSVG value={pollUrl} size={320} /></div>
+            <div className="bg-white p-4 rounded-2xl mb-4"><QRCodeSVG value={pollUrl} size={400} /></div>
             <p className="text-rose-300 font-mono font-bold tracking-wider text-base select-all">{pollId}</p>
             <p className="text-slate-400 text-xs text-center mt-2">Scan the QR code or click the link below to participate:</p>
             <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-rose-400 hover:text-rose-350 hover:underline mt-4 text-sm font-semibold break-all text-center">{pollUrl}</a>

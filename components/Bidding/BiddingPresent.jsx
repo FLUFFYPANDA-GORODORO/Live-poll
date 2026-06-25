@@ -818,18 +818,18 @@ export default function BiddingPresent({
       {activeQuestionIndex !== -1 && activeQuestion ? (
         <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 text-center max-w-2xl px-6 w-full select-none bp-fadeIn pointer-events-none">
           <div className="bg-black/50 backdrop-blur-md border border-white/15 px-6 py-4 rounded-3xl shadow-2xl">
-            <h2 className="text-2xl font-black text-white leading-snug">
+            <h2 className="text-2xl font-light text-white leading-snug" style={{ fontFamily: "'Libre Baskerville', serif" }}>
               {activeQuestion.text || activeQuestion.title}
             </h2>
           </div>
         </div>
       ) : (
         <div className="absolute inset-0 z-15 flex flex-col items-center justify-center select-none bp-fadeIn pointer-events-none text-center">
-          <h1 className="text-white text-5xl md:text-7xl font-light tracking-wide font-[Libre Baskerville] italic mb-4">
-            {isMasterclass ? "Welcome to Masterclass 3.0" : isSynergy ? "Welcome to Synergy Sphere" : "Welcome to Bidding Arena"}
+          <h1 className="text-white text-5xl md:text-7xl font-light tracking-wide mb-4" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            {isMasterclass ? "Welcome to Masterclass 3.0" : isSynergy ? "Welcome to Synergy Sphere 2.0" : "Welcome to Bidding Arena"}
           </h1>
-          <p className="text-white/60 text-xs md:text-sm tracking-[0.2em] font-mono uppercase mt-2">
-            {isMasterclass ? "THE ADVENTUROUS INTELLIGENCE" : isSynergy ? "COGNITIVE SYNERGY" : "INTERACTIVE SKILL BIDDING"}
+          <p className="text-white/80 text-lg md:text-xl font-light italic tracking-wide mt-2" style={{ fontFamily: "'Libre Baskerville', serif" }}>
+            {(isMasterclass || isSynergy) ? "The adventurous Intelligence" : "Interactive Skill Bidding"}
           </p>
         </div>
       )}
@@ -965,7 +965,7 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4" onClick={onClose}>
       <div
-        className="relative w-full max-w-sm rounded-3xl p-8 text-center border shadow-2xl transition-all"
+        className="relative w-full max-w-lg rounded-3xl p-8 text-center border shadow-2xl transition-all"
         style={{
           background: isSynergy ? "#1c0a0a" : isMasterclass ? "#051a10" : "#1e293b",
           borderColor: `${accentColor}33`
@@ -982,7 +982,7 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
         </p>
 
         <div className="bg-white p-6 rounded-2xl inline-block shadow-lg border border-white/10 mb-6 bp-glow">
-          <QRCodeSVG value={participantUrl} size={220} />
+          <QRCodeSVG value={participantUrl} size={400} />
         </div>
 
         <div className="flex gap-2 mb-6 px-1">

@@ -257,7 +257,7 @@ export default function BiddingPoll({
       subTitleText = "The Live Poll of Masterclass 3.0 has Ended";
     } else if (isSynergy) {
       titleText = "Thank You for Your Participation";
-      subTitleText = "The Live Poll of Synergy Sphere has Ended";
+      subTitleText = "The Skill Bidding For Synergy Sphere has ended";
     }
 
     return (

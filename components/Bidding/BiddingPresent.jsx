@@ -922,7 +922,7 @@ export default function BiddingPresent({
             {isMasterclass
               ? "The Skill Bidding of Masterclass 3.0 has Ended"
               : isSynergy
-                ? "The Skill Bidding of Synergy Sphere has Ended"
+                ? "The Skill Bidding For Synergy Sphere has ended"
                 : "The Skill Bidding Session has Ended"}
           </p>
         </div>
@@ -970,7 +970,7 @@ export default function BiddingPresent({
             {isMasterclass
               ? "The Skill Bidding of Masterclass 3.0 has Ended"
               : isSynergy
-                ? "The Skill Bidding of Synergy Sphere has Ended"
+                ? "The Skill Bidding For Synergy Sphere has ended"
                 : "The Skill Bidding Session has Ended"}
           </p>
         </div>

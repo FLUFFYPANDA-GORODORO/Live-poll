@@ -13,6 +13,7 @@
 # testing
 /coverage
 
+/public/AI
 # next.js
 /.next/
 /out/

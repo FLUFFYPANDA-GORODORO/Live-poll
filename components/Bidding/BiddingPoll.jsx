@@ -255,14 +255,14 @@ export default function BiddingPoll({
       ? "bg-[url('/MasterclassMobileBg.png')] md:bg-[url('/MasterClassNewBg.png')] bg-cover bg-center bg-no-repeat"
       : "";
 
-  const isBiddingClosed = poll?.biddingClosed;
+  const isBiddingClosed = poll?.biddingClosed || (poll?.questions && poll.questions.length > 0 && activeQuestionIndex >= poll.questions.length);
 
   if (isBiddingClosed) {
     let titleText = "Thank You for Your Participation";
-    let subTitleText = "The Live Poll has Ended";
+    let subTitleText = "The Skill Bidding Session has Ended";
     if (isMasterclass) {
       titleText = "Thank You for Your Participation";
-      subTitleText = "The Live Poll of Masterclass 3.0 has Ended";
+      subTitleText = "The Skill Bidding of Masterclass 3.0 has Ended";
     } else if (isSynergy) {
       titleText = "Thank You for Your Participation";
       subTitleText = "The Skill Bidding For Synergy Sphere has ended";
@@ -270,12 +270,8 @@ export default function BiddingPoll({
 
     return (
       <div
-        className="bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none"
-        style={isSynergy
-          ? { backgroundImage: "url('/SynegrysphereBG.png')", backgroundSize: "cover", backgroundPosition: "center" }
-          : isMasterclass
-            ? { backgroundImage: "url('/MasterClassNewBg.png')", backgroundSize: "cover", backgroundPosition: "center" }
-            : { background: "radial-gradient(circle at center, #102c1b 0%, #040f08 100%)" }}
+        className={`bidding-poll-container h-screen w-full relative flex flex-col items-center justify-between py-2.5 px-3 md:py-4 md:px-4 text-white overflow-hidden select-none ${responsiveBgClass}`}
+        style={containerBgStyle}
       >
         {/* Background Overlay */}
         <div className="absolute inset-0 bg-black/45 pointer-events-none z-0" />

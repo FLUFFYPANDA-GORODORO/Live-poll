@@ -289,7 +289,7 @@ export default function BiddingPresent({
       .style("pointer-events", "none")
       .style("z-index", 100);
 
-    const duration = 70;
+    const duration = 250;
 
     const timer = d3.timer((elapsed) => {
       const t = Math.min(1, elapsed / duration);

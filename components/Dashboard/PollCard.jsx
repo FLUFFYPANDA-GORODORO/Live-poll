@@ -13,6 +13,16 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
   const createdDate = poll.createdAt?.toLocaleDateString?.() || "—";
   const { cleanTitle, theme } = parseTheme(poll.title || "");
 
+  const handleExportCsv = () => {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5065").replace(/\/$/, "");
+    const link = document.createElement("a");
+    link.href = `${apiBase}/api/polls/${poll.id}/export`;
+    link.setAttribute("download", `poll-${poll.id}-export.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
 
@@ -138,6 +148,12 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
                          className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                     >
                          <Download className="w-4 h-4 text-emerald-500" /> Export JSON
+                    </button>
+                    <button 
+                         onClick={() => { setShowMenu(false); handleExportCsv(); }}
+                         className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
+                    >
+                         <Download className="w-4 h-4 text-teal-500" /> Export CSV
                     </button>
                     <div className={`h-px my-1 ${isSynergy || isMasterclass ? "bg-stone-800" : "bg-slate-100"}`} />
                     <button 

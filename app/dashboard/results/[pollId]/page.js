@@ -9,7 +9,8 @@ import {
   ChevronLeft, 
   BarChart3, 
   Loader2, 
-  AlertCircle 
+  AlertCircle,
+  Download
 } from "lucide-react";
 
 export default function PollResults() {
@@ -37,6 +38,16 @@ export default function PollResults() {
       setError(storeError);
     }
   }, [storeError]);
+
+  const handleExport = () => {
+    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5065").replace(/\/$/, "");
+    const link = document.createElement("a");
+    link.href = `${apiBase}/api/polls/${pollId}/export`;
+    link.setAttribute("download", `poll-${pollId}-export.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const isQuestionWordCloud = (question) => {
     if (!question) return false;
@@ -120,16 +131,25 @@ export default function PollResults() {
       <div className="min-h-screen bg-eggshell p-4 md:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="mb-6">
+          <div className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="flex items-center gap-2 text-light-taupe hover:text-light-taupe/80 transition-colors mb-4"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <span>Back to Dashboard</span>
+              </button>
+              <h1 className="text-2xl md:text-3xl font-bold text-light-taupe">{poll.title}</h1>
+              <p className="text-silver-pink mt-2">Poll ID: {pollId}</p>
+            </div>
             <button
-              onClick={() => router.push("/dashboard")}
-              className="flex items-center gap-2 text-light-taupe hover:text-light-taupe/80 transition-colors mb-4"
+              onClick={handleExport}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:opacity-90 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm transition-all duration-200 self-start md:self-auto"
             >
-              <ChevronLeft className="w-5 h-5" />
-              <span>Back to Dashboard</span>
+              <Download className="w-5 h-5" />
+              <span>Export to CSV</span>
             </button>
-            <h1 className="text-2xl md:text-3xl font-bold text-light-taupe">{poll.title}</h1>
-            <p className="text-silver-pink mt-2">Poll ID: {pollId}</p>
           </div>
 
           {/* Results */}

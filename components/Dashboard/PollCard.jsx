@@ -25,6 +25,7 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
 
   const isSynergy = theme === "synergy_sphere";
   const isMasterclass = theme === "masterclass";
+  const isIU = theme === "iu";
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -81,6 +82,13 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
     menuBtnClass = "text-slate-300 hover:bg-white/10";
     dropdownClass = "bg-slate-950 border-slate-800 text-slate-200";
     dropdownBtnClass = "text-stone-300 hover:bg-stone-900";
+  } else if (isIU) {
+    cardClass = "bg-gradient-to-br from-[#145386] to-[#2c9fa1] border-[#145386]/40 text-sky-100 hover:shadow-[#145386]/40 hover:shadow-2xl hover:border-[#2c9fa1]/40";
+    titleClass = "text-white group-hover:text-sky-200 drop-shadow-sm";
+    dateClass = "text-sky-200/70";
+    menuBtnClass = "text-sky-200 hover:bg-white/10";
+    dropdownClass = "bg-sky-950 border-sky-800 text-sky-200";
+    dropdownBtnClass = "text-sky-300 hover:bg-sky-900";
   }
 
   return (
@@ -173,6 +181,8 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
           ? "bg-black/40 backdrop-blur-sm border-rose-500/10" 
           : isMasterclass 
           ? "bg-black/40 backdrop-blur-sm border-emerald-500/10" 
+          : isIU
+          ? "bg-black/40 backdrop-blur-sm border-sky-500/10"
           : "bg-slate-50 border-slate-100"
       }`}>
         {isSynergy && (
@@ -187,7 +197,13 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
             <p className="text-[8px] text-slate-400 mt-0.5">Executive Presentation</p>
           </div>
         )}
-        {!isSynergy && !isMasterclass && (
+        {isIU && (
+          <div className="text-center">
+            <span className="text-[10px] uppercase tracking-widest font-black text-sky-300 drop-shadow-sm">IU Theme</span>
+            <p className="text-[8px] text-sky-250 mt-0.5">Gradient Style</p>
+          </div>
+        )}
+        {!isSynergy && !isMasterclass && !isIU && (
           <div className="text-center">
             <span className="text-[10px] uppercase tracking-widest font-black text-slate-400">Standard Poll</span>
             <p className="text-[8px] text-slate-550 mt-0.5">General Audience</p>

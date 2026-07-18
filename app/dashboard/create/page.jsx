@@ -40,6 +40,8 @@ export default function CreatePoll() {
       titleWithSuffix = `${titleWithSuffix} ~SS`;
     } else if (selectedTheme === "masterclass") {
       titleWithSuffix = `${titleWithSuffix} ~MC`;
+    } else if (selectedTheme === "iu") {
+      titleWithSuffix = `${titleWithSuffix} ~IU`;
     }
 
     const cleanedQuestions = [];
@@ -98,6 +100,7 @@ export default function CreatePoll() {
           <option value="standard">Standard</option>
           <option value="synergy_sphere">Synergy Sphere</option>
           <option value="masterclass">Masterclass</option>
+          <option value="iu">IU</option>
         </select>
       </div>
     </div>

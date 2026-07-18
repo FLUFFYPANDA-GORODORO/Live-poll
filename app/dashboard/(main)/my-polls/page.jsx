@@ -191,6 +191,7 @@ export default function MyPolls() {
       let suffix = "";
       if (theme === "synergy_sphere") suffix = " ~SS";
       else if (theme === "masterclass") suffix = " ~MC";
+      else if (theme === "iu") suffix = " ~IU";
 
       // 3. Create the cloned poll
       await createPoll(`${cleanTitle} (Copy)${suffix}`, clonedQuestions, fullPoll.theme);

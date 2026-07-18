@@ -85,6 +85,13 @@ const CHART_COLORS = [
   "linear-gradient(to top, #0d9488, #14b8a6)"  // Electric Teal
 ];
 
+const IU_PRESENTER_COLORS = [
+  "linear-gradient(to top, #9a3412, #ea580c)", // Darker Orange
+  "linear-gradient(to top, #854d0e, #d97706)", // Darker Gold
+  "linear-gradient(to top, #86198f, #c026d3)", // Darker Fuchsia
+  "linear-gradient(to top, #9d174d, #db2777)"  // Darker Pink
+];
+
 const FLOWS = ["one", "two", "three"];
 
 // ── Confetti burst ─────────────────────────────────────────────────────────────
@@ -242,7 +249,9 @@ export default function StandardPresent({
   reactions = [],
   addReaction,
   isTransitioning,
+  theme = "standard"
 }) {
+  const isIU = theme === "iu";
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
 
@@ -354,7 +363,7 @@ export default function StandardPresent({
   useEffect(() => {
     const onKey = (e) => {
       if (isTransitioning) return;
-      if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
+      if (e.key === "ArrowLeft" && (isIU ? currentQuestionIndex >= 0 : currentQuestionIndex > 0)) handlePrevQuestion();
       else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
       else if (e.key.toLowerCase() === "c") setConfettiActive(true);
@@ -365,11 +374,14 @@ export default function StandardPresent({
   }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR, isTransitioning]);
 
   return (
-    <div className="h-screen max-h-screen flex flex-col text-white font-epilogue font-light overflow-hidden relative select-none" style={{ backgroundColor: "#212529" }}>
+    <div className="h-screen max-h-screen flex flex-col text-white font-epilogue font-light overflow-hidden relative select-none" style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
         <div className="w-full px-6 py-4 flex items-center justify-between">
           <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md" /></div>
+          {isIU && (
+            <div><img src="/IULogo2.avif" alt="IU Logo" className="h-18 2xl:h-22 w-auto object-contain filter drop-shadow-md" /></div>
+          )}
         </div>
       </header>
 
@@ -433,7 +445,7 @@ export default function StandardPresent({
                   {currentQuestion?.options?.map((option, idx) => {
                     const votes = getVoteCount(idx);
                     const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
-                    const gradient = CHART_COLORS[idx % CHART_COLORS.length];
+                    const gradient = isIU ? IU_PRESENTER_COLORS[idx % IU_PRESENTER_COLORS.length] : CHART_COLORS[idx % CHART_COLORS.length];
                     return (
                       <div key={idx} className="flex flex-col items-center flex-1 max-w-[140px] 2xl:max-w-[180px] h-[35vh] justify-end">
                         <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
@@ -487,7 +499,7 @@ export default function StandardPresent({
           ) : (
             <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
           )}
-          <button onClick={handlePrevQuestion} disabled={isTransitioning || currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
+          <button onClick={handlePrevQuestion} disabled={isTransitioning || (isIU ? currentQuestionIndex < 0 : currentQuestionIndex <= 0)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="bg-white/10 border border-white/10 text-white px-3 py-0.5 rounded font-mono text-sm font-bold min-w-[2rem] text-center">{currentQuestionIndex + 1}</div>

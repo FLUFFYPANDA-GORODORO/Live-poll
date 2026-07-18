@@ -10,10 +10,12 @@ const STANDARD_CHART_COLORS = [
 ];
 
 const MASTERCLASS_CHART_COLORS = ["#10b981", "#059669", "#6ee7b7", "#047857"];
+const IU_CHART_COLORS = ["#145386", "#145386", "#145386", "#145386"];
 
 function VerticalBarChart({ options, votes, totalVotes, theme }) {
   const maxVotes = Math.max(...votes, 1);
   const isSynergy = theme === "synergy_sphere";
+  const isIU = theme === "iu";
 
   return (
     <div className="flex items-end justify-center gap-4 md:gap-6 h-48 md:h-56 px-4">
@@ -33,7 +35,7 @@ function VerticalBarChart({ options, votes, totalVotes, theme }) {
                   }`}
                 style={{
                   height: `${height}%`,
-                  backgroundColor: isSynergy ? undefined : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length],
+                  backgroundColor: isSynergy ? undefined : (isIU ? IU_CHART_COLORS[idx % IU_CHART_COLORS.length] : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length]),
                   minHeight: voteCount > 0 ? "8px" : "4px",
                 }}
               />
@@ -197,6 +199,7 @@ export default function StandardPoll({
   // Helper variables for clean conditional styling
   const isMasterclass = theme === "masterclass";
   const isSynergy = theme === "synergy_sphere";
+  const isIU = theme === "iu";
 
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
@@ -209,11 +212,16 @@ export default function StandardPoll({
       : "";
 
     return (
-      <div className={waitingClass} style={{ backgroundColor: "#212529" }}>
+      <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
         <div className="absolute top-4 left-4 z-20">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 md:h-16 w-auto object-contain" />
         </div>
+        {isIU && (
+          <div className="absolute top-4 right-4 z-20">
+            <img src="/IULogo2.avif" alt="IU Logo" className="h-14 md:h-18 w-auto object-contain" />
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
@@ -250,11 +258,16 @@ export default function StandardPoll({
     let subTitleText = "The Live Poll has Ended";
 
     return (
-      <div className={endedClass} style={{ backgroundColor: "#212529" }}>
+      <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
         <div className="absolute top-4 left-4 z-20">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 md:h-16 w-auto object-contain" />
         </div>
+        {isIU && (
+          <div className="absolute top-4 right-4 z-20">
+            <img src="/IULogo2.avif" alt="IU Logo" className="h-14 md:h-18 w-auto object-contain" />
+          </div>
+        )}
 
         {/* Main Content Card */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
@@ -279,11 +292,16 @@ export default function StandardPoll({
   let emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
 
   return (
-    <div className={mainWrapperClass} style={{ backgroundColor: "#212529" }}>
+    <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
       {/* Top Logos Header */}
       <div className="absolute top-4 left-4 z-20">
-        <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-6 md:h-8 w-auto object-contain" />
+        <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 md:h-16 w-auto object-contain" />
       </div>
+      {isIU && (
+        <div className="absolute top-4 right-4 z-20">
+          <img src="/IULogo2.avif" alt="IU Logo" className="h-14 md:h-18 w-auto object-contain" />
+        </div>
+      )}
 
       <div className={contentWrapperClass}>
         <div key={isWordCloud ? 'question-wc' : 'question-mcq'} className={cardClass}>
@@ -326,7 +344,7 @@ export default function StandardPoll({
                       : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
                   }`;
                 badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
-                badgeStyle = { backgroundColor: STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
+                badgeStyle = { backgroundColor: isIU ? IU_CHART_COLORS[idx % IU_CHART_COLORS.length] : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
 
                 return (
                   <button

@@ -175,9 +175,10 @@ export default function PresentationMode() {
   };
 
   const handlePrevQuestion = async () => {
-    if (isTransitioning || currentQuestionIndex <= 0) return;
+    const isIu = theme === "iu";
+    if (isTransitioning || (isIu ? currentQuestionIndex < 0 : currentQuestionIndex <= 0)) return;
     try {
-      await prevQuestion(pollId, currentQuestionIndex);
+      await prevQuestion(pollId, currentQuestionIndex, isIu);
       toastSuccess("Previous question started!");
     } catch (err) {
       toastError("Failed to go to previous question");
@@ -399,6 +400,7 @@ export default function PresentationMode() {
           reactions={reactions}
           addReaction={addReaction}
           isTransitioning={isTransitioning}
+          theme={theme}
         />
         {/* Floating Emojis Container */}
         <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">

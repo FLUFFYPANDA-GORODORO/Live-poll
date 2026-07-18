@@ -53,6 +53,7 @@ function VerticalBarChart({ options, theme }) {
 
   const isMasterclass = theme === "masterclass";
   const isSynergy = theme === "synergy_sphere";
+  const isIU = theme === "iu";
 
   return (
     <div className="flex items-end justify-center gap-4 h-56 px-4 w-full max-w-lg mx-auto">
@@ -65,14 +66,14 @@ function VerticalBarChart({ options, theme }) {
         return (
           <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px] h-full justify-end">
             <div className={`text-xs font-bold ${
-              isMasterclass ? "text-emerald-500" : isSynergy ? "text-rose-200" : "text-[#6366F1]"
+              isMasterclass ? "text-emerald-500" : isSynergy || isIU ? "text-rose-200" : "text-[#6366F1]"
             }`}>
               {percentage}%
             </div>
             <div className={`relative w-full flex items-end h-28 rounded-t-lg overflow-hidden border ${
               isMasterclass 
                 ? "bg-emerald-50 border-emerald-100" 
-                : isSynergy 
+                : isSynergy || isIU
                 ? "bg-transparent border-white/20" 
                 : "bg-slate-50 border-slate-200"
             }`}>
@@ -80,7 +81,7 @@ function VerticalBarChart({ options, theme }) {
                 className={`w-full transition-all duration-500 rounded-t-lg ${
                   isMasterclass
                     ? "bg-gradient-to-t from-emerald-700 to-green-400"
-                    : isSynergy
+                    : isSynergy || isIU
                     ? "border-t-2 border-x-2 border-white/80"
                     : ""
                 }`}
@@ -95,7 +96,7 @@ function VerticalBarChart({ options, theme }) {
             </div>
             <div className="text-center w-full">
               <div className={`text-sm font-semibold truncate w-full ${
-                isMasterclass ? "text-emerald-950" : isSynergy ? "text-rose-100" : "text-[#1E293B]"
+                isMasterclass ? "text-emerald-950" : isSynergy || isIU ? "text-rose-100" : "text-[#1E293B]"
               }`} title={optionText}>
                 {optionText || `Opt ${idx + 1}`}
               </div>
@@ -273,6 +274,7 @@ export default function StandardCreate({
 
   const isMasterclass = theme === "masterclass";
   const isSynergy = theme === "synergy_sphere";
+  const isIU = theme === "iu";
 
   // Dynamic layout styling
   let mainWrapperClass = "h-screen bg-slate-50 flex flex-col text-[#1E293B] relative overflow-hidden";
@@ -302,6 +304,15 @@ export default function StandardCreate({
     previewAreaClass = "flex-1 bg-transparent flex flex-col relative overflow-hidden z-10 h-full";
     previewCardClass = "w-full max-w-3xl bg-transparent border-none shadow-none p-8 aspect-video flex flex-col justify-center";
     rightSidebarClass = "w-80 bg-stone-900/50 backdrop-blur-md border-l border-rose-100/20 flex flex-col h-full shadow-lg z-10";
+  } else if (isIU) {
+    mainWrapperClass = "h-screen bg-gradient-to-br from-[#145386] to-[#2c9fa1] flex flex-col text-white relative overflow-hidden";
+    headerClass = "bg-stone-900/50 backdrop-blur-md border-b border-sky-100/20 px-4 py-3 z-10 relative h-16 flex items-center";
+    headerLeftBgClass = "flex items-center gap-4 text-white";
+    titleInputClass = "text-xl font-bold text-white bg-transparent border-b-2 border-sky-500 focus:outline-none px-1";
+    sidebarClass = "w-64 bg-stone-900/35 backdrop-blur-sm border-r border-sky-100/20 p-4 overflow-y-auto z-10 relative h-full";
+    previewAreaClass = "flex-1 bg-transparent flex flex-col relative overflow-hidden z-10 h-full";
+    previewCardClass = "w-full max-w-3xl bg-transparent border-none shadow-none p-8 aspect-video flex flex-col justify-center";
+    rightSidebarClass = "w-80 bg-stone-900/50 backdrop-blur-md border-l border-sky-100/20 flex flex-col h-full shadow-lg z-10";
   }
 
   return (

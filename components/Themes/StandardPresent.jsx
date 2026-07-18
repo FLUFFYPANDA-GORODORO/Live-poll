@@ -374,7 +374,17 @@ export default function StandardPresent({
   }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR, isTransitioning]);
 
   return (
-    <div className="h-screen max-h-screen flex flex-col text-white font-epilogue font-light overflow-hidden relative select-none" style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
+    <div className="h-screen max-h-screen flex flex-col text-white font-epilogue font-light overflow-hidden relative select-none" style={isIU ? { backgroundColor: "transparent" } : { backgroundColor: "#212529" }}>
+      {isIU && (
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-10 bg-slate-950">
+          <div 
+            className="w-full h-full bg-cover bg-center" 
+            style={{ 
+              backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('/Iudesktopbackgroundimage.png')", 
+            }} 
+          />
+        </div>
+      )}
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
         <div className="w-full px-6 py-4 flex items-center justify-between">

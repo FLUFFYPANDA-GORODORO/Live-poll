@@ -311,7 +311,7 @@ export default function StandardEdit({
     previewCardClass = "w-full max-w-3xl bg-transparent border-none shadow-none p-8 aspect-video flex flex-col justify-center";
     rightSidebarClass = "w-80 bg-stone-900/50 backdrop-blur-md border-l border-rose-100/20 flex flex-col h-full shadow-lg z-10";
   } else if (isIU) {
-    mainWrapperClass = "h-screen bg-gradient-to-br from-[#145386] to-[#2c9fa1] flex flex-col text-white relative overflow-hidden";
+    mainWrapperClass = "h-screen bg-slate-950 flex flex-col text-white relative overflow-hidden";
     headerClass = "bg-stone-900/50 backdrop-blur-md border-b border-sky-100/20 px-4 py-3 z-10 relative h-16 flex items-center";
     headerLeftBgClass = "flex items-center gap-4 text-white";
     titleInputClass = "text-xl font-bold text-white bg-transparent border-b-2 border-sky-500 focus:outline-none px-1";
@@ -324,6 +324,16 @@ export default function StandardEdit({
 
   return (
     <div className={mainWrapperClass}>
+      {isIU && (
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-10 bg-slate-950">
+          <div 
+            className="w-full h-full bg-cover bg-center" 
+            style={{ 
+              backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('/Iudesktopbackgroundimage.png')", 
+            }} 
+          />
+        </div>
+      )}
 
       {/* Header */}
       {isMasterclass ? (
@@ -372,7 +382,7 @@ export default function StandardEdit({
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push("/dashboard")}
-                className={`p-2 rounded-lg ${isSynergy ? "hover:bg-stone-800/40 text-rose-300" : "hover:bg-slate-100 text-slate-650"}`}
+                className={`p-2 rounded-lg ${(isSynergy || isIU) ? "hover:bg-stone-850/40 text-white" : "hover:bg-slate-100 text-slate-650"}`}
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -390,14 +400,14 @@ export default function StandardEdit({
                   />
                   <button
                     onClick={() => setEditingTitle(false)}
-                    className={`p-1 rounded text-white ${isSynergy ? "bg-rose-500" : "bg-[#6366F1]"}`}
+                    className={`p-1 rounded text-white ${isSynergy ? "bg-rose-500" : isIU ? "bg-sky-500" : "bg-[#6366F1]"}`}
                   >
                     <Check className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <button onClick={() => setEditingTitle(true)} className={titleButtonClass}>
-                  {isSynergy && <Sparkles className="w-4 h-4 text-rose-450" />}
+                <button onClick={() => setEditingTitle(true)} className={(isSynergy || isIU) ? "text-xl font-bold text-white hover:text-sky-400 flex items-center gap-1.5" : titleButtonClass}>
+                  {(isSynergy || isIU) && <Sparkles className="w-4 h-4 text-sky-400" />}
                   {title || "Untitled Poll"}
                 </button>
               )}
@@ -469,7 +479,7 @@ export default function StandardEdit({
                   : "Type your question here..."
               }
               className={`w-full max-w-3xl text-3xl md:text-4xl font-bold text-center bg-transparent border-none focus:outline-none focus:ring-0 placeholder-slate-350 transition-colors ${
-                isMasterclass ? "text-emerald-950" : isSynergy ? "text-white" : "text-slate-800"
+                isMasterclass ? "text-emerald-950" : isSynergy ? "text-white" : isIU ? "text-white" : "text-slate-800"
               }`}
             />
           </div>
@@ -528,10 +538,10 @@ export default function StandardEdit({
             isMasterclass ? "border-emerald-100/20" : isSynergy ? "border-rose-100/20" : "border-slate-105"
           }`}>
             <Settings className={`w-5 h-5 ${
-              isMasterclass ? "text-emerald-400" : isSynergy ? "text-rose-300" : "text-slate-400"
+              isMasterclass ? "text-emerald-400" : (isSynergy || isIU) ? "text-sky-300" : "text-slate-400"
             }`} />
             <h2 className={`font-bold ${
-              isMasterclass ? "text-emerald-800" : isSynergy ? "text-rose-100" : "text-slate-700"
+              isMasterclass ? "text-emerald-800" : (isSynergy || isIU) ? "text-white" : "text-slate-700"
             }`}>Question Settings</h2>
           </div>
 
@@ -539,7 +549,7 @@ export default function StandardEdit({
             {/* Question Type Selection */}
             <div className="mb-6">
               <label className={`text-xs font-bold uppercase tracking-wider block mb-2 ${
-                isMasterclass ? "text-emerald-500" : isSynergy ? "text-rose-300" : "text-slate-500"
+                isMasterclass ? "text-emerald-500" : (isSynergy || isIU) ? "text-sky-300" : "text-slate-500"
               }`}>
                 Question Type
               </label>
@@ -573,7 +583,7 @@ export default function StandardEdit({
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <label className={`text-xs font-bold uppercase tracking-wider block ${
-                    isMasterclass ? "text-emerald-500" : isSynergy ? "text-rose-300" : "text-slate-500"
+                    isMasterclass ? "text-emerald-500" : (isSynergy || isIU) ? "text-sky-300" : "text-slate-500"
                   }`}>
                     Options
                   </label>

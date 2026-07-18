@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles } from "lucide-react";
+import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles, QrCode, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
 const STANDARD_CHART_COLORS = [
@@ -112,6 +112,46 @@ export default function StandardPoll({
   const [particles, setParticles] = useState([]);
   const [rings, setRings] = useState([]);
 
+  // IU specific login state
+  const [phoneInput, setPhoneInput] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loginError, setLoginError] = useState("");
+  const [showQr, setShowQr] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("iu_user_name");
+      const savedPhone = localStorage.getItem("iu_user_phone");
+      if (savedName && savedPhone) {
+        setCurrentUser({ name: savedName, phone: savedPhone });
+      }
+    }
+  }, []);
+
+  const handleLogin = async () => {
+    setLoginError("");
+    const trimmedPhone = phoneInput.trim();
+    if (!trimmedPhone) {
+      setLoginError("Please enter your phone number");
+      return;
+    }
+    try {
+      const res = await fetch("/users.json");
+      const users = await res.json();
+      const user = users.find(u => String(u.phone).trim() === trimmedPhone);
+      if (user) {
+        localStorage.setItem("iu_user_name", user.name);
+        localStorage.setItem("iu_user_phone", user.phone);
+        setCurrentUser(user);
+      } else {
+        setLoginError("Phone number not registered");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      setLoginError("Failed to authenticate. Please try again.");
+    }
+  };
+
   useEffect(() => {
     if (typeof document !== "undefined") {
       const styleId = "standard-poll-fonts";
@@ -196,10 +236,108 @@ export default function StandardPoll({
     }
   };
 
+  const renderQrButtonAndModal = () => {
+    if (!isIU || !currentUser) return null;
+    return (
+      <>
+        {/* Static QR Code Button for IU theme (only when authenticated) */}
+        <button
+          onClick={() => setShowQr(true)}
+          className="absolute bottom-6 right-6 bg-[#145386] hover:bg-[#2c9fa1] border border-white/20 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 z-50 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95"
+          title="Show Join QR Code"
+        >
+          <QrCode className="w-6 h-6 text-white" />
+        </button>
+
+        {/* QR Modal Overlay for IU theme */}
+        {showQr && (
+          <div
+            onClick={() => setShowQr(false)}
+            className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] p-4 backdrop-blur-sm"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl p-6 max-w-sm w-full flex flex-col items-center relative shadow-2xl border border-slate-200"
+            >
+              {/* Highly visible circular close button */}
+              <button
+                onClick={() => setShowQr(false)}
+                className="absolute -top-3 -right-3 bg-slate-800 hover:bg-slate-900 text-white transition-colors p-2.5 rounded-full shadow-xl border-2 border-white z-10 cursor-pointer active:scale-95"
+                title="Close"
+              >
+                <X className="w-5 h-5 stroke-[2.5]" />
+              </button>
+              <h3 className="text-[#145386] font-bold text-lg text-center mb-1">
+                Join the Poll
+              </h3>
+              <p className="text-slate-500 text-xs text-center mb-6">
+                Scan to participate
+              </p>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-center mb-4">
+                <QRCodeSVG
+                  value={typeof window !== "undefined" ? window.location.href : ""}
+                  size={200}
+                  level="H"
+                />
+              </div>
+              <div className="w-full text-slate-700 text-xs font-bold text-center">
+                Room Code: <span className="text-[#145386] select-all font-mono">{pollId}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  };
+
   // Helper variables for clean conditional styling
   const isMasterclass = theme === "masterclass";
   const isSynergy = theme === "synergy_sphere";
   const isIU = theme === "iu";
+
+  // IU Theme pre-waiting login page check
+  if (isIU && !currentUser) {
+    return (
+      <div className="min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative" style={{ backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+        {/* Top Logos Header */}
+        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 md:h-22 w-auto object-contain" />
+          <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />
+        </div>
+
+        {/* Login Card */}
+        <div className="max-w-md text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
+          <div className="bg-black/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full shadow-2xl">
+            <h2 className="text-2xl font-baskerville font-light text-white mb-6">
+              Enter Your Phone Number to Join
+            </h2>
+            <div className="flex flex-col gap-4">
+              <input
+                type="tel"
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="Phone Number"
+                className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-white/10 border-white/20 text-white placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1] text-center tracking-widest text-lg font-mono"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleLogin();
+                }}
+              />
+              {loginError && (
+                <p className="text-red-400 text-xs font-semibold">{loginError}</p>
+              )}
+              <button
+                onClick={handleLogin}
+                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all bg-[#145386] hover:bg-[#2c9fa1]"
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="h-12 flex-shrink-0 hidden md:block" />
+      </div>
+    );
+  }
 
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
@@ -212,16 +350,12 @@ export default function StandardPoll({
       : "";
 
     return (
-      <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
+      <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
-        <div className="absolute top-4 left-4 z-20">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 md:h-16 w-auto object-contain" />
+        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />}
         </div>
-        {isIU && (
-          <div className="absolute top-4 right-4 z-20">
-            <img src="/IULogo2.avif" alt="IU Logo" className="h-14 md:h-18 w-auto object-contain" />
-          </div>
-        )}
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
@@ -247,6 +381,9 @@ export default function StandardPoll({
 
         {/* Bottom Spacer to balance top header under justify-between */}
         <div className="h-12 flex-shrink-0 hidden md:block" />
+        
+        {/* Floating QR button and modal */}
+        {renderQrButtonAndModal()}
       </div>
     );
   }
@@ -255,19 +392,18 @@ export default function StandardPoll({
   if (!activeQuestion || poll.status === "ended") {
     let endedClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light";
     let titleText = "Thank You for Your Participation";
+    if (isIU && currentUser) {
+      titleText = `Thank You for Your Participation, ${currentUser.name.split(" ")[0]}!`;
+    }
     let subTitleText = "The Live Poll has Ended";
 
     return (
-      <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
+      <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
-        <div className="absolute top-4 left-4 z-20">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 md:h-16 w-auto object-contain" />
+        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />}
         </div>
-        {isIU && (
-          <div className="absolute top-4 right-4 z-20">
-            <img src="/IULogo2.avif" alt="IU Logo" className="h-14 md:h-18 w-auto object-contain" />
-          </div>
-        )}
 
         {/* Main Content Card */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
@@ -281,6 +417,9 @@ export default function StandardPoll({
 
         {/* Bottom Spacer to balance top header under justify-between */}
         <div className="h-12 flex-shrink-0 hidden md:block" />
+
+        {/* Floating QR button and modal */}
+        {renderQrButtonAndModal()}
       </div>
     );
   }
@@ -292,22 +431,18 @@ export default function StandardPoll({
   let emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
 
   return (
-    <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), linear-gradient(135deg, #145386, #2c9fa1)" } : { backgroundColor: "#212529" }}>
+    <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
       {/* Top Logos Header */}
-      <div className="absolute top-4 left-4 z-20">
-        <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-12 md:h-16 w-auto object-contain" />
+      <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
+        <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+        {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />}
       </div>
-      {isIU && (
-        <div className="absolute top-4 right-4 z-20">
-          <img src="/IULogo2.avif" alt="IU Logo" className="h-14 md:h-18 w-auto object-contain" />
-        </div>
-      )}
 
       <div className={contentWrapperClass}>
         <div key={isWordCloud ? 'question-wc' : 'question-mcq'} className={cardClass}>
           {/* Card Header */}
-          <div className="p-6">
-              <h2 className="text-xl md:text-2xl font-baskerville font-light text-slate-900 text-center mb-2">
+          <div className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-baskerville font-light text-slate-900 text-center mb-2">
                 {activeQuestion.text}
               </h2>
             </div>
@@ -326,7 +461,7 @@ export default function StandardPoll({
 
           {/* Answer options */}
           {!isWordCloud && (
-            <div className="p-3.5 space-y-2.5">
+            <div className="p-2.5 sm:p-3.5 space-y-2 sm:space-y-2.5">
               {activeQuestion.options.map((option, idx) => {
                 let buttonStyleClass = "";
                 let badgeClass = "";
@@ -335,7 +470,7 @@ export default function StandardPoll({
                 const isOptionSelected = hasVoted && selectedOption === idx;
                 const isOptionUnselected = hasVoted && selectedOption !== idx;
 
-                buttonStyleClass = `w-full p-3 rounded-md text-left transition-all flex items-center gap-3 border ${isOptionSelected
+                buttonStyleClass = `w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${isOptionSelected
                   ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default"
                   : isOptionUnselected
                     ? "bg-slate-50 border-slate-100 opacity-40 cursor-default text-slate-400"
@@ -343,7 +478,7 @@ export default function StandardPoll({
                       ? "bg-slate-50 hover:bg-slate-100/50 border-slate-200 hover:border-slate-300 cursor-pointer active:scale-[0.98] text-slate-800"
                       : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
                   }`;
-                badgeClass = "w-7 h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
+                badgeClass = "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
                 badgeStyle = { backgroundColor: isIU ? IU_CHART_COLORS[idx % IU_CHART_COLORS.length] : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
 
                 return (
@@ -356,7 +491,7 @@ export default function StandardPoll({
                     <div className={badgeClass} style={badgeStyle}>
                       {String.fromCharCode(65 + idx)}
                     </div>
-                    <span className="font-semibold text-sm md:text-base">
+                    <span className="font-semibold text-xs sm:text-sm md:text-base">
                       {option.text}
                     </span>
                   </button>
@@ -515,6 +650,9 @@ export default function StandardPoll({
           }
         `}</style>
       </div>
+
+      {/* Floating QR button and modal */}
+      {renderQrButtonAndModal()}
     </div>
   );
 }

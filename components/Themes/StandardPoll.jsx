@@ -152,6 +152,12 @@ export default function StandardPoll({
     }
   };
 
+  const handleContinueAsGuest = () => {
+    localStorage.setItem("iu_user_name", "Anonymous");
+    localStorage.setItem("iu_user_phone", "anonymous");
+    setCurrentUser({ name: "Anonymous", phone: "anonymous" });
+  };
+
   useEffect(() => {
     if (typeof document !== "undefined") {
       const styleId = "standard-poll-fonts";
@@ -302,13 +308,13 @@ export default function StandardPoll({
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 md:h-22 w-auto object-contain" />
-          <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />
+          <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
         </div>
 
         {/* Login Card */}
         <div className="max-w-md text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
-          <div className="bg-black/60 backdrop-blur-md p-8 rounded-2xl border border-white/10 w-full shadow-2xl">
-            <h2 className="text-2xl font-baskerville font-light text-white mb-6">
+          <div className="bg-white p-8 rounded-2xl border border-slate-100 w-full shadow-2xl">
+            <h2 className="text-2xl font-baskerville font-light text-slate-900 mb-6">
               Enter Your Phone Number to Join
             </h2>
             <div className="flex flex-col gap-4">
@@ -317,20 +323,28 @@ export default function StandardPoll({
                 value={phoneInput}
                 onChange={(e) => setPhoneInput(e.target.value)}
                 placeholder="Phone Number"
-                className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-white/10 border-white/20 text-white placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1] text-center tracking-widest text-lg font-mono"
+                className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1] text-center tracking-widest text-lg font-mono"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleLogin();
                 }}
               />
               {loginError && (
-                <p className="text-red-400 text-xs font-semibold">{loginError}</p>
+                <p className="text-red-600 text-xs font-semibold">{loginError}</p>
               )}
               <button
                 onClick={handleLogin}
                 className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all bg-[#145386] hover:bg-[#2c9fa1]"
               >
-                Sign In
+                Join Poll
               </button>
+              {!pollNotStarted && (
+                <button
+                  onClick={handleContinueAsGuest}
+                  className="w-full py-3 text-[#145386] hover:text-[#2c9fa1] rounded-md text-sm font-bold shadow-sm active:scale-[0.98] transition-all border border-[#145386]/20 hover:border-[#2c9fa1]/30 hover:bg-slate-50 cursor-pointer text-center"
+                >
+                  Continue without Phone No
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -354,7 +368,7 @@ export default function StandardPoll({
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />}
+          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />}
         </div>
 
         {/* Main Content */}
@@ -392,7 +406,7 @@ export default function StandardPoll({
   if (!activeQuestion || poll.status === "ended") {
     let endedClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative";
     let titleText = "Thank You for Your Participation";
-    if (isIU && currentUser) {
+    if (isIU && currentUser && currentUser.phone !== "anonymous") {
       titleText = `Thank You for Your Participation, ${currentUser.name.split(" ")[0]}!`;
     }
     let subTitleText = "The Live Poll has Ended";
@@ -402,7 +416,7 @@ export default function StandardPoll({
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />}
+          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />}
         </div>
 
         {/* Main Content Card */}
@@ -435,7 +449,7 @@ export default function StandardPoll({
       {/* Top Logos Header */}
       <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
         <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-        {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />}
+        {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />}
       </div>
 
       <div className={contentWrapperClass}>

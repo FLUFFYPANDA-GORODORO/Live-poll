@@ -158,6 +158,23 @@ export default function StandardPoll({
     setCurrentUser({ name: "Anonymous", phone: "anonymous" });
   };
 
+  const handlePhoneChange = (val) => {
+    // Remove all non-digits
+    let cleaned = val.replace(/\D/g, "");
+    
+    // If it starts with 91 and is longer than 10 digits, slice off the 91 country code prefix
+    if (cleaned.startsWith("91") && cleaned.length > 10) {
+      cleaned = cleaned.slice(2);
+    }
+    
+    // Max 10 digits
+    if (cleaned.length > 10) {
+      cleaned = cleaned.slice(-10);
+    }
+    
+    setPhoneInput(cleaned);
+  };
+
   useEffect(() => {
     if (typeof document !== "undefined") {
       const styleId = "standard-poll-fonts";
@@ -321,7 +338,7 @@ export default function StandardPoll({
               <input
                 type="tel"
                 value={phoneInput}
-                onChange={(e) => setPhoneInput(e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="Phone Number"
                 className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1] text-center tracking-widest text-lg font-mono"
                 onKeyDown={(e) => {
@@ -411,6 +428,11 @@ export default function StandardPoll({
     }
     let subTitleText = "The Live Poll has Ended";
 
+    // Custom IU student name definition
+    const studentName = (currentUser && currentUser.phone !== "anonymous")
+      ? currentUser.name.split(" ")[0]
+      : "Student";
+
     return (
       <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
@@ -421,12 +443,28 @@ export default function StandardPoll({
 
         {/* Main Content Card */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
-          <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
-            {titleText}
-          </h1>
-          <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue text-zinc-300">
-            {subTitleText}
-          </p>
+          {isIU ? (
+            <div className="bg-black/40 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-white/10 w-full max-w-xl shadow-2xl animate-fade-in text-center">
+              <h1 className="text-3xl md:text-5xl text-white font-baskerville font-normal leading-tight mb-4">
+                Hey {studentName},
+              </h1>
+              <p className="text-lg md:text-xl text-slate-200 font-epilogue font-light mb-6 leading-relaxed">
+                Don't worry—your future will be taken care of by us.
+              </p>
+              <p className="text-xl md:text-2xl text-emerald-400 font-epilogue font-semibold tracking-wide">
+                Welcome to Indira University!
+              </p>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
+                {titleText}
+              </h1>
+              <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue text-zinc-300">
+                {subTitleText}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Bottom Spacer to balance top header under justify-between */}

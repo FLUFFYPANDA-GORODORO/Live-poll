@@ -623,7 +623,7 @@ export default function StandardPoll({
                   onClick={handleContinueAsGuest}
                   className="w-full py-3 text-[#145386] hover:text-[#2c9fa1] rounded-md text-sm font-bold shadow-sm active:scale-[0.98] transition-all border border-[#145386]/20 hover:border-[#2c9fa1]/30 hover:bg-slate-50 cursor-pointer text-center"
                 >
-                  Continue without Phone No
+                  Continue without Phone Number
                 </button>
               )}
             </div>

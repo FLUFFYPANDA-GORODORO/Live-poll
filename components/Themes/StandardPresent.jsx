@@ -429,7 +429,7 @@ export default function StandardPresent({
                   <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
                 ) : (
                   <div className="flex items-center justify-center w-full h-[480px] min-h-[400px]">
-                    <svg viewBox="0 0 24 24" className="w-24 h-24 text-zinc-700">
+                    <svg viewBox="0 0 24 24" className="w-24 h-24 text-white/65">
                       <path
                         d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
                         fill="none"

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles, QrCode, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import toast from "react-hot-toast";
 
 const STANDARD_CHART_COLORS = [
   "var(--color-primary)",
@@ -390,13 +391,104 @@ export default function StandardPoll({
     return !txt.trim();
   });
 
+  const containsProfanity = (text) => {
+    if (!text) return false;
+    
+    // Lowercase
+    let clean = text.toLowerCase();
+
+    // 1. Remove all spaces and punctuation completely (handles "b h e n c h o d", "f.u.c.k", "f_u_c_k")
+    clean = clean.replace(/[\W_]/g, "");
+
+    // 2. Leetspeak / substitutions (handles "f@ck", "m@d@rch0d", "b#o$s$d!k3")
+    clean = clean
+      .replace(/@/g, "a")
+      .replace(/4/g, "a")
+      .replace(/3/g, "e")
+      .replace(/1/g, "i")
+      .replace(/!/g, "i")
+      .replace(/\|/g, "i")
+      .replace(/0/g, "o")
+      .replace(/\$/g, "s")
+      .replace(/5/g, "s")
+      .replace(/7/g, "t");
+
+    // 3. Collapse repeated letters (handles "fuuuuuck", "behennnnchod")
+    clean = clean.replace(/(.)\1+/g, "$1");
+
+    // Lists of base bad words for direct substring checking after normalization
+    const badWords = [
+      "fuck", "shit", "bitch", "cunt", "dick", "bastard", "piss", "damn", "ass", "asshole", "pussy", "slut", "whore",
+      "anal", "anus", "blowjob", "boner", "bullshit", "clit", "clitoris", "cock", "cum", "dildo", "escort", "fag", 
+      "faggot", "gangbang", "handjob", "hooker", "horny", "masturbate", "nigger", "porn", "pornstar", "retard", "rape", 
+      "semen", "sex", "snatch", "sodomy", "teat", "tits", "titty", "twat", "vagina", "wank", "wanker", "xx", "xxx",
+      "chutiya", "chutiye", "chutya", "chutia", "chut", "chud", "chude", "chudai", "chudaap", "choda", "chode",
+      "behenchod", "behenchd", "behanchod", "bhanchod", "bhenchod", "bhenchd", "betichod", "betichd", "betichod", 
+      "madarchod", "madarchd", "madarched", "maadarchod", "gand", "gaand", "gandu", "gaandu", "gandfat", "gandufad", 
+      "launda", "lauda", "lavda", "lodu", "loda", "lodhu", "lund", "lundu", "bhosdike", "bhosdiki", "bhosad", "bhosdi", "bsdk", "bkl", 
+      "bc", "mc", "mkc", "bcmc", "bkc", "bhadva", "bhadve", "bhadwe", "bhandve", "bakchod", "bakchodi", "mutthal", 
+      "muthal", "muth", "randi", "rande", "rand", "saala", "sala", "kamina", "harami", "harami ke", "bhootni ke", 
+      "bhangi", "chinaal", "chinal", "boobe", "boob", "boobie", "boobies", "chooche", "choochi", "choope",
+      "aaizhavad", "aaizhavade", "aaighal", "puchi", "pucchi", "zavya", "zavli", "zavad",
+      "yeda", "yedi", "yed", "yedbhagat", "zava", "zavne", "zaca", "zaka", "zawa", "aai", "ghal", "ghaal",
+      "bhen", "behen", "bhain", "chod", "chd", "choud", "zatya", "zhatya", "jatya", "jhatya", "dungan", "dungna", "dunga",
+      "clut"
+    ];
+
+    // Tolerant regex matches directly on raw text for specific common patterns
+    const rawPatterns = [
+      /f+[uµv\*]+c+k+/i,                // fuck, f*ck, fvk
+      /b+[i1\!l\|]+t+c+h+/i,            // bitch, b1tch
+      /b+[e3]+h+[e3]*n*c+h+[o0]+d+/i,    // behenchod, b3h3nchod
+      /m+[a4]+d+a+r*c+h+[o0]+d+/i,      // madarchod, m4d4rchod
+      /b+h+[o0]+s+d+[i1\!l\|]+k+[e3]*/i, // bhosdike, bh0sdike
+      /l+[o0a4uµvn\*]+[d+dh+]+[uµa4e3o0i1\!l\|]*/i, // lodu, lavde, lauda, loda, lode, lund
+      /a+i+[\W_]*[z+gh+]+a+v+a*[d+e3]*/i, // aaizhavad, aaighal, aaizhavade
+      /p+u+[c+]*h+[i1\!l\|]+/i,           // puchi, pucchi
+      /z+[a+4]+[v*cwbk]+[a+y+n+e3]*/i,    // zava, zavne, zavli, zavya, zaca, zaka, zawa
+      /y+e+d+[a+i1\!l\|]*/i,             // yeda, yedi, yed
+      /g+h+a+a*l+/i,                     // ghal, ghaal
+      /a+a*i+i*/i,                       // aai, aaai
+      /b+[e3]*h+[e3]*n+/i,               // bhen, behen, bhain
+      /c+h+[o0u4]*d+/i,                  // chod, chd, choud
+      /[zj]h*[a4]+t+y+[a4e3]*/i,         // zatya, zhatya, jatya, jhatya
+      /d+u+n+g+[a4n]+/i,                 // dungan, dungna, dunga
+      /c+l+u+t+/i,                       // clut
+      /\b(bc|mc|bkl|bsdk|mkc|bkc|gmc|lodu|loda)\b/i // abbreviations
+    ];
+
+    // Check raw patterns first
+    for (const pat of rawPatterns) {
+      if (pat.test(text) || pat.test(clean)) {
+        return true;
+      }
+    }
+
+    // Direct check on fully normalized clean word
+    for (const bad of badWords) {
+      if (clean.includes(bad)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   const handleSubmitWord = async () => {
     const trimmedWord = wordInput.trim();
     if (!trimmedWord || localSubmitting) return;
 
+    if (containsProfanity(trimmedWord)) {
+      toast.error("Please enter an appropriate response");
+      setWordInput("");
+      return;
+    }
+
     setLocalSubmitting(true);
     try {
       await voteForOptionHandler(trimmedWord);
+    } catch (err) {
+      console.error("Error submitting word cloud response:", err);
     } finally {
       setLocalSubmitting(false);
     }
@@ -550,7 +642,18 @@ export default function StandardPoll({
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
           <div className="flex flex-col items-center">
             <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
-              {isIU ? "Welcome to MBA Induction" : titleText}
+              {isIU ? (
+                <>
+                  <span className="block mb-2 font-normal">
+                    Hey {(currentUser && currentUser.phone !== "anonymous") ? currentUser.name.split(" ")[0] : "Student"},
+                  </span>
+                  <span className="block text-xl md:text-3xl font-light mt-3 tracking-normal text-slate-100">
+                    Welcome to MBA Induction
+                  </span>
+                </>
+              ) : (
+                titleText
+              )}
             </h1>
             <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue text-zinc-300">
               {subTitleText}
@@ -733,7 +836,7 @@ export default function StandardPoll({
           {!hasVoted && !!isWordCloud && (
             <div className="p-4 space-y-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-[var(--color-primary)]">
+                <label className={`text-xs font-bold uppercase tracking-wider ${isIU ? "text-[#145386]" : "text-[var(--color-primary)]"}`}>
                   Your Answer
                 </label>
                 <input
@@ -743,13 +846,17 @@ export default function StandardPoll({
                   placeholder="Type your response (max 50 characters)..."
                   maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
-                  className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                  className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 ${
+                    isIU ? "focus:border-[#145386] focus:ring-[#145386]" : "focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
+                  }`}
                 />
               </div>
               <button
                 onClick={handleSubmitWord}
                 disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
-                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] disabled:opacity-50"
+                className={`w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
+                  isIU ? "bg-[#145386] hover:bg-[#2c9fa1]" : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]"
+                }`}
               >
                 {!!(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Answer

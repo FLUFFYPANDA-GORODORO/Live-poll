@@ -134,10 +134,11 @@ export default function PollRoom() {
       if (err.message?.includes("already voted")) {
         toast.error("You have already voted on this question");
         setHasVoted(true);
+      } else if (err.message?.toLowerCase().includes("profanity") || err.message?.toLowerCase().includes("appropriate")) {
+        toast.error("Please enter an appropriate response");
       } else {
         toast.error("Failed to submit. Please try again.");
       }
-      throw err; // rethrow to let UI components know it failed
     } finally {
       setVoting(false);
     }

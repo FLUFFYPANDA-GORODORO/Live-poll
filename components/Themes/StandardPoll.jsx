@@ -557,14 +557,11 @@ export default function StandardPoll({
             </p>
           </div>
 
-          {/* QR Code and Join Code directly below the text */}
+          {/* QR Code directly below the text */}
           <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex flex-col items-center max-w-[140px] pointer-events-auto">
             <div className="bg-white p-1.5 rounded-xl">
               <QRCodeSVG value={pollUrl} size={100} />
             </div>
-            <p className="text-xs text-center mt-2 text-emerald-400 font-mono font-bold tracking-wider select-all">
-              {pollId}
-            </p>
           </div>
         </div>
 

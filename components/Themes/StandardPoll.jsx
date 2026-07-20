@@ -432,7 +432,9 @@ export default function StandardPoll({
       "aaizhavad", "aaizhavade", "aaighal", "puchi", "pucchi", "zavya", "zavli", "zavad",
       "yeda", "yedi", "yed", "yedbhagat", "zava", "zavne", "zaca", "zaka", "zawa", "aai", "ghal", "ghaal",
       "bhen", "behen", "bhain", "chod", "chd", "choud", "zatya", "zhatya", "jatya", "jhatya", "dungan", "dungna", "dunga",
-      "clut"
+      "clut", "ma", "ka", "teri", "reri", "tuzya", "tu",
+      "zhavadayaa", "zhavadaya", "zhavad", "bhsoade", "bhosade", "bhosda", "bhosd", "seleaaya", "seleaya", "lendds", "lendd", "lend", "bur", 
+      "lomde", "lomda", "chituyaa", "chituya", "chitu", "kede", "keda", "madar", "gund", "me", "mota", "muhh", "meuhh", "lelele", "lele"
     ];
 
     // Tolerant regex matches directly on raw text for specific common patterns
@@ -441,9 +443,12 @@ export default function StandardPoll({
       /b+[i1\!l\|]+t+c+h+/i,            // bitch, b1tch
       /b+[e3]+h+[e3]*n*c+h+[o0]+d+/i,    // behenchod, b3h3nchod
       /m+[a4]+d+a+r*c+h+[o0]+d+/i,      // madarchod, m4d4rchod
+      /m+[a4]+d+a+r+/i,                  // madar
       /b+h+[o0]+s+d+[i1\!l\|]+k+[e3]*/i, // bhosdike, bh0sdike
+      /b+h+[o0]+s+[a4]+d+[e3]*/i,        // bhosade, bhsoade, bhosda
       /l+[o0a4uµvn\*]+[d+dh+]+[uµa4e3o0i1\!l\|]*/i, // lodu, lavde, lauda, loda, lode, lund
       /a+i+[\W_]*[z+gh+]+a+v+a*[d+e3]*/i, // aaizhavad, aaighal, aaizhavade
+      /z+h*a+v+a+[d+y+a+]+/i,            // zhavadayaa, zhavadaya
       /p+u+[c+]*h+[i1\!l\|]+/i,           // puchi, pucchi
       /z+[a+4]+[v*cwbk]+[a+y+n+e3]*/i,    // zava, zavne, zavli, zavya, zaca, zaka, zawa
       /y+e+d+[a+i1\!l\|]*/i,             // yeda, yedi, yed
@@ -454,6 +459,21 @@ export default function StandardPoll({
       /[zj]h*[a4]+t+y+[a4e3]*/i,         // zatya, zhatya, jatya, jhatya
       /d+u+n+g+[a4n]+/i,                 // dungan, dungna, dunga
       /c+l+u+t+/i,                       // clut
+      /t+e+r+[i1\!l\|]+/i,               // teri
+      /r+e+r+[i1\!l\|]+/i,               // reri
+      /t+u+z+y+[a4]+/i,                  // tuzya
+      /t+u+/i,                           // tu
+      /m+a+a*/i,                         // ma, maa
+      /k+a+a*/i,                         // ka, kaa
+      /b+u+r+/i,                         // bur
+      /l+e+n+d+/i,                       // lend, lendd, lendds
+      /s+e+l+e+a*/i,                     // seleaaya, seleaya
+      /l+o+m+d+[e3]*/i,                  // lomde, lomda
+      /c+h+i+t+u+/i,                     // chituyaa, chituya
+      /k+e+d+[e3]*/i,                    // kede, keda
+      /g+u+n+d+/i,                       // gund
+      /m+e+h*/i,                         // me, muhh, meuhh
+      /l+e+l+e+/i,                       // lele, lelele
       /\b(bc|mc|bkl|bsdk|mkc|bkc|gmc|lodu|loda)\b/i // abbreviations
     ];
 

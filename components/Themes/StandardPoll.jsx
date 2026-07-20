@@ -302,7 +302,7 @@ export default function StandardPoll({
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 md:h-22 w-auto object-contain" />
-          <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />
+          <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />
         </div>
 
         {/* Login Card */}
@@ -341,7 +341,7 @@ export default function StandardPoll({
 
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
-    let waitingClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light";
+    let waitingClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative";
     let titleText = "Welcome to Live Poll";
     let subTitleText = "The poll will begin shortly";
 
@@ -354,7 +354,7 @@ export default function StandardPoll({
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />}
+          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />}
         </div>
 
         {/* Main Content */}
@@ -390,7 +390,7 @@ export default function StandardPoll({
 
   // 2. Render Ended State
   if (!activeQuestion || poll.status === "ended") {
-    let endedClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light";
+    let endedClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative";
     let titleText = "Thank You for Your Participation";
     if (isIU && currentUser) {
       titleText = `Thank You for Your Participation, ${currentUser.name.split(" ")[0]}!`;
@@ -402,7 +402,7 @@ export default function StandardPoll({
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />}
+          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />}
         </div>
 
         {/* Main Content Card */}
@@ -435,7 +435,7 @@ export default function StandardPoll({
       {/* Top Logos Header */}
       <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
         <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-        {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-18 md:h-24 w-auto object-contain" />}
+        {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-2" />}
       </div>
 
       <div className={contentWrapperClass}>

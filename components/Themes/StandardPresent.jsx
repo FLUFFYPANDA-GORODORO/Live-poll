@@ -390,7 +390,7 @@ export default function StandardPresent({
         <div className="w-full px-6 py-4 flex items-center justify-between">
           <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md" /></div>
           {isIU && (
-            <div><img src="/IULogo2.avif" alt="IU Logo" className="h-18 2xl:h-22 w-auto object-contain filter drop-shadow-md" /></div>
+            <div><img src="/IULogo2.avif" alt="IU Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md mt-2" /></div>
           )}
         </div>
       </header>

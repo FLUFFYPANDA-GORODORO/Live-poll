@@ -168,7 +168,6 @@ export default function PresentationMode() {
     if (isTransitioning || currentQuestionIndex >= totalQuestions) return;
     try {
       await nextQuestion(pollId, currentQuestionIndex, totalQuestions);
-      toastSuccess("Next question started!");
     } catch (err) {
       toastError("Failed to go to next question");
     }
@@ -179,7 +178,6 @@ export default function PresentationMode() {
     if (isTransitioning || (isIu ? currentQuestionIndex < 0 : currentQuestionIndex <= 0)) return;
     try {
       await prevQuestion(pollId, currentQuestionIndex, isIu);
-      toastSuccess("Previous question started!");
     } catch (err) {
       toastError("Failed to go to previous question");
     }

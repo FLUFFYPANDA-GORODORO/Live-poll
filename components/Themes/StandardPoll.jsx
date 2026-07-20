@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles, QrCode, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -91,6 +91,137 @@ function HorizontalBarChart({ options, votes, totalVotes }) {
   );
 }
 
+// ── Confetti burst (Falling from top) ──────────────────────────────────────────
+function ConfettiBurst({ active, onComplete }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let confetti = [], sequins = [];
+    const gravityConfetti = 0.4, gravitySequins = 0.55;
+    const dragConfetti = 0.05, dragSequins = 0.015;
+    const terminalVelocity = 7;
+    const colors = [
+      { front: "#7b5cff", back: "#6245e0" },
+      { front: "#b3c7ff", back: "#8fa5e5" },
+      { front: "#5c86ff", back: "#345dd1" },
+      { front: "#10b981", back: "#047857" },
+      { front: "#fbbf24", back: "#d97706" },
+      { front: "#ff5a5f", back: "#e03e42" },
+    ];
+    const rng = (a, b) => Math.random() * (b - a) + a;
+
+    function Confetto(isInitial = false) {
+      this.randomModifier = rng(0, 99);
+      this.color = colors[Math.floor(rng(0, colors.length))];
+      this.dimensions = { x: rng(5, 9), y: rng(8, 15) };
+      // Spread out initial items vertically so they don't fall in a line
+      this.position = { 
+        x: rng(0, canvas.width), 
+        y: isInitial ? rng(-canvas.height, -20) : rng(-60, -20) 
+      };
+      this.velocity = { x: rng(-3, 3), y: rng(1, 4) };
+      this.rotation = rng(0, 2 * Math.PI);
+      this.scale = { x: 1, y: 1 };
+    }
+    Confetto.prototype.update = function () {
+      this.velocity.x -= this.velocity.x * dragConfetti;
+      this.velocity.y = Math.min(this.velocity.y + gravityConfetti, terminalVelocity);
+      // Realistic swaying motion
+      this.velocity.x += Math.sin(this.position.y * 0.04 + this.randomModifier) * 0.2;
+      this.position.x += this.velocity.x;
+      this.position.y += this.velocity.y;
+      this.scale.y = Math.cos((this.position.y + this.randomModifier) * 0.09);
+    };
+
+    function Sequin(isInitial = false) {
+      this.color = colors[Math.floor(rng(0, colors.length))].back;
+      this.radius = rng(1.5, 3);
+      this.position = { 
+        x: rng(0, canvas.width), 
+        y: isInitial ? rng(-canvas.height, -20) : rng(-60, -20) 
+      };
+      this.velocity = { x: rng(-2, 2), y: rng(2, 6) };
+    }
+    Sequin.prototype.update = function () {
+      this.velocity.x -= this.velocity.x * dragSequins;
+      this.velocity.y = Math.min(this.velocity.y + gravitySequins, terminalVelocity);
+      this.velocity.x += Math.sin(this.position.y * 0.06 + this.radius) * 0.1;
+      this.position.x += this.velocity.x;
+      this.position.y += this.velocity.y;
+    };
+
+    // Spawn initial wave with high vertical scattering
+    for (let i = 0; i < 60; i++) {
+      confetti.push(new Confetto(true));
+    }
+    for (let i = 0; i < 30; i++) {
+      sequins.push(new Sequin(true));
+    }
+
+    let animationFrame, elapsedFrames = 0;
+    const renderLoop = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Keep spawning new confetti for the first 240 frames (~4 seconds)
+      if (elapsedFrames < 240) {
+        if (confetti.length < 120) {
+          confetti.push(new Confetto(false));
+        }
+        if (sequins.length < 60) {
+          sequins.push(new Sequin(false));
+        }
+      }
+
+      confetti.forEach((c) => {
+        const w = c.dimensions.x * c.scale.x, h = c.dimensions.y * c.scale.y;
+        ctx.translate(c.position.x, c.position.y);
+        ctx.rotate(c.rotation);
+        c.update();
+        ctx.fillStyle = c.scale.y > 0 ? c.color.front : c.color.back;
+        ctx.fillRect(-w / 2, -h / 2, w, h);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      });
+      sequins.forEach((s) => {
+        ctx.translate(s.position.x, s.position.y);
+        s.update();
+        ctx.fillStyle = s.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, s.radius, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      });
+
+      confetti = confetti.filter((c) => c.position.y < canvas.height + 20);
+      sequins = sequins.filter((s) => s.position.y < canvas.height + 20);
+      elapsedFrames++;
+      
+      if ((confetti.length === 0 && sequins.length === 0) || elapsedFrames > 450) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        onComplete();
+      } else {
+        animationFrame = requestAnimationFrame(renderLoop);
+      }
+    };
+    animationFrame = requestAnimationFrame(renderLoop);
+    const onResize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener("resize", onResize);
+      if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [active, onComplete]);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-[200] w-full h-full" />;
+}
+
 export default function StandardPoll({
   poll,
   cleanTitle,
@@ -117,6 +248,7 @@ export default function StandardPoll({
   const [currentUser, setCurrentUser] = useState(null);
   const [loginError, setLoginError] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [confettiActive, setConfettiActive] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -127,6 +259,17 @@ export default function StandardPoll({
       }
     }
   }, []);
+
+  // Automatically trigger confetti surprise 1.5 seconds after the poll ends
+  const isEnded = !activeQuestion || poll.status === "ended";
+  useEffect(() => {
+    if (isEnded) {
+      const timer = setTimeout(() => {
+        setConfettiActive(true);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isEnded]);
 
   const handleLogin = async () => {
     setLoginError("");
@@ -169,7 +312,7 @@ export default function StandardPoll({
     
     // Max 10 digits
     if (cleaned.length > 10) {
-      cleaned = cleaned.slice(-10);
+      cleaned = cleaned.slice(0, 10);
     }
     
     setPhoneInput(cleaned);
@@ -320,12 +463,17 @@ export default function StandardPoll({
 
   // IU Theme pre-waiting login page check
   if (isIU && !currentUser) {
+    const isPhoneComplete = phoneInput.replace(/\D/g, "").length === 10;
     return (
       <div className="min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative" style={{ backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 md:h-22 w-auto object-contain" />
-          <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
+          <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 md:h-22 w-auto object-contain" />
+          </a>
+          <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+            <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
+          </a>
         </div>
 
         {/* Login Card */}
@@ -340,7 +488,11 @@ export default function StandardPoll({
                 value={phoneInput}
                 onChange={(e) => handlePhoneChange(e.target.value)}
                 placeholder="Phone Number"
-                className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1] text-center tracking-widest text-lg font-mono"
+                className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 text-center tracking-widest text-lg font-mono transition-all duration-300 ${
+                  isPhoneComplete 
+                    ? "bg-emerald-50 border-emerald-400 text-emerald-950 placeholder-slate-400 focus:border-emerald-500 focus:ring-emerald-500" 
+                    : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1]"
+                }`}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleLogin();
                 }}
@@ -373,7 +525,7 @@ export default function StandardPoll({
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
     let waitingClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative";
-    let titleText = "Welcome to Live Poll";
+    let titleText = isIU ? "Welcome to MBA Induction" : "Welcome to Live Poll";
     let subTitleText = "The poll will begin shortly";
 
     const pollUrl = typeof window !== "undefined"
@@ -384,15 +536,21 @@ export default function StandardPoll({
       <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />}
+          <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+          </a>
+          {isIU && (
+            <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+              <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
+            </a>
+          )}
         </div>
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
           <div className="flex flex-col items-center">
             <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
-              {titleText}
+              {isIU ? "Welcome to MBA Induction" : titleText}
             </h1>
             <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue text-zinc-300">
               {subTitleText}
@@ -437,21 +595,34 @@ export default function StandardPoll({
       <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-          {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />}
+          <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+          </a>
+          {isIU && (
+            <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+              <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
+            </a>
+          )}
         </div>
 
         {/* Main Content Card */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
           {isIU ? (
-            <div className="bg-black/40 backdrop-blur-md p-8 md:p-12 rounded-3xl border border-white/10 w-full max-w-xl shadow-2xl animate-fade-in text-center">
-              <h1 className="text-3xl md:text-5xl text-white font-baskerville font-normal leading-tight mb-4">
+            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-100 w-full max-w-xl shadow-2xl animate-fade-in text-center relative mt-16">
+              <div 
+                onClick={() => setConfettiActive(true)}
+                className="absolute -top-20 left-1/2 -translate-x-1/2 ml-4 w-32 h-32 flex items-center justify-center z-10 cursor-pointer active:scale-95 transition-transform"
+                title="Click for Confetti!"
+              >
+                <img src="/partypopper2.png" alt="Party Popper" className="w-full h-full object-contain" />
+              </div>
+              <h1 className="text-3xl md:text-5xl text-slate-900 font-baskerville font-normal leading-tight mb-4 mt-6">
                 Hey {studentName},
               </h1>
-              <p className="text-lg md:text-xl text-slate-200 font-epilogue font-light mb-6 leading-relaxed">
+              <p className="text-lg md:text-xl text-black font-epilogue font-light mb-6 leading-relaxed">
                 Don't worry—your future will be taken care of by us.
               </p>
-              <p className="text-xl md:text-2xl text-emerald-400 font-epilogue font-semibold tracking-wide">
+              <p className="text-xl md:text-2xl text-[#145386] font-epilogue font-semibold tracking-wide">
                 Welcome to Indira University!
               </p>
             </div>
@@ -472,6 +643,9 @@ export default function StandardPoll({
 
         {/* Floating QR button and modal */}
         {renderQrButtonAndModal()}
+
+        {/* Confetti Animation */}
+        {confettiActive && <ConfettiBurst active={confettiActive} onComplete={() => setConfettiActive(false)} />}
       </div>
     );
   }
@@ -486,8 +660,14 @@ export default function StandardPoll({
     <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
       {/* Top Logos Header */}
       <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-        <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
-        {isIU && <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />}
+        <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+        </a>
+        {isIU && (
+          <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
+            <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
+          </a>
+        )}
       </div>
 
       <div className={contentWrapperClass}>

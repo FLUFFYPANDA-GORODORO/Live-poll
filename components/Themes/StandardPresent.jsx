@@ -400,10 +400,10 @@ export default function StandardPresent({
         {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
             <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
-              Welcome to Live Poll
+              {isIU ? "Welcome to MBA Induction" : "Welcome to Live Poll"}
             </h1>
             <p className="text-zinc-350 font-epilogue text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase">
-              Interactive Presentation
+              {isIU ? "Live poll will begin shortly" : "Interactive Presentation"}
             </p>
           </div>
         ) : currentQuestionIndex === totalQuestions ? (

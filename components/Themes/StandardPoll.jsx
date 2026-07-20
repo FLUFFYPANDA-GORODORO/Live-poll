@@ -648,7 +648,7 @@ export default function StandardPoll({
                     Hey {(currentUser && currentUser.phone !== "anonymous") ? currentUser.name.split(" ")[0] : "Student"},
                   </span>
                   <span className="block text-xl md:text-3xl font-light mt-3 tracking-normal text-slate-100">
-                    Welcome to MBA Induction
+                    Welcome to MBA Induction at Indira University
                   </span>
                 </>
               ) : (

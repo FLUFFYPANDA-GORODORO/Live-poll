@@ -659,33 +659,64 @@ export default function StandardPoll({
         </div>
 
         {/* Main Content */}
-        <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
-          <div className="flex flex-col items-center">
-            <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
-              {isIU ? (
-                <>
-                  <span className="block mb-2 font-normal">
-                    Hey {(currentUser && currentUser.phone !== "anonymous") ? currentUser.name.split(" ")[0] : "Student"},
-                  </span>
-                  <span className="block text-xl md:text-3xl font-light mt-3 tracking-normal text-slate-100">
-                    Welcome to MBA Induction at Indira University
-                  </span>
-                </>
-              ) : (
-                titleText
-              )}
-            </h1>
-            <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue text-zinc-300">
-              {subTitleText}
-            </p>
-          </div>
+        <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
+          {isIU ? (
+            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-100 w-full max-w-xl shadow-2xl animate-fade-in text-center relative flex flex-col items-center gap-4 mt-6">
+              {/* Line 1: Hey [Student Name], */}
+              <h1 className="text-3xl md:text-5xl text-slate-900 font-baskerville font-normal leading-tight">
+                Hey {(currentUser && currentUser.phone !== "anonymous") ? currentUser.name.split(" ")[0] : "Student"},
+              </h1>
 
-          {/* QR Code directly below the text */}
-          <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex flex-col items-center max-w-[140px] pointer-events-auto">
-            <div className="bg-white p-1.5 rounded-xl">
-              <QRCodeSVG value={pollUrl} size={100} />
+              {/* Welcome Details Grouped for tighter spacing */}
+              <div className="flex flex-col items-center gap-1 mt-1">
+                {/* Line 2: Welcome to */}
+                <p className="text-lg md:text-xl text-black font-epilogue font-light leading-none">
+                  Welcome to
+                </p>
+
+                {/* Line 3: MBA Induction */}
+                <p className="text-2xl md:text-3xl text-[#145386] font-epilogue font-semibold tracking-wide uppercase leading-tight mt-1">
+                  MBA Induction
+                </p>
+
+                {/* Line 4: at Indira University */}
+                <p className="text-sm md:text-base text-black font-epilogue font-medium tracking-wider uppercase opacity-90 leading-none mt-1.5">
+                  at Indira University
+                </p>
+              </div>
+
+              {/* QR Code directly below the text */}
+              <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl flex flex-col items-center max-w-[140px] pointer-events-auto mt-6 shadow-sm">
+                <div className="bg-white p-1.5 rounded-xl border border-slate-200/40 mb-2">
+                  <QRCodeSVG value={pollUrl} size={100} />
+                </div>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center leading-tight">
+                  Scan to Join
+                </span>
+              </div>
+
+              {/* Line 5: The poll will begin shortly */}
+              <p className="text-sm md:text-base text-slate-400 italic font-epilogue mt-2">
+                The poll will begin shortly
+              </p>
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center">
+              <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
+                {titleText}
+              </h1>
+              <p className="mt-4 opacity-85 tracking-widest uppercase text-xs md:text-sm font-epilogue text-zinc-300">
+                {subTitleText}
+              </p>
+              
+              {/* QR Code directly below the text */}
+              <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex flex-col items-center max-w-[140px] pointer-events-auto mt-6">
+                <div className="bg-white p-1.5 rounded-xl">
+                  <QRCodeSVG value={pollUrl} size={100} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Bottom Spacer to balance top header under justify-between */}

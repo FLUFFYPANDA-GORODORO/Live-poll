@@ -515,7 +515,7 @@ export default function StandardPoll({
   };
 
   const renderQrButtonAndModal = () => {
-    if (!isIU || !currentUser) return null;
+    if (!isIU) return null;
     return (
       <>
         {/* Static QR Code Button for IU theme (only when authenticated) */}
@@ -630,6 +630,9 @@ export default function StandardPoll({
           </div>
         </div>
         <div className="h-12 flex-shrink-0 hidden md:block" />
+        
+        {/* Floating QR button and modal */}
+        {renderQrButtonAndModal()}
       </div>
     );
   }

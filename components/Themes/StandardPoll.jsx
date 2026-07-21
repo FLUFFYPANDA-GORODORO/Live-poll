@@ -777,7 +777,7 @@ export default function StandardPoll({
                 Welcome to Indira University
               </p>
               <p className="text-lg md:text-xl text-black font-epilogue font-light leading-relaxed">
-                Your Future will be taken care by us
+                Your Future will be taken care of by us
               </p>
             </div>
           ) : (

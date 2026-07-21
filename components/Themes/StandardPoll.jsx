@@ -773,11 +773,11 @@ export default function StandardPoll({
               <h1 className="text-3xl md:text-5xl text-slate-900 font-baskerville font-normal leading-tight mb-4 mt-6">
                 Hey {studentName},
               </h1>
-              <p className="text-lg md:text-xl text-black font-epilogue font-light mb-6 leading-relaxed">
-                Don't worry—your future will be taken care of by us.
+              <p className="text-xl md:text-2xl text-[#145386] font-epilogue font-semibold tracking-wide mb-6">
+                Welcome to Indira University
               </p>
-              <p className="text-xl md:text-2xl text-[#145386] font-epilogue font-semibold tracking-wide">
-                Welcome to Indira University!
+              <p className="text-lg md:text-xl text-black font-epilogue font-light leading-relaxed">
+                Your Future will be taken care by us
               </p>
             </div>
           ) : (

@@ -577,7 +577,7 @@ export default function StandardPoll({
   if (isIU && !currentUser) {
     const isPhoneComplete = phoneInput.replace(/\D/g, "").length === 10;
     return (
-      <div className="min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative" style={{ backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div className="min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative" style={{ backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
@@ -645,7 +645,7 @@ export default function StandardPoll({
       : "";
 
     return (
-      <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
+      <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
@@ -743,7 +743,7 @@ export default function StandardPoll({
       : "Student";
 
     return (
-      <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
+      <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
         {/* Top Logos Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
@@ -808,7 +808,7 @@ export default function StandardPoll({
   let emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
 
   return (
-    <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImage.png')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
+    <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
       {/* Top Logos Header */}
       <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
         <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">

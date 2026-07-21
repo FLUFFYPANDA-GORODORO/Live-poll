@@ -380,7 +380,7 @@ export default function StandardPresent({
           <div 
             className="w-full h-full bg-cover bg-center" 
             style={{ 
-              backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('/Iudesktopbackgroundimage.png')", 
+              backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('/Iudesktopbackgroundimage.webp')", 
             }} 
           />
         </div>

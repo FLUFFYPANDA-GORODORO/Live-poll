@@ -181,12 +181,38 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
         {question.text || "Untitled Question"}
       </p>
       <div className={subTextClass}>
-        {question.type === "WordCloud" ? "Word Cloud" : `${optionCount} option${optionCount !== 1 ? "s" : ""}`}
+        {question.type === "WordCloud" 
+          ? "Word Cloud" 
+          : question.type === "OpenEnded"
+          ? "Open Ended"
+          : question.type === "Ranking"
+          ? `Ranking (${optionCount} options)`
+          : `${optionCount} option${optionCount !== 1 ? "s" : ""}`}
       </div>
 
-      {question.type !== "WordCloud" && question.options ? (
+      {question.type === "WordCloud" ? (
+        <div className={`flex items-center justify-center gap-1.5 h-6 mt-3 text-[10px] font-bold rounded py-0.5 ${isActive ? "opacity-100" : "opacity-60"} ${
+          isMasterclass 
+            ? (isActive ? "text-white bg-white/20" : "text-emerald-700 bg-emerald-55") 
+            : isSynergy 
+            ? (isActive ? "text-white bg-white/25" : "text-rose-300 bg-stone-900/60 border border-rose-900/30") 
+            : (isActive ? "text-white bg-white/20" : "text-[#6366F1] bg-indigo-50")
+        }`}>
+          ☁️ Word Cloud
+        </div>
+      ) : question.type === "OpenEnded" ? (
+        <div className={`flex items-center justify-center gap-1.5 h-6 mt-3 text-[10px] font-bold rounded py-0.5 ${isActive ? "opacity-100" : "opacity-60"} ${
+          isMasterclass 
+            ? (isActive ? "text-white bg-white/20" : "text-emerald-700 bg-emerald-55") 
+            : isSynergy 
+            ? (isActive ? "text-white bg-white/25" : "text-rose-300 bg-stone-900/60 border border-rose-900/30") 
+            : (isActive ? "text-white bg-white/20" : "text-[#6366F1] bg-indigo-50")
+        }`}>
+          💬 Open Ended
+        </div>
+      ) : (
         <div className="flex items-end gap-1 h-6 mt-3 opacity-60">
-          {question.options.slice(0, 4).map((_, i) => (
+          {(question.options || []).slice(0, 4).map((_, i) => (
             <div
               key={i}
               className="flex-1 rounded-t"
@@ -198,16 +224,6 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
               }}
             />
           ))}
-        </div>
-      ) : (
-        <div className={`flex items-center justify-center gap-1.5 h-6 mt-3 text-[10px] font-bold rounded py-0.5 ${isActive ? "opacity-100" : "opacity-60"} ${
-          isMasterclass 
-            ? (isActive ? "text-white bg-white/20" : "text-emerald-700 bg-emerald-55") 
-            : isSynergy 
-            ? (isActive ? "text-white bg-white/25" : "text-rose-300 bg-stone-900/60 border border-rose-900/30") 
-            : (isActive ? "text-white bg-white/20" : "text-[#6366F1] bg-indigo-50")
-        }`}>
-          ☁️ Word Cloud
         </div>
       )}
     </div>
@@ -558,7 +574,7 @@ export default function StandardCreate({
                 onChange={(e) => {
                   const newQuestions = [...questions];
                   newQuestions[activeQuestionIndex].type = e.target.value;
-                  if (e.target.value === "WordCloud") {
+                  if (e.target.value === "WordCloud" || e.target.value === "OpenEnded") {
                     newQuestions[activeQuestionIndex].options = [];
                   } else if (!newQuestions[activeQuestionIndex].options?.length) {
                     newQuestions[activeQuestionIndex].options = ["", ""];
@@ -575,11 +591,13 @@ export default function StandardCreate({
               >
                 <option value="MultipleChoice" className={isSynergy ? "bg-stone-800 text-white" : "bg-white text-slate-700"}>Multiple Choice</option>
                 <option value="WordCloud" className={isSynergy ? "bg-stone-800 text-white" : "bg-white text-slate-700"}>Word Cloud</option>
+                <option value="Ranking" className={isSynergy ? "bg-stone-800 text-white" : "bg-white text-slate-700"}>Ranking</option>
+                <option value="OpenEnded" className={isSynergy ? "bg-stone-800 text-white" : "bg-white text-slate-700"}>Open Ended</option>
               </select>
             </div>
 
             {/* Options Management */}
-            {activeQuestion?.type !== "WordCloud" ? (
+            {activeQuestion?.type !== "WordCloud" && activeQuestion?.type !== "OpenEnded" ? (
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
                   <label className={`text-xs font-bold uppercase tracking-wider block ${

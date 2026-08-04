@@ -249,6 +249,7 @@ export default function StandardPresent({
   reactions = [],
   addReaction,
   isTransitioning,
+  deleteResponse,
   theme = "standard"
 }) {
   const isIU = theme === "iu";
@@ -257,16 +258,21 @@ export default function StandardPresent({
 
   useEffect(() => { injectGlobalStyles(); }, []);
 
+  const qTypeStr = String(currentQuestion?.type || "").toLowerCase();
+  const isRanking = qTypeStr === "ranking" || currentQuestion?.type === 3;
+  const isOpenEnded = qTypeStr === "openended" || currentQuestion?.type === 2;
   const isWordCloud =
-    currentQuestion?.type === "WordCloud" ||
-    currentQuestion?.type === 1 ||
-    String(currentQuestion?.type).toLowerCase() === "wordcloud" ||
-    !currentQuestion?.options ||
-    currentQuestion.options.length === 0 ||
-    currentQuestion.options.every((opt) => {
-      const txt = typeof opt === "string" ? opt : opt.text || "";
-      return !txt.trim();
-    });
+    !isRanking &&
+    !isOpenEnded &&
+    (currentQuestion?.type === "WordCloud" ||
+      currentQuestion?.type === 1 ||
+      qTypeStr === "wordcloud" ||
+      !currentQuestion?.options ||
+      currentQuestion.options.length === 0 ||
+      currentQuestion.options.every((opt) => {
+        const txt = typeof opt === "string" ? opt : opt.text || "";
+        return !txt.trim();
+      }));
 
   const seenWordsOrder = useRef([]);
   const prevQuestionIndex = useRef(currentQuestionIndex);
@@ -423,7 +429,78 @@ export default function StandardPresent({
               </h2>
             </div>
 
-            {isWordCloud ? (
+            {isRanking ? (
+              <div className="w-full flex-1 flex flex-col justify-center max-w-4xl mx-auto mb-6 px-4 space-y-4">
+                {(() => {
+                  const rankingsData = poll?.rankingCounts?.[currentQuestionIndex.toString()] || {};
+                  const options = currentQuestion?.options || [];
+                  const sorted = options
+                    .map((opt, idx) => {
+                      const text = typeof opt === "string" ? opt : opt.text || "";
+                      const points = rankingsData[idx.toString()] || 0;
+                      return { idx, text, points };
+                    })
+                    .sort((a, b) => b.points - a.points);
+                  const maxPoints = Math.max(...sorted.map((s) => s.points), 1);
+
+                  return sorted.map((item, rankIdx) => {
+                    const pct = Math.round((item.points / maxPoints) * 100);
+                    return (
+                      <div key={item.idx} className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 shadow-lg transition-all duration-700">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xl flex items-center justify-center shadow-md shrink-0">
+                          #{rankIdx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-white font-bold text-lg md:text-xl truncate">{item.text}</span>
+                            <span className="text-amber-300 font-extrabold text-lg shrink-0 ml-2">{item.points} pts</span>
+                          </div>
+                          <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${Math.max(pct, 4)}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            ) : isOpenEnded ? (
+              <div className="w-full flex-1 overflow-y-auto max-h-[55vh] max-w-5xl mx-auto my-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(() => {
+                  const responses = poll?.openEndedResponses?.[currentQuestionIndex.toString()] || [];
+                  if (responses.length === 0) {
+                    return (
+                      <div className="col-span-full text-center text-white/60 py-16 text-xl">
+                        Waiting for audience responses...
+                      </div>
+                    );
+                  }
+                  return responses.map((resp) => (
+                    <div key={resp.id} className="relative group bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl p-5 shadow-xl text-white flex flex-col justify-between hover:border-white/40 transition-all">
+                      <p className="text-base md:text-lg font-medium leading-relaxed break-words">{resp.text}</p>
+                      <div className="flex justify-between items-center mt-4 text-xs text-white/50 border-t border-white/10 pt-2">
+                        <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <button
+                          onClick={async () => {
+                            if (deleteResponse) {
+                              try {
+                                await deleteResponse(pollId, currentQuestionIndex, resp.id);
+                              } catch (err) {
+                                console.error("Error deleting response:", err);
+                              }
+                            }
+                          }}
+                          className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-600 text-white opacity-80 hover:opacity-100 transition-all cursor-pointer"
+                          title="Delete response"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            ) : isWordCloud ? (
               <div className="w-full flex-1 flex flex-col justify-center items-center mx-auto my-auto mb-6 pt-4">
                 {wordsList.length > 0 ? (
                   <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />

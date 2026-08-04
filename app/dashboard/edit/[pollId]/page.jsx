@@ -55,14 +55,19 @@ export default function EditPoll() {
 
         setQuestions(
           data.questions?.map(q => {
-            const isQWordCloud = q.type === "WordCloud" || q.type === 1 || String(q.type).toLowerCase() === "wordcloud" || !q.options || q.options.length === 0 || q.options.every(opt => {
-              const txt = typeof opt === "string" ? opt : (opt.text || "");
-              return !txt.trim();
-            });
+            const typeStr = String(q.type || "").toLowerCase();
+            let qType = "MultipleChoice";
+            if (q.type === 1 || q.type === "1" || typeStr === "wordcloud") {
+              qType = "WordCloud";
+            } else if (q.type === 2 || q.type === "2" || typeStr === "openended") {
+              qType = "OpenEnded";
+            } else if (q.type === 3 || q.type === "3" || typeStr === "ranking") {
+              qType = "Ranking";
+            }
             return {
               text: q.text || "",
-              type: isQWordCloud ? "WordCloud" : "MultipleChoice",
-              options: q.options?.map(o => typeof o === "string" ? o : (o.text || "")) || (isQWordCloud ? [] : ["", ""])
+              type: qType,
+              options: q.options?.map(o => typeof o === "string" ? o : (o.text || "")) || (qType === "WordCloud" || qType === "OpenEnded" ? [] : ["", ""])
             };
           }) || [{ text: "", type: "MultipleChoice", options: ["", ""] }]
         );
@@ -100,7 +105,7 @@ export default function EditPoll() {
         setActiveQuestionIndex(i);
         return;
       }
-      if (q.type === "WordCloud") {
+      if (q.type === "WordCloud" || q.type === "OpenEnded") {
         cleanedQuestions.push({ ...q, options: [] });
       } else {
         const validOptions = q.options.filter(opt => opt.trim() !== "");

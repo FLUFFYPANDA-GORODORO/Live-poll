@@ -52,7 +52,7 @@ export default function CreatePoll() {
         setActiveQuestionIndex(i);
         return;
       }
-      if (q.type === "WordCloud") {
+      if (q.type === "WordCloud" || q.type === "OpenEnded") {
         cleanedQuestions.push({ ...q, options: [] });
       } else {
         const validOptions = q.options.filter((opt) => opt.trim() !== "");

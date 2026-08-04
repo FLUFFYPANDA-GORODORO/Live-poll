@@ -240,6 +240,8 @@ export default function StandardPoll({
   theme = "standard" // default to standard
 }) {
   const [wordInput, setWordInput] = useState("");
+  const [openEndedInput, setOpenEndedInput] = useState("");
+  const [rankingItems, setRankingItems] = useState([]);
   const [localSubmitting, setLocalSubmitting] = useState(false);
   const [particles, setParticles] = useState([]);
   const [rings, setRings] = useState([]);
@@ -386,10 +388,67 @@ export default function StandardPoll({
     }, 1000);
   };
 
-  const isWordCloud = activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || String(activeQuestion?.type).toLowerCase() === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
+  const qTypeStr = String(activeQuestion?.type || "").toLowerCase();
+  const isRanking = qTypeStr === "ranking" || activeQuestion?.type === 3;
+  const isOpenEnded = qTypeStr === "openended" || activeQuestion?.type === 2;
+  const isWordCloud = !isRanking && !isOpenEnded && (activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || qTypeStr === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
     const txt = typeof opt === "string" ? opt : (opt.text || "");
     return !txt.trim();
-  });
+  }));
+
+  // Sync ranking items when active question options change
+  useEffect(() => {
+    if (isRanking && activeQuestion?.options) {
+      setRankingItems(
+        activeQuestion.options.map((opt, originalIndex) => ({
+          originalIndex,
+          text: typeof opt === "string" ? opt : (opt.text || ""),
+        }))
+      );
+    }
+  }, [isRanking, activeQuestion?.options]);
+
+  const moveRankingItem = (fromIdx, toIdx) => {
+    if (fromIdx < 0 || toIdx < 0 || fromIdx >= rankingItems.length || toIdx >= rankingItems.length) return;
+    setRankingItems((prev) => {
+      const updated = [...prev];
+      const [moved] = updated.splice(fromIdx, 1);
+      updated.splice(toIdx, 0, moved);
+      return updated;
+    });
+  };
+
+  const handleSubmitRanking = async () => {
+    if (localSubmitting || hasVoted) return;
+    const rankingOrder = rankingItems.map((item) => item.originalIndex);
+    setLocalSubmitting(true);
+    try {
+      await voteForOptionHandler({ type: "ranking", rankingOrder });
+      toast.success("Your ranking was submitted!");
+    } catch (err) {
+      toast.error(err.message || "Failed to submit ranking");
+    } finally {
+      setLocalSubmitting(false);
+    }
+  };
+
+  const handleSubmitOpenEnded = async () => {
+    if (localSubmitting || hasVoted || !openEndedInput.trim()) return;
+    if (containsProfanity(openEndedInput)) {
+      toast.error("Please remove offensive language from your response.");
+      return;
+    }
+    setLocalSubmitting(true);
+    try {
+      await voteForOptionHandler({ type: "openended", text: openEndedInput.trim() });
+      toast.success("Your response was submitted!");
+      setOpenEndedInput("");
+    } catch (err) {
+      toast.error(err.message || "Failed to submit response");
+    } finally {
+      setLocalSubmitting(false);
+    }
+  };
 
   const containsProfanity = (text) => {
     if (!text) return false;
@@ -845,8 +904,8 @@ export default function StandardPoll({
             </div>
           )}
 
-          {/* Answer options */}
-          {!isWordCloud && (
+          {/* Answer options (MultipleChoice) */}
+          {!isWordCloud && !isRanking && !isOpenEnded && (
             <div className="p-2.5 sm:p-3.5 space-y-2 sm:space-y-2.5">
               {activeQuestion.options.map((option, idx) => {
                 let buttonStyleClass = "";
@@ -883,6 +942,79 @@ export default function StandardPoll({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Ranking Options List */}
+          {!hasVoted && isRanking && (
+            <div className="p-4 space-y-3">
+              <p className="text-xs font-semibold text-slate-500 mb-1">
+                Reorder the options below in your preferred rank (1 = Highest rank):
+              </p>
+              {rankingItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg shadow-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                      {idx + 1}
+                    </span>
+                    <span className="font-semibold text-sm text-slate-800">{item.text}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => moveRankingItem(idx, idx - 1)}
+                      disabled={idx === 0}
+                      className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 text-slate-600 font-bold"
+                    >
+                      ▲
+                    </button>
+                    <button
+                      onClick={() => moveRankingItem(idx, idx + 1)}
+                      disabled={idx === rankingItems.length - 1}
+                      className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 text-slate-600 font-bold"
+                    >
+                      ▼
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={handleSubmitRanking}
+                disabled={!poll.currentQuestionActive || localSubmitting}
+                className="w-full py-3 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                {localSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Submit Ranking
+              </button>
+            </div>
+          )}
+
+          {/* Open Ended Input */}
+          {!hasVoted && isOpenEnded && (
+            <div className="p-4 space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                  Your Answer
+                </label>
+                <textarea
+                  rows={3}
+                  value={openEndedInput}
+                  onChange={(e) => setOpenEndedInput(e.target.value)}
+                  placeholder="Share your thoughts..."
+                  disabled={!poll.currentQuestionActive || localSubmitting}
+                  className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:ring-indigo-600"
+                />
+              </div>
+              <button
+                onClick={handleSubmitOpenEnded}
+                disabled={!poll.currentQuestionActive || localSubmitting || !openEndedInput.trim()}
+                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {localSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Submit Response
+              </button>
             </div>
           )}
 

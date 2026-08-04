@@ -121,13 +121,20 @@ export default function PollRoom() {
     const questionIndex = poll.activeQuestionIndex;
 
     try {
-      const payload = typeof voteData === "number"
-        ? { type: "choice", optionIndex: voteData }
-        : { type: "wordcloud", text: voteData };
+      let payload;
+      if (typeof voteData === "number") {
+        payload = { type: "choice", optionIndex: voteData };
+      } else if (typeof voteData === "object" && voteData !== null) {
+        payload = voteData;
+      } else {
+        payload = { type: "wordcloud", text: voteData };
+      }
 
       await voteForOption(pollId, questionIndex, payload, sessionId);
       setHasVoted(true);
-      setSelectedOption(voteData);
+      if (typeof voteData === "number") {
+        setSelectedOption(voteData);
+      }
       toast.success("Response recorded!");
     } catch (err) {
       console.error("Error voting:", err);

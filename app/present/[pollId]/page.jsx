@@ -33,6 +33,7 @@ export default function PresentationMode() {
     subscribeToPresenter,
     simulateWordCloud,
     isTransitioning,
+    deleteResponse,
   } = usePollStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -398,6 +399,7 @@ export default function PresentationMode() {
           reactions={reactions}
           addReaction={addReaction}
           isTransitioning={isTransitioning}
+          deleteResponse={deleteResponse}
           theme={theme}
         />
         {/* Floating Emojis Container */}

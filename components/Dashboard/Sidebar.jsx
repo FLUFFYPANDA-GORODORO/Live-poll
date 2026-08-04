@@ -10,7 +10,6 @@ import {
   LayoutTemplate,
   Menu,
   X,
-  Award,
   BarChart3,
 } from "lucide-react";
 import { useState } from "react";
@@ -24,7 +23,6 @@ export default function Sidebar({ user, logout }) {
     { icon: List, label: "My Polls", href: "/dashboard/my-polls" },
     { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
     // { icon: LayoutTemplate, label: "Templates", href: "/dashboard/templates" },
-    { icon: Award, label: "Skill Bidding", href: "/dashboard/bidding" },
     // { icon: HelpCircle, label: "Help", href: "/dashboard/help" },
   ];
 

@@ -4,7 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { getThemeStyles } from "@/lib/themeHelper";
 
-function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B"] }) {
+function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"] }) {
   const maxVotes = Math.max(...votes, 1);
 
   return (

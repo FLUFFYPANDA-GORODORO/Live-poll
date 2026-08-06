@@ -79,19 +79,7 @@ function injectGlobalStyles() {
   document.head.appendChild(style);
 }
 
-const CHART_COLORS = [
-  "linear-gradient(to top, #ea580c, #f97316)", // Flame Orange
-  "linear-gradient(to top, #6d28d9, #8b5cf6)", // Indigo/Purple
-  "linear-gradient(to top, #0284c7, #0ea5e9)", // Sky Blue
-  "linear-gradient(to top, #0d9488, #14b8a6)"  // Electric Teal
-];
 
-const IU_PRESENTER_COLORS = [
-  "linear-gradient(to top, #9a3412, #ea580c)", // Darker Orange
-  "linear-gradient(to top, #854d0e, #d97706)", // Darker Gold
-  "linear-gradient(to top, #86198f, #c026d3)", // Darker Fuchsia
-  "linear-gradient(to top, #9d174d, #db2777)"  // Darker Pink
-];
 
 const FLOWS = ["one", "two", "three"];
 

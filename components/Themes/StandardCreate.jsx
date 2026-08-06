@@ -15,20 +15,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-const STANDARD_CHART_COLORS = [
-  "#6366F1", "#8B5CF6", "#EC4899", "#F59E0B",
-  "#10B981", "#3B82F6", "#EF4444", "#14B8A6",
-];
-
-const MASTERCLASS_CHART_COLORS = ["#10b981"];
-const SYNERGY_CHART_COLORS = ["#ef4444"];
-const SYNERGY_PRESENTER_COLORS = [
-  "linear-gradient(to top, #3a7bd5, #3a6073)", // Slate Blue
-  "linear-gradient(to top, #7fa99b, #a8d3c5)", // Sage/Mint
-  "linear-gradient(to top, #8fbc8f, #b8e2b8)", // Pastel Green
-  "linear-gradient(to top, #e5a93b, #f5d061)", // Soft Gold
-  "linear-gradient(to top, #cd5c5c, #f08080)"  // Soft Coral
-];
+const DEFAULT_PALETTE = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
 
 function VerticalBarChart({ options, theme }) {
   const generateSampleVotes = () => {
@@ -87,9 +74,7 @@ function VerticalBarChart({ options, theme }) {
                 }`}
                 style={{
                   height: `${height}%`,
-                  background: isSynergy 
-                    ? SYNERGY_PRESENTER_COLORS[idx % SYNERGY_PRESENTER_COLORS.length] 
-                    : (!isMasterclass ? STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] : undefined),
+                  background: DEFAULT_PALETTE[idx % DEFAULT_PALETTE.length],
                   minHeight: votes > 0 ? "8px" : "4px",
                 }}
               />
@@ -787,17 +772,14 @@ export default function StandardCreate({
 
                 <div className="space-y-3">
                   {activeQuestion?.options?.map((option, idx) => {
-                    let indicatorBg = "";
+                    let indicatorBg = DEFAULT_PALETTE[idx % DEFAULT_PALETTE.length];
                     let inputClass = "w-full pl-3 pr-8 py-2 rounded-lg border text-sm outline-none transition-all placeholder-slate-350 ";
 
                     if (isMasterclass) {
-                      indicatorBg = MASTERCLASS_CHART_COLORS[idx % MASTERCLASS_CHART_COLORS.length];
                       inputClass += "focus:border-emerald-500 focus:ring-emerald-500 border-emerald-200 bg-white text-slate-800";
                     } else if (isSynergy) {
-                      indicatorBg = SYNERGY_CHART_COLORS[idx % SYNERGY_CHART_COLORS.length];
                       inputClass += "focus:border-rose-500 focus:ring-rose-500 border-rose-300/30 bg-stone-800 text-white placeholder-rose-250/50";
                     } else {
-                      indicatorBg = STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length];
                       inputClass += "focus:border-[#6366F1] focus:ring-[#6366F1] border-slate-200 bg-white text-slate-800";
                     }
 

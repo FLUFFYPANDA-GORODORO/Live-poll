@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
       };
       localStorage.setItem("authUser", JSON.stringify(userData));
       setUser(userData);
-      router.push("/dashboard/my-polls");
+      router.push("/home");
       return { success: true };
     } catch (error) {
       return { success: false, error: error.data?.error || "Login failed" };
@@ -55,7 +55,7 @@ export function AuthProvider({ children }) {
       };
       localStorage.setItem("authUser", JSON.stringify(userData));
       setUser(userData);
-      router.push("/dashboard/my-polls");
+      router.push("/home");
       return { success: true };
     } catch (error) {
       return {

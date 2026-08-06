@@ -543,7 +543,7 @@ export default function BiddingSimulatePage() {
   };
 
   const handleExitPoll = () => {
-    router.push("/dashboard/bidding");
+    router.push("/home");
   };
 
   const handleEndPoll = () => {

@@ -77,7 +77,7 @@ export default function CreatePoll() {
 
       toast.success("Poll created successfully!");
       if (redirectPath === "dashboard") {
-        router.push("/dashboard");
+        router.push("/home");
       } else {
         router.push(`/present/${pollId}`);
       }

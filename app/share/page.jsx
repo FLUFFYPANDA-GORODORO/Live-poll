@@ -40,16 +40,16 @@ function ShareContent({ pollId }) {
           <p className="text-silver-pink mb-6">Please create a poll first to get sharing options</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
-              onClick={() => router.push("/dashboard/create")}
+              onClick={() => router.push("/home/create")}
               className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:from-[#9A7B6A] hover:to-[#B8A190] px-6 py-3 rounded-xl font-semibold text-eggshell transition-all hover:scale-105"
             >
               Create Poll
             </button>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/home")}
               className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-6 py-3 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
             >
-              Go to Dashboard
+              Go Home
             </button>
           </div>
         </div>
@@ -194,11 +194,11 @@ function ShareContent({ pollId }) {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => router.push("/home")}
               className="flex items-center justify-center gap-2 border border-light-taupe/30 hover:border-light-taupe px-6 py-3.5 rounded-xl text-light-taupe transition-colors hover:bg-white/50"
             >
               <Home className="w-5 h-5" />
-              <span className="font-semibold">Return to Dashboard</span>
+              <span className="font-semibold">Return Home</span>
             </button>
             
             <button

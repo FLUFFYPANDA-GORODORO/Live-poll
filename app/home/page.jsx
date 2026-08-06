@@ -14,8 +14,7 @@ import {
   Check,
   Download,
   FolderOpen,
-  Upload,
-  BarChart3
+  Upload
 } from "lucide-react";
 import PollCard from "@/components/Dashboard/PollCard";
 import { parseTheme } from "@/lib/themeHelper";
@@ -31,36 +30,6 @@ function ShareModal({ poll, onClose }) {
     navigator.clipboard.writeText(pollUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const exportResults = () => {
-    if (!poll.questions || !poll.voteCounts) {
-      toast.error("No results to export");
-      return;
-    }
-
-    let csv = "Question,Option,Votes,Percentage\n";
-    
-    poll.questions.forEach((q, qIdx) => {
-      const totalVotes = q.options.reduce((sum, _, optIdx) => 
-        sum + (poll.voteCounts[`${qIdx}_${optIdx}`] || 0), 0
-      );
-      
-      q.options.forEach((opt, optIdx) => {
-        const votes = poll.voteCounts[`${qIdx}_${optIdx}`] || 0;
-        const pct = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
-        csv += `"${q.text}","${opt.text}",${votes},${pct}%\n`;
-      });
-    });
-
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${poll.title || "poll"}-results.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Results exported!");
   };
 
   return (
@@ -118,8 +87,7 @@ export default function MyPolls() {
     deletePoll,
     restartPoll,
     createPoll,
-    fetchPollById,
-    savePoll
+    fetchPollById
   } = usePollStore();
 
   const [shareModal, setShareModal] = useState(null);
@@ -162,7 +130,6 @@ export default function MyPolls() {
     setProcessingPoll(poll.id);
     const loadingToast = toast.loading("Cloning poll...");
     try {
-      // 1. Fetch full poll data to get questions and options
       const fullPoll = await fetchPollById(poll.id);
       if (!fullPoll || !fullPoll.questions) {
         toast.dismiss(loadingToast);
@@ -170,17 +137,14 @@ export default function MyPolls() {
         return;
       }
 
-      // 2. Map questions for creation payload
+      const { cleanTitle } = parseTheme(fullPoll.title || "");
       const clonedQuestions = fullPoll.questions.map((q) => ({
         text: q.text,
         type: q.type,
         options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
       }));
 
-      // 3. Create the cloned poll
       await createPoll(`${cleanTitle} (Copy)`, clonedQuestions, fullPoll.themeId || "11111111-1111-1111-1111-111111111111");
-
-      // 4. Refresh polls list
       await fetchPolls(user.uid);
       toast.dismiss(loadingToast);
       toast.success("Poll cloned successfully!");
@@ -320,7 +284,7 @@ export default function MyPolls() {
               Import JSON
             </button>
             <button 
-              onClick={() => router.push("/dashboard/create")}
+              onClick={() => router.push("/home/create")}
               className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] transition-all flex items-center gap-2"
             >
               <Plus className="w-5 h-5" />
@@ -341,7 +305,7 @@ export default function MyPolls() {
               <h3 className="text-lg font-semibold text-slate-700">No polls yet</h3>
               <p className="text-slate-500 mb-6">Create your first poll to get started</p>
               <button
-                onClick={() => router.push("/dashboard/create")}
+                onClick={() => router.push("/home/create")}
                 className="text-[var(--color-primary)] font-bold hover:underline"
               >
                 Create New Poll

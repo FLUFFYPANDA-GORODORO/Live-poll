@@ -535,7 +535,7 @@ export default function StandardEdit({
           <div className="flex items-center justify-between max-w-7xl mx-auto w-full">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.push("/dashboard")}
+                onClick={() => router.push("/home")}
                 className={`p-2 rounded-lg ${(isSynergy || isIU) ? "hover:bg-stone-850/40 text-white" : "hover:bg-slate-100 text-slate-650"}`}
               >
                 <ChevronLeft className="w-5 h-5" />

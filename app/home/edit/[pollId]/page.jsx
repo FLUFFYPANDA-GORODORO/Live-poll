@@ -31,13 +31,13 @@ export default function EditPoll() {
         const data = await fetchPollById(pollId);
         if (!data) {
           toast.error("Poll not found");
-          router.push("/dashboard");
+          router.push("/home");
           return;
         }
 
         if (data.createdBy !== user.uid) {
           toast.error("You don't have permission to edit this poll");
-          router.push("/dashboard");
+          router.push("/home");
           return;
         }
 
@@ -125,7 +125,7 @@ export default function EditPoll() {
     try {
       await savePoll(pollId, title.trim(), cleanedQuestions, selectedThemeId);
       toast.success("Poll saved!");
-      router.push("/dashboard");
+      router.push("/home");
     } catch (err) {
       console.error("Error saving poll:", err);
       toast.error("Failed to save poll");

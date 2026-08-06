@@ -155,7 +155,7 @@ export default function PresentationMode() {
       try {
         await endPoll(pollId);
         toastSuccess("Poll ended");
-        router.push("/dashboard");
+        router.push("/home");
       } catch (err) {
         toastError("Failed to end poll");
       }
@@ -210,10 +210,10 @@ export default function PresentationMode() {
         <div className="min-h-screen bg-white flex flex-col items-center justify-center text-slate-900">
           <h1 className="text-2xl font-bold mb-4">Poll not found</h1>
           <button
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/home")}
             className="text-[var(--color-primary)] hover:underline"
           >
-            Back to Dashboard
+            Back to Home
           </button>
         </div>
       </ProtectedRoute>

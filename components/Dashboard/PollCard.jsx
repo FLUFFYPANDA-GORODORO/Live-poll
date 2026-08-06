@@ -124,7 +124,7 @@ export default function PollCard({ poll, onDelete, onRestart, onClone, onShare, 
                     </button>
                     {poll.status === 'draft' && (
                          <button 
-                            onClick={() => { setShowMenu(false); router.push(`/dashboard/edit/${poll.id}`); }}
+                            onClick={() => { setShowMenu(false); router.push(`/home/edit/${poll.id}`); }}
                             className={`w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${dropdownBtnClass}`}
                         >
                             <Edit2 className="w-4 h-4 text-slate-400" /> Edit

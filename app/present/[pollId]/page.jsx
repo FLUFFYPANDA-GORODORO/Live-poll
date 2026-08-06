@@ -181,13 +181,13 @@ export default function PresentationMode() {
 
   const totalVotes = isWordCloud
     ? Object.values(poll?.wordCloudCounts?.[currentQuestionIndex.toString()] || {}).reduce(
-        (sum, count) => sum + count,
-        0
-      )
+      (sum, count) => sum + count,
+      0
+    )
     : currentQuestion?.options?.reduce(
-        (sum, _, idx) => sum + getVoteCount(idx),
-        0
-      ) || 0;
+      (sum, _, idx) => sum + getVoteCount(idx),
+      0
+    ) || 0;
 
   const maxVotes = Math.max(
     ...(currentQuestion?.options?.map((_, idx) => getVoteCount(idx)) || [1]),

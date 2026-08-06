@@ -303,12 +303,11 @@ export default function StandardPresent({
 
   const chartInstance = useRef(null);
 
-  const WORD_COLORS = ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa", "#2dd4bf", "#f472b6"];
   const getWordColor = (word) => {
-    if (!word) return "#60a5fa";
+    if (!word) return themeStyles.paletteColors[0] || "#60a5fa";
     let hash = 0;
     for (let i = 0; i < word.length; i++) { hash = (hash << 5) - hash + word.charCodeAt(i); hash |= 0; }
-    return WORD_COLORS[Math.abs(hash) % WORD_COLORS.length];
+    return themeStyles.paletteColors[Math.abs(hash) % themeStyles.paletteColors.length];
   };
 
   useEffect(() => {
@@ -343,7 +342,7 @@ export default function StandardPresent({
           series.randomness = 0;
           series.interpolationDuration = 800;
           series.labels.template.tooltipText = "{word}: {value}";
-          series.fontFamily = "Libre Baskerville";
+          series.fontFamily = themeStyles.containerStyle?.fontFamily || "Inter";
           series.maxFontSize = window.am4core.percent(30);
           series.minFontSize = window.am4core.percent(6);
           series.dataFields.word = "word"; series.dataFields.value = "count";
@@ -359,7 +358,7 @@ export default function StandardPresent({
 
     if (wordsList.length > 0) initChart();
     return () => { disposed = true; if (chartInstance.current) { chartInstance.current.dispose(); chartInstance.current = null; } };
-  }, [wordsList.length > 0]);
+  }, [wordsList.length > 0, themeStyles.paletteColors]);
 
   useEffect(() => {
     if (chartInstance.current && wordsList.length > 0) {
@@ -371,7 +370,7 @@ export default function StandardPresent({
   useEffect(() => {
     const onKey = (e) => {
       if (isTransitioning) return;
-      if (e.key === "ArrowLeft" && (isIU ? currentQuestionIndex >= 0 : currentQuestionIndex > 0)) handlePrevQuestion();
+      if (e.key === "ArrowLeft" && currentQuestionIndex > 0) handlePrevQuestion();
       else if (e.key === "ArrowRight" && currentQuestionIndex < totalQuestions) handleNextQuestion();
       else if (e.key.toLowerCase() === "k") isVotingActive ? handleStopVoting() : handleStartVoting();
       else if (e.key.toLowerCase() === "c") setConfettiActive(true);
@@ -382,24 +381,17 @@ export default function StandardPresent({
   }, [currentQuestionIndex, totalQuestions, isVotingActive, handlePrevQuestion, handleNextQuestion, handleStartVoting, handleStopVoting, showQR, setShowQR, isTransitioning]);
 
   return (
-    <div className="h-screen max-h-screen flex flex-col text-white font-epilogue font-light overflow-hidden relative select-none" style={isIU ? { backgroundColor: "transparent" } : { backgroundColor: "#212529" }}>
-      {isIU && (
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-10 bg-slate-950">
-          <div 
-            className="w-full h-full bg-cover bg-center" 
-            style={{ 
-              backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.35)), url('/Iudesktopbackgroundimage.webp')", 
-            }} 
-          />
-        </div>
-      )}
+    <div
+      className="h-screen max-h-screen flex flex-col overflow-hidden relative select-none"
+      style={{
+        ...themeStyles.backgroundStyle,
+        ...themeStyles.containerStyle,
+      }}
+    >
       {/* Top Bar */}
       <header className="w-full z-20 relative bg-transparent">
         <div className="w-full px-6 py-4 flex items-center justify-between">
           <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md" /></div>
-          {isIU && (
-            <div><img src="/IULogo2.avif" alt="IU Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md mt-3" /></div>
-          )}
         </div>
       </header>
 
@@ -407,26 +399,41 @@ export default function StandardPresent({
       <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative w-full mx-auto bg-transparent rounded-3xl my-4">
         {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
-            <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
-              {isIU ? "Welcome to MBA Induction Program at Indira University" : "Welcome to Live Poll"}
+            <h1
+              className="text-5xl md:text-7xl 2xl:text-8xl font-light leading-tight drop-shadow-2xl tracking-wide animate-fade-in"
+              style={{ color: themeStyles.primaryTextColor }}
+            >
+              Welcome to Live Poll
             </h1>
-            <p className="text-zinc-350 font-epilogue text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase">
-              {isIU ? "Live poll will begin shortly" : "Interactive Presentation"}
+            <p
+              className="text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase"
+              style={{ color: themeStyles.secondaryTextColor }}
+            >
+              Interactive Presentation
             </p>
           </div>
         ) : currentQuestionIndex === totalQuestions ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
-            <h1 className="text-5xl md:text-7xl 2xl:text-8xl font-baskerville font-light text-white leading-tight drop-shadow-2xl tracking-wide animate-fade-in">
+            <h1
+              className="text-5xl md:text-7xl 2xl:text-8xl font-light leading-tight drop-shadow-2xl tracking-wide animate-fade-in"
+              style={{ color: themeStyles.primaryTextColor }}
+            >
               Thank You for Your Participation
             </h1>
-            <p className="text-zinc-350 font-epilogue text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase">
+            <p
+              className="text-lg md:text-xl 2xl:text-3xl mt-4 opacity-85 tracking-widest uppercase"
+              style={{ color: themeStyles.secondaryTextColor }}
+            >
               The Live Poll has Ended
             </p>
           </div>
         ) : (
           <>
             <div className="text-center w-full max-w-6xl mx-auto mb-6 mt-2">
-              <h2 className={`${getQuestionFontSize(currentQuestion?.text)} font-baskerville font-light text-white leading-tight drop-shadow-lg tracking-wide`}>
+              <h2
+                className={`${getQuestionFontSize(currentQuestion?.text)} font-light leading-tight drop-shadow-lg tracking-wide`}
+                style={{ color: themeStyles.primaryTextColor }}
+              >
                 {currentQuestion?.text || "No question"}
               </h2>
             </div>
@@ -447,18 +454,29 @@ export default function StandardPresent({
 
                   return sorted.map((item, rankIdx) => {
                     const pct = Math.round((item.points / maxPoints) * 100);
+                    const itemColor = themeStyles.paletteColors[rankIdx % themeStyles.paletteColors.length];
                     return (
-                      <div key={item.idx} className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 shadow-lg transition-all duration-700">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-slate-950 font-black text-xl flex items-center justify-center shadow-md shrink-0">
+                      <div
+                        key={item.idx}
+                        className="flex items-center gap-4 p-4 rounded-xl shadow-lg transition-all duration-700 border border-white/20"
+                        style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
+                      >
+                        <div
+                          className="w-10 h-10 rounded-full font-black text-xl flex items-center justify-center shadow-md shrink-0"
+                          style={{ backgroundColor: itemColor, color: "#ffffff" }}
+                        >
                           #{rankIdx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-white font-bold text-lg md:text-xl truncate">{item.text}</span>
-                            <span className="text-amber-300 font-extrabold text-lg shrink-0 ml-2">{item.points} pts</span>
+                            <span className="font-bold text-lg md:text-xl truncate" style={{ color: themeStyles.primaryTextColor }}>{item.text}</span>
+                            <span className="font-extrabold text-lg shrink-0 ml-2" style={{ color: themeStyles.accentColor }}>{item.points} pts</span>
                           </div>
                           <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-700 ease-out" style={{ width: `${Math.max(pct, 4)}%` }} />
+                            <div
+                              className="h-full rounded-full transition-all duration-700 ease-out"
+                              style={{ width: `${Math.max(pct, 4)}%`, backgroundColor: itemColor }}
+                            />
                           </div>
                         </div>
                       </div>
@@ -472,15 +490,19 @@ export default function StandardPresent({
                   const responses = poll?.openEndedResponses?.[currentQuestionIndex.toString()] || [];
                   if (responses.length === 0) {
                     return (
-                      <div className="col-span-full text-center text-white/60 py-16 text-xl">
+                      <div className="col-span-full text-center py-16 text-xl" style={{ color: themeStyles.secondaryTextColor }}>
                         Waiting for audience responses...
                       </div>
                     );
                   }
                   return responses.map((resp, idx) => (
-                    <div key={resp.id || resp._id || idx} className="relative group bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl p-5 shadow-xl text-white flex flex-col justify-between hover:border-white/40 transition-all">
+                    <div
+                      key={resp.id || resp._id || idx}
+                      className="relative group border border-white/25 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-white/40 transition-all"
+                      style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A", color: themeStyles.primaryTextColor }}
+                    >
                       <p className="text-base md:text-lg font-medium leading-relaxed break-words">{resp.text}</p>
-                      <div className="flex justify-between items-center mt-4 text-xs text-white/50 border-t border-white/10 pt-2">
+                      <div className="flex justify-between items-center mt-4 text-xs border-t border-white/10 pt-2" style={{ color: themeStyles.secondaryTextColor }}>
                         <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         <button
                           onClick={async () => {
@@ -508,7 +530,7 @@ export default function StandardPresent({
                   <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
                 ) : (
                   <div className="flex items-center justify-center w-full h-[480px] min-h-[400px]">
-                    <svg viewBox="0 0 24 24" className="w-24 h-24 text-white/65">
+                    <svg viewBox="0 0 24 24" className="w-24 h-24" style={{ color: themeStyles.secondaryTextColor }}>
                       <path
                         d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
                         fill="none"
@@ -536,22 +558,22 @@ export default function StandardPresent({
                   style={{
                     background: totalVotes > 0
                       ? `conic-gradient(${currentQuestion.options.map((_, idx) => {
-                          const v = getVoteCount(idx);
-                          const color = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
-                          return { v, color };
-                        }).reduce((acc, item, idx, arr) => {
-                          const prevPct = idx === 0 ? 0 : arr.slice(0, idx).reduce((sum, curr) => sum + (curr.v / totalVotes) * 100, 0);
-                          const currPct = prevPct + (item.v / totalVotes) * 100;
-                          acc.push(`${item.color} ${prevPct}% ${currPct}%`);
-                          return acc;
-                        }, []).join(", ")})`
+                        const v = getVoteCount(idx);
+                        const color = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
+                        return { v, color };
+                      }).reduce((acc, item, idx, arr) => {
+                        const prevPct = idx === 0 ? 0 : arr.slice(0, idx).reduce((sum, curr) => sum + (curr.v / totalVotes) * 100, 0);
+                        const currPct = prevPct + (item.v / totalVotes) * 100;
+                        acc.push(`${item.color} ${prevPct}% ${currPct}%`);
+                        return acc;
+                      }, []).join(", ")})`
                       : `conic-gradient(${themeStyles.paletteColors[0]} 0% 100%)`
                   }}
                 >
                   {currentQuestion?.visualization === "Donut" && (
-                    <div className="w-36 h-36 md:w-44 md:h-44 rounded-full bg-[#1E293B] shadow-inner flex flex-col items-center justify-center text-white">
+                    <div className="w-36 h-36 md:w-44 md:h-44 rounded-full shadow-inner flex flex-col items-center justify-center" style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor, color: themeStyles.primaryTextColor }}>
                       <span className="text-3xl font-extrabold">{totalVotes}</span>
-                      <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total Votes</span>
+                      <span className="text-xs uppercase tracking-wider font-semibold" style={{ color: themeStyles.secondaryTextColor }}>Total Votes</span>
                     </div>
                   )}
                 </div>
@@ -563,14 +585,18 @@ export default function StandardPresent({
                     const color = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
                     const text = typeof option === "string" ? option : option?.text || `Option ${idx + 1}`;
                     return (
-                      <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-white">
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3.5 rounded-xl border border-white/15"
+                        style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A", color: themeStyles.primaryTextColor }}
+                      >
                         <div className="flex items-center gap-3">
                           <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                           <span className="font-semibold text-sm md:text-base">{text}</span>
                         </div>
                         <div className="flex items-center gap-3 font-mono text-sm">
                           <span className="font-bold">{votes} votes</span>
-                          <span className="text-white/60">({percentage}%)</span>
+                          <span style={{ color: themeStyles.secondaryTextColor }}>({percentage}%)</span>
                         </div>
                       </div>
                     );
@@ -588,7 +614,7 @@ export default function StandardPresent({
                     return (
                       <div key={idx} className="flex flex-col items-center flex-1 max-w-[140px] 2xl:max-w-[180px] h-[35vh] justify-end">
                         <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
-                          <div className="text-white font-black text-xl 2xl:text-3xl mb-2 drop-shadow-md">{votes}</div>
+                          <div className="font-black text-xl 2xl:text-3xl mb-2 drop-shadow-md" style={{ color: themeStyles.primaryTextColor }}>{votes}</div>
                           {votes > 0 && (
                             <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
                               style={{ background: barBg, boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }} />
@@ -601,7 +627,7 @@ export default function StandardPresent({
                 <div className="flex justify-center gap-6 md:gap-12 w-full mx-auto mt-4">
                   {currentQuestion?.options?.map((option, idx) => (
                     <div key={idx} className="flex-1 max-w-[140px] 2xl:max-w-[180px] text-center">
-                      <div className="text-slate-200 font-bold text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" title={option.text}>
+                      <div className="font-bold text-xs md:text-sm lg:text-base xl:text-lg 2xl:text-xl whitespace-normal break-words w-full leading-snug drop-shadow-sm px-1" style={{ color: themeStyles.primaryTextColor }} title={option.text}>
                         {option.text}
                       </div>
                     </div>
@@ -636,9 +662,9 @@ export default function StandardPresent({
           {isVotingActive ? (
             <button onClick={handleStopVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Stop</button>
           ) : (
-            <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Start</button>
+            <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ backgroundColor: themeStyles.accentColor }}>Start</button>
           )}
-          <button onClick={handlePrevQuestion} disabled={isTransitioning || (isIU ? currentQuestionIndex < 0 : currentQuestionIndex <= 0)} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
+          <button onClick={handlePrevQuestion} disabled={isTransitioning || currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="bg-white/10 border border-white/10 text-white px-3 py-0.5 rounded font-mono text-sm font-bold min-w-[2rem] text-center">{currentQuestionIndex + 1}</div>
@@ -668,3 +694,4 @@ export default function StandardPresent({
     </div>
   );
 }
+

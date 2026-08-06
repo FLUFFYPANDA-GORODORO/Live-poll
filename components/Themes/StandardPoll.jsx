@@ -225,7 +225,7 @@ export default function StandardPoll({
   activeQuestion,
   router,
   handleSendEmoji,
-  theme = "standard" // default to standard
+  theme = "standard"
 }) {
   const themeStyles = getThemeStyles(poll?.theme);
   const [wordInput, setWordInput] = useState("");
@@ -234,23 +234,7 @@ export default function StandardPoll({
   const [localSubmitting, setLocalSubmitting] = useState(false);
   const [particles, setParticles] = useState([]);
   const [rings, setRings] = useState([]);
-
-  // IU specific login state
-  const [phoneInput, setPhoneInput] = useState("");
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loginError, setLoginError] = useState("");
-  const [showQr, setShowQr] = useState(false);
   const [confettiActive, setConfettiActive] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const savedName = localStorage.getItem("iu_user_name");
-      const savedPhone = localStorage.getItem("iu_user_phone");
-      if (savedName && savedPhone) {
-        setCurrentUser({ name: savedName, phone: savedPhone });
-      }
-    }
-  }, []);
 
   // Automatically trigger confetti surprise 1.5 seconds after the poll ends
   const isEnded = !activeQuestion || poll.status === "ended";
@@ -262,69 +246,6 @@ export default function StandardPoll({
       return () => clearTimeout(timer);
     }
   }, [isEnded]);
-
-  const handleLogin = async () => {
-    setLoginError("");
-    const trimmedPhone = phoneInput.trim();
-    if (!trimmedPhone) {
-      setLoginError("Please enter your phone number");
-      return;
-    }
-    try {
-      const res = await fetch("/users.json");
-      const users = await res.json();
-      const user = users.find(u => String(u.phone).trim() === trimmedPhone);
-      if (user) {
-        localStorage.setItem("iu_user_name", user.name);
-        localStorage.setItem("iu_user_phone", user.phone);
-        setCurrentUser(user);
-      } else {
-        setLoginError("Phone number not registered");
-      }
-    } catch (err) {
-      console.error("Login error:", err);
-      setLoginError("Failed to authenticate. Please try again.");
-    }
-  };
-
-  const handleContinueAsGuest = () => {
-    localStorage.setItem("iu_user_name", "Anonymous");
-    localStorage.setItem("iu_user_phone", "anonymous");
-    setCurrentUser({ name: "Anonymous", phone: "anonymous" });
-  };
-
-  const handlePhoneChange = (val) => {
-    // Remove all non-digits
-    let cleaned = val.replace(/\D/g, "");
-    
-    // If it starts with 91 and is longer than 10 digits, slice off the 91 country code prefix
-    if (cleaned.startsWith("91") && cleaned.length > 10) {
-      cleaned = cleaned.slice(2);
-    }
-    
-    // Max 10 digits
-    if (cleaned.length > 10) {
-      cleaned = cleaned.slice(0, 10);
-    }
-    
-    setPhoneInput(cleaned);
-  };
-
-  useEffect(() => {
-    if (typeof document !== "undefined") {
-      const styleId = "standard-poll-fonts";
-      if (!document.getElementById(styleId)) {
-        const style = document.createElement("style");
-        style.id = styleId;
-        style.textContent = `
-          @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
-          .font-baskerville { font-family: 'Libre Baskerville', serif; }
-          .font-epilogue    { font-family: 'Epilogue', sans-serif; }
-        `;
-        document.head.appendChild(style);
-      }
-    }
-  }, []);
 
   const EMOJI_COLORS = {
     "❤️": "#f43f5e",
@@ -441,104 +362,17 @@ export default function StandardPoll({
 
   const containsProfanity = (text) => {
     if (!text) return false;
-    
-    // Lowercase
-    let clean = text.toLowerCase();
-
-    // 1. Remove all spaces and punctuation completely (handles "b h e n c h o d", "f.u.c.k", "f_u_c_k")
-    clean = clean.replace(/[\W_]/g, "");
-
-    // 2. Leetspeak / substitutions (handles "f@ck", "m@d@rch0d", "b#o$s$d!k3")
+    let clean = text.toLowerCase().replace(/[\W_]/g, "");
     clean = clean
-      .replace(/@/g, "a")
-      .replace(/4/g, "a")
-      .replace(/3/g, "e")
-      .replace(/1/g, "i")
-      .replace(/!/g, "i")
-      .replace(/\|/g, "i")
-      .replace(/0/g, "o")
-      .replace(/\$/g, "s")
-      .replace(/5/g, "s")
-      .replace(/7/g, "t");
-
-    // 3. Collapse repeated letters (handles "fuuuuuck", "behennnnchod")
+      .replace(/@/g, "a").replace(/4/g, "a").replace(/3/g, "e")
+      .replace(/1/g, "i").replace(/!/g, "i").replace(/\|/g, "i")
+      .replace(/0/g, "o").replace(/\$/g, "s").replace(/5/g, "s").replace(/7/g, "t");
     clean = clean.replace(/(.)\1+/g, "$1");
 
-    // Lists of base bad words for direct substring checking after normalization
-    const badWords = [
-      "fuck", "shit", "bitch", "cunt", "dick", "bastard", "piss", "damn", "ass", "asshole", "pussy", "slut", "whore",
-      "anal", "anus", "blowjob", "boner", "bullshit", "clit", "clitoris", "cock", "cum", "dildo", "escort", "fag", 
-      "faggot", "gangbang", "handjob", "hooker", "horny", "masturbate", "nigger", "porn", "pornstar", "retard", "rape", 
-      "semen", "sex", "snatch", "sodomy", "teat", "tits", "titty", "twat", "vagina", "wank", "wanker", "xx", "xxx",
-      "chutiya", "chutiye", "chutya", "chutia", "chut", "chud", "chude", "chudai", "chudaap", "choda", "chode",
-      "behenchod", "behenchd", "behanchod", "bhanchod", "bhenchod", "bhenchd", "betichod", "betichd", "betichod", 
-      "madarchod", "madarchd", "madarched", "maadarchod", "gand", "gaand", "gandu", "gaandu", "gandfat", "gandufad", 
-      "launda", "lauda", "lavda", "lodu", "loda", "lodhu", "lund", "lundu", "bhosdike", "bhosdiki", "bhosad", "bhosdi", "bsdk", "bkl", 
-      "bc", "mc", "mkc", "bcmc", "bkc", "bhadva", "bhadve", "bhadwe", "bhandve", "bakchod", "bakchodi", "mutthal", 
-      "muthal", "muth", "randi", "rande", "rand", "saala", "sala", "kamina", "harami", "harami ke", "bhootni ke", 
-      "bhangi", "chinaal", "chinal", "boobe", "boob", "boobie", "boobies", "chooche", "choochi", "choope",
-      "aaizhavad", "aaizhavade", "aaighal", "puchi", "pucchi", "zavya", "zavli", "zavad",
-      "yeda", "yedi", "yed", "yedbhagat", "zava", "zavne", "zaca", "zaka", "zawa", "aai", "ghal", "ghaal",
-      "bhen", "behen", "bhain", "chod", "chd", "choud", "zatya", "zhatya", "jatya", "jhatya", "dungan", "dungna", "dunga",
-      "clut", "ma", "ka", "teri", "reri", "tuzya", "tu",
-      "zhavadayaa", "zhavadaya", "zhavad", "bhsoade", "bhosade", "bhosda", "bhosd", "seleaaya", "seleaya", "lendds", "lendd", "lend", "bur", 
-      "lomde", "lomda", "chituyaa", "chituya", "chitu", "kede", "keda", "madar", "gund", "me", "mota", "muhh", "meuhh", "lelele", "lele"
-    ];
-
-    // Tolerant regex matches directly on raw text for specific common patterns
-    const rawPatterns = [
-      /f+[uµv\*]+c+k+/i,                // fuck, f*ck, fvk
-      /b+[i1\!l\|]+t+c+h+/i,            // bitch, b1tch
-      /b+[e3]+h+[e3]*n*c+h+[o0]+d+/i,    // behenchod, b3h3nchod
-      /m+[a4]+d+a+r*c+h+[o0]+d+/i,      // madarchod, m4d4rchod
-      /m+[a4]+d+a+r+/i,                  // madar
-      /b+h+[o0]+s+d+[i1\!l\|]+k+[e3]*/i, // bhosdike, bh0sdike
-      /b+h+[o0]+s+[a4]+d+[e3]*/i,        // bhosade, bhsoade, bhosda
-      /l+[o0a4uµvn\*]+[d+dh+]+[uµa4e3o0i1\!l\|]*/i, // lodu, lavde, lauda, loda, lode, lund
-      /a+i+[\W_]*[z+gh+]+a+v+a*[d+e3]*/i, // aaizhavad, aaighal, aaizhavade
-      /z+h*a+v+a+[d+y+a+]+/i,            // zhavadayaa, zhavadaya
-      /p+u+[c+]*h+[i1\!l\|]+/i,           // puchi, pucchi
-      /z+[a+4]+[v*cwbk]+[a+y+n+e3]*/i,    // zava, zavne, zavli, zavya, zaca, zaka, zawa
-      /y+e+d+[a+i1\!l\|]*/i,             // yeda, yedi, yed
-      /g+h+a+a*l+/i,                     // ghal, ghaal
-      /a+a*i+i*/i,                       // aai, aaai
-      /b+[e3]*h+[e3]*n+/i,               // bhen, behen, bhain
-      /c+h+[o0u4]*d+/i,                  // chod, chd, choud
-      /[zj]h*[a4]+t+y+[a4e3]*/i,         // zatya, zhatya, jatya, jhatya
-      /d+u+n+g+[a4n]+/i,                 // dungan, dungna, dunga
-      /c+l+u+t+/i,                       // clut
-      /t+e+r+[i1\!l\|]+/i,               // teri
-      /r+e+r+[i1\!l\|]+/i,               // reri
-      /t+u+z+y+[a4]+/i,                  // tuzya
-      /t+u+/i,                           // tu
-      /m+a+a*/i,                         // ma, maa
-      /k+a+a*/i,                         // ka, kaa
-      /b+u+r+/i,                         // bur
-      /l+e+n+d+/i,                       // lend, lendd, lendds
-      /s+e+l+e+a*/i,                     // seleaaya, seleaya
-      /l+o+m+d+[e3]*/i,                  // lomde, lomda
-      /c+h+i+t+u+/i,                     // chituyaa, chituya
-      /k+e+d+[e3]*/i,                    // kede, keda
-      /g+u+n+d+/i,                       // gund
-      /m+e+h*/i,                         // me, muhh, meuhh
-      /l+e+l+e+/i,                       // lele, lelele
-      /\b(bc|mc|bkl|bsdk|mkc|bkc|gmc|lodu|loda)\b/i // abbreviations
-    ];
-
-    // Check raw patterns first
-    for (const pat of rawPatterns) {
-      if (pat.test(text) || pat.test(clean)) {
-        return true;
-      }
-    }
-
-    // Direct check on fully normalized clean word
+    const badWords = ["fuck", "shit", "bitch", "cunt", "dick", "bastard", "asshole", "pussy", "behenchod", "madarchod", "bhosdike", "chutiya", "gandu", "lauda", "loda", "lund"];
     for (const bad of badWords) {
-      if (clean.includes(bad)) {
-        return true;
-      }
+      if (clean.includes(bad)) return true;
     }
-
     return false;
   };
 
@@ -562,324 +396,98 @@ export default function StandardPoll({
     }
   };
 
-  const renderQrButtonAndModal = () => {
-    if (!isIU) return null;
-    return (
-      <>
-        {/* Static QR Code Button for IU theme (only when authenticated) */}
-        <button
-          onClick={() => setShowQr(true)}
-          className="absolute bottom-6 right-6 bg-[#145386] hover:bg-[#2c9fa1] border border-white/20 text-white p-3.5 rounded-full shadow-2xl transition-all duration-300 z-50 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95"
-          title="Show Join QR Code"
-        >
-          <QrCode className="w-6 h-6 text-white" />
-        </button>
-
-        {/* QR Modal Overlay for IU theme */}
-        {showQr && (
-          <div
-            onClick={() => setShowQr(false)}
-            className="fixed inset-0 bg-black/85 flex items-center justify-center z-[100] p-4 backdrop-blur-sm"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl p-6 max-w-sm w-full flex flex-col items-center relative shadow-2xl border border-slate-200"
-            >
-              {/* Highly visible circular close button */}
-              <button
-                onClick={() => setShowQr(false)}
-                className="absolute -top-3 -right-3 bg-slate-800 hover:bg-slate-900 text-white transition-colors p-2.5 rounded-full shadow-xl border-2 border-white z-10 cursor-pointer active:scale-95"
-                title="Close"
-              >
-                <X className="w-5 h-5 stroke-[2.5]" />
-              </button>
-              <h3 className="text-[#145386] font-bold text-lg text-center mb-1">
-                Join the Poll
-              </h3>
-              <p className="text-slate-500 text-xs text-center mb-6">
-                Scan to participate
-              </p>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex items-center justify-center mb-4">
-                <QRCodeSVG
-                  value={typeof window !== "undefined" ? window.location.href : ""}
-                  size={200}
-                  level="H"
-                />
-              </div>
-              <div className="w-full text-slate-700 text-xs font-bold text-center">
-                Room Code: <span className="text-[#145386] select-all font-mono">{pollId}</span>
-              </div>
-            </div>
-          </div>
-        )}
-      </>
-    );
-  };
-
-  // Helper variables for clean conditional styling
-  const isMasterclass = theme === "masterclass";
-  const isSynergy = theme === "synergy_sphere";
-  const isIU = theme === "iu";
-
-  // IU Theme pre-waiting login page check
-  if (isIU && !currentUser) {
-    const isPhoneComplete = phoneInput.replace(/\D/g, "").length === 10;
-    return (
-      <div className="min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative" style={{ backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" }}>
-        {/* Top Logos Header */}
-        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-          <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-16 md:h-22 w-auto object-contain" />
-          </a>
-          <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
-          </a>
-        </div>
-
-        {/* Login Card */}
-        <div className="max-w-md text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center gap-6">
-          <div className="bg-white p-8 rounded-2xl border border-slate-100 w-full shadow-2xl">
-            <h2 className="text-2xl font-baskerville font-light text-slate-900 mb-6">
-              Enter Your Phone Number to Join
-            </h2>
-            <div className="flex flex-col gap-4">
-              <input
-                type="tel"
-                value={phoneInput}
-                onChange={(e) => handlePhoneChange(e.target.value)}
-                placeholder="Phone Number"
-                className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 text-center tracking-widest text-lg font-mono transition-all duration-300 ${
-                  isPhoneComplete 
-                    ? "bg-emerald-50 border-emerald-400 text-emerald-950 placeholder-slate-400 focus:border-emerald-500 focus:ring-emerald-500" 
-                    : "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-[#2c9fa1] focus:ring-[#2c9fa1]"
-                }`}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleLogin();
-                }}
-              />
-              {loginError && (
-                <p className="text-red-600 text-xs font-semibold">{loginError}</p>
-              )}
-              <button
-                onClick={handleLogin}
-                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all bg-[#145386] hover:bg-[#2c9fa1]"
-              >
-                Join Poll
-              </button>
-              {!pollNotStarted && (
-                <button
-                  onClick={handleContinueAsGuest}
-                  className="w-full py-3 text-[#145386] hover:text-[#2c9fa1] rounded-md text-sm font-bold shadow-sm active:scale-[0.98] transition-all border border-[#145386]/20 hover:border-[#2c9fa1]/30 hover:bg-slate-50 cursor-pointer text-center"
-                >
-                  Continue without Phone Number
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="h-12 flex-shrink-0 hidden md:block" />
-        
-        {/* Floating QR button and modal */}
-        {renderQrButtonAndModal()}
-      </div>
-    );
-  }
+  const pollUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/poll/${pollId}`
+    : "";
 
   // 1. Render Waiting Room / Poll Not Started State
   if (pollNotStarted) {
-    let waitingClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative";
-    let titleText = isIU ? "Welcome to MBA Induction" : "Welcome to Live Poll";
-    let subTitleText = "The poll will begin shortly";
-
-    const pollUrl = typeof window !== "undefined"
-      ? `${window.location.origin}/poll/${pollId}`
-      : "";
-
     return (
-      <div className={waitingClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
-        {/* Top Logos Header */}
+      <div
+        className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
+        style={{ ...themeStyles.backgroundStyle, ...themeStyles.containerStyle }}
+      >
+        {/* Top Header */}
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-8 md:h-11 w-auto object-contain" />
           </a>
-          {isIU && (
-            <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-              <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
-            </a>
-          )}
         </div>
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
-          {isIU ? (
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-100 w-full max-w-xl shadow-2xl animate-fade-in text-center relative flex flex-col items-center gap-4 mt-6">
-              {/* Line 1: Hey [Student Name], */}
-              <h1 className="text-3xl md:text-5xl text-slate-900 font-baskerville font-normal leading-tight">
-                Hey {(currentUser && currentUser.phone !== "anonymous") ? currentUser.name.split(" ")[0] : "Student"},
-              </h1>
-
-              {/* Welcome Details Grouped for tighter spacing */}
-              <div className="flex flex-col items-center gap-1 mt-1">
-                {/* Line 2: Welcome to */}
-                <p className="text-lg md:text-xl text-black font-epilogue font-light leading-none">
-                  Welcome to
-                </p>
-
-                {/* Line 3: MBA Induction */}
-                <p className="text-2xl md:text-3xl text-[#145386] font-epilogue font-semibold tracking-wide uppercase leading-tight mt-1">
-                  MBA Induction
-                </p>
-
-                {/* Line 4: at Indira University */}
-                <p className="text-sm md:text-base text-black font-epilogue font-medium tracking-wider uppercase opacity-90 leading-none mt-1.5">
-                  at Indira University
-                </p>
-              </div>
-
-              {/* QR Code directly below the text */}
-              <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl flex flex-col items-center max-w-[140px] pointer-events-auto mt-6 shadow-sm">
-                <div className="bg-white p-1.5 rounded-xl border border-slate-200/40 mb-2">
-                  <QRCodeSVG value={pollUrl} size={100} />
-                </div>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider text-center leading-tight">
-                  Scan to Join
-                </span>
-              </div>
-
-              {/* Line 5: The poll will begin shortly */}
-              <p className="text-sm md:text-base text-slate-400 italic font-epilogue mt-2">
-                The poll will begin shortly
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center">
-              <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
-                {titleText}
-              </h1>
-              <p className="mt-4 opacity-85 tracking-widest uppercase text-xs md:text-sm font-epilogue text-zinc-300">
-                {subTitleText}
-              </p>
-              
-              {/* QR Code directly below the text */}
-              <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex flex-col items-center max-w-[140px] pointer-events-auto mt-6">
-                <div className="bg-white p-1.5 rounded-xl">
-                  <QRCodeSVG value={pollUrl} size={100} />
-                </div>
+          <div className="flex flex-col items-center">
+            <h1 className="text-4xl md:text-6xl leading-tight drop-shadow-2xl tracking-wide select-none font-light" style={{ color: themeStyles.primaryTextColor }}>
+              Welcome to Live Poll
+            </h1>
+            <p className="mt-4 opacity-85 tracking-widest uppercase text-xs md:text-sm font-light" style={{ color: themeStyles.secondaryTextColor }}>
+              The poll will begin shortly
+            </p>
+            <div className="bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10 flex flex-col items-center max-w-[140px] pointer-events-auto mt-6">
+              <div className="bg-white p-1.5 rounded-xl">
+                <QRCodeSVG value={pollUrl} size={100} />
               </div>
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Bottom Spacer to balance top header under justify-between */}
         <div className="h-12 flex-shrink-0 hidden md:block" />
-        
-        {/* Floating QR button and modal */}
-        {renderQrButtonAndModal()}
       </div>
     );
   }
 
   // 2. Render Ended State
   if (!activeQuestion || poll.status === "ended") {
-    let endedClass = "min-h-screen flex flex-col justify-between p-4 md:p-6 text-white font-epilogue font-light relative";
-    let titleText = "Thank You for Your Participation";
-    if (isIU && currentUser && currentUser.phone !== "anonymous") {
-      titleText = `Thank You for Your Participation, ${currentUser.name.split(" ")[0]}!`;
-    }
-    let subTitleText = "The Live Poll has Ended";
-
-    // Custom IU student name definition
-    const studentName = (currentUser && currentUser.phone !== "anonymous")
-      ? currentUser.name.split(" ")[0]
-      : "Student";
-
     return (
-      <div className={endedClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
-        {/* Top Logos Header */}
+      <div
+        className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
+        style={{ ...themeStyles.backgroundStyle, ...themeStyles.containerStyle }}
+      >
         <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
           <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-8 md:h-11 w-auto object-contain" />
           </a>
-          {isIU && (
-            <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-              <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
-            </a>
-          )}
         </div>
 
-        {/* Main Content Card */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
-          {isIU ? (
-            <div className="bg-white p-8 md:p-12 rounded-3xl border border-slate-100 w-full max-w-xl shadow-2xl animate-fade-in text-center relative mt-16">
-              <div 
-                onClick={() => setConfettiActive(true)}
-                className="absolute -top-20 left-1/2 -translate-x-1/2 ml-4 w-32 h-32 flex items-center justify-center z-10 cursor-pointer active:scale-95 transition-transform"
-                title="Click for Confetti!"
-              >
-                <img src="/partypopper2.png" alt="Party Popper" className="w-full h-full object-contain" />
-              </div>
-              <h1 className="text-3xl md:text-5xl text-slate-900 font-baskerville font-normal leading-tight mb-4 mt-6">
-                Hey {studentName},
-              </h1>
-              <p className="text-xl md:text-2xl text-[#145386] font-epilogue font-semibold tracking-wide mb-6">
-                Welcome to Indira University
-              </p>
-              <p className="text-lg md:text-xl text-black font-epilogue font-light leading-relaxed">
-                Your Future will be<br />taken care of by us
-              </p>
-            </div>
-          ) : (
-            <>
-              <h1 className="text-4xl md:text-6xl text-white leading-tight drop-shadow-2xl tracking-wide select-none font-baskerville font-light">
-                {titleText}
-              </h1>
-              <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-epilogue text-zinc-300">
-                {subTitleText}
-              </p>
-            </>
-          )}
+          <h1 className="text-4xl md:text-6xl leading-tight drop-shadow-2xl tracking-wide select-none font-light" style={{ color: themeStyles.primaryTextColor }}>
+            Thank You for Your Participation
+          </h1>
+          <p className="mt-4 opacity-85 tracking-widest uppercase text-sm md:text-base font-light" style={{ color: themeStyles.secondaryTextColor }}>
+            The Live Poll has Ended
+          </p>
         </div>
 
-        {/* Bottom Spacer to balance top header under justify-between */}
         <div className="h-12 flex-shrink-0 hidden md:block" />
-
-        {/* Floating QR button and modal */}
-        {renderQrButtonAndModal()}
-
-        {/* Confetti Animation */}
         {confettiActive && <ConfettiBurst active={confettiActive} onComplete={() => setConfettiActive(false)} />}
       </div>
     );
   }
 
   // 3. Main Active Poll Screen
-  let mainWrapperClass = "h-screen max-h-screen p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative text-white font-epilogue font-light";
-  let contentWrapperClass = "max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2";
-  let cardClass = "bg-white rounded-2xl border border-slate-100 shadow-2xl overflow-hidden";
-  let emojiPanelClass = "p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md";
-
   return (
-    <div className={mainWrapperClass} style={isIU ? { backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.2)), url('/IUbackgroundImageMobile.webp')", backgroundSize: "cover", backgroundPosition: "center" } : { backgroundColor: "#212529" }}>
-      {/* Top Logos Header */}
+    <div
+      className="h-screen max-h-screen p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative select-none"
+      style={{ ...themeStyles.backgroundStyle, ...themeStyles.containerStyle }}
+    >
       <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
         <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className={isIU ? "h-16 md:h-22 w-auto object-contain" : "h-8 md:h-11 w-auto object-contain"} />
+          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-8 md:h-11 w-auto object-contain" />
         </a>
-        {isIU && (
-          <a href="https://indirauniversity.edu.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/IULogo2.avif" alt="IU Logo" className="h-20 md:h-26 w-auto object-contain mt-3" />
-          </a>
-        )}
       </div>
 
-      <div className={contentWrapperClass}>
-        <div key={isWordCloud ? 'question-wc' : 'question-mcq'} className={cardClass}>
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
+        <div
+          key={isWordCloud ? 'question-wc' : 'question-mcq'}
+          className="rounded-2xl border border-slate-100/20 shadow-2xl overflow-hidden"
+          style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
+        >
           {/* Card Header */}
           <div className="p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl md:text-2xl font-baskerville font-light text-slate-900 text-center mb-2">
-                {activeQuestion.text}
-              </h2>
-            </div>
+            <h2 className="text-lg sm:text-xl md:text-2xl font-light text-center mb-2" style={{ color: themeStyles.primaryTextColor }}>
+              {activeQuestion.text}
+            </h2>
+          </div>
 
           {/* Results preview */}
           {!!hasVoted && isWordCloud && (
@@ -887,7 +495,7 @@ export default function StandardPoll({
               <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 border bg-green-100 border-green-200">
                 <Check className="w-6 h-6 text-green-600" />
               </div>
-              <h3 className="text-lg font-bold text-slate-800">
+              <h3 className="text-lg font-bold" style={{ color: themeStyles.primaryTextColor }}>
                 Answer Recorded!
               </h3>
             </div>
@@ -897,32 +505,36 @@ export default function StandardPoll({
           {!isWordCloud && !isRanking && !isOpenEnded && (
             <div className="p-2.5 sm:p-3.5 space-y-2 sm:space-y-2.5">
               {activeQuestion.options.map((option, idx) => {
-                let buttonStyleClass = "";
-                let badgeClass = "";
-                let badgeStyle = {};
-
                 const isOptionSelected = hasVoted && selectedOption === idx;
                 const isOptionUnselected = hasVoted && selectedOption !== idx;
 
-                buttonStyleClass = `w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${isOptionSelected
-                  ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default"
-                  : isOptionUnselected
-                    ? "bg-slate-50 border-slate-100 opacity-40 cursor-default text-slate-400"
-                    : poll.currentQuestionActive && !voting
-                      ? "bg-slate-50 hover:bg-slate-100/50 border-slate-200 hover:border-slate-300 cursor-pointer active:scale-[0.98] text-slate-800"
-                      : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
-                  }`;
-                badgeClass = "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
-                badgeStyle = { backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] };
+                const badgeStyle = { backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] };
 
                 return (
                   <button
                     key={idx}
                     onClick={() => voteForOptionHandler(idx)}
                     disabled={!poll.currentQuestionActive || voting || hasVoted}
-                    className={buttonStyleClass}
+                    className={`w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${
+                      isOptionSelected
+                        ? "shadow-md font-bold cursor-default opacity-100"
+                        : isOptionUnselected
+                          ? "opacity-40 cursor-default"
+                          : poll.currentQuestionActive && !voting
+                            ? "hover:opacity-90 cursor-pointer active:scale-[0.98]"
+                            : "cursor-not-allowed opacity-60"
+                    }`}
+                    style={{
+                      backgroundColor: isOptionSelected
+                        ? `${themeStyles.accentColor}33`
+                        : "rgba(255,255,255,0.06)",
+                      borderColor: isOptionSelected
+                        ? themeStyles.accentColor
+                        : "rgba(255,255,255,0.15)",
+                      color: themeStyles.primaryTextColor,
+                    }}
                   >
-                    <div className={badgeClass} style={badgeStyle}>
+                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0" style={badgeStyle}>
                       {String.fromCharCode(65 + idx)}
                     </div>
                     <span className="font-semibold text-xs sm:text-sm md:text-base">
@@ -937,32 +549,39 @@ export default function StandardPoll({
           {/* Ranking Options List */}
           {!hasVoted && isRanking && (
             <div className="p-4 space-y-3">
-              <p className="text-xs font-semibold text-slate-500 mb-1">
+              <p className="text-xs font-semibold mb-1" style={{ color: themeStyles.secondaryTextColor }}>
                 Reorder the options below in your preferred rank (1 = Highest rank):
               </p>
               {rankingItems.map((item, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-lg shadow-sm"
+                  className="flex items-center justify-between p-3 border rounded-lg shadow-sm"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.06)",
+                    borderColor: "rgba(255,255,255,0.15)",
+                    color: themeStyles.primaryTextColor,
+                  }}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-bold text-xs flex items-center justify-center">
+                    <span className="w-6 h-6 rounded-full text-white font-bold text-xs flex items-center justify-center" style={{ backgroundColor: themeStyles.accentColor }}>
                       {idx + 1}
                     </span>
-                    <span className="font-semibold text-sm text-slate-800">{item.text}</span>
+                    <span className="font-semibold text-sm">{item.text}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => moveRankingItem(idx, idx - 1)}
                       disabled={idx === 0}
-                      className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 text-slate-600 font-bold"
+                      className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 font-bold"
+                      style={{ color: themeStyles.primaryTextColor }}
                     >
                       ▲
                     </button>
                     <button
                       onClick={() => moveRankingItem(idx, idx + 1)}
                       disabled={idx === rankingItems.length - 1}
-                      className="p-1.5 rounded hover:bg-slate-200 disabled:opacity-30 text-slate-600 font-bold"
+                      className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 font-bold"
+                      style={{ color: themeStyles.primaryTextColor }}
                     >
                       ▼
                     </button>
@@ -972,7 +591,8 @@ export default function StandardPoll({
               <button
                 onClick={handleSubmitRanking}
                 disabled={!poll.currentQuestionActive || localSubmitting}
-                className="w-full py-3 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="w-full py-3 mt-2 text-white font-bold rounded-lg shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                style={{ backgroundColor: themeStyles.accentColor }}
               >
                 {localSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Ranking
@@ -984,7 +604,7 @@ export default function StandardPoll({
           {!hasVoted && isOpenEnded && (
             <div className="p-4 space-y-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold uppercase tracking-wider text-indigo-600">
+                <label className="text-xs font-bold uppercase tracking-wider" style={{ color: themeStyles.accentColor }}>
                   Your Answer
                 </label>
                 <textarea
@@ -993,13 +613,19 @@ export default function StandardPoll({
                   onChange={(e) => setOpenEndedInput(e.target.value)}
                   placeholder="Share your thoughts..."
                   disabled={!poll.currentQuestionActive || localSubmitting}
-                  className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-600 focus:ring-indigo-600"
+                  className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.06)",
+                    borderColor: "rgba(255,255,255,0.15)",
+                    color: themeStyles.primaryTextColor,
+                  }}
                 />
               </div>
               <button
                 onClick={handleSubmitOpenEnded}
                 disabled={!poll.currentQuestionActive || localSubmitting || !openEndedInput.trim()}
-                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ backgroundColor: themeStyles.accentColor }}
               >
                 {localSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Response
@@ -1011,7 +637,7 @@ export default function StandardPoll({
           {!hasVoted && !!isWordCloud && (
             <div className="p-4 space-y-4">
               <div className="flex flex-col gap-1.5">
-                <label className={`text-xs font-bold uppercase tracking-wider ${isIU ? "text-[#145386]" : "text-[var(--color-primary)]"}`}>
+                <label className="text-xs font-bold uppercase tracking-wider" style={{ color: themeStyles.accentColor }}>
                   Your Answer
                 </label>
                 <input
@@ -1021,48 +647,51 @@ export default function StandardPoll({
                   placeholder="Type your response (max 50 characters)..."
                   maxLength={50}
                   disabled={!poll.currentQuestionActive || localSubmitting}
-                  className={`w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 ${
-                    isIU ? "focus:border-[#145386] focus:ring-[#145386]" : "focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]"
-                  }`}
+                  className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.06)",
+                    borderColor: "rgba(255,255,255,0.15)",
+                    color: themeStyles.primaryTextColor,
+                  }}
                 />
               </div>
               <button
                 onClick={handleSubmitWord}
                 disabled={!poll.currentQuestionActive || localSubmitting || !wordInput.trim()}
-                className={`w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
-                  isIU ? "bg-[#145386] hover:bg-[#2c9fa1]" : "bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)]"
-                }`}
+                className="w-full py-3 text-white rounded-md text-sm font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                style={{ backgroundColor: themeStyles.accentColor }}
               >
                 {!!(localSubmitting || voting) && <Loader2 className="w-4 h-4 animate-spin" />}
                 Submit Answer
               </button>
             </div>
           )}
+
           {/* Message bar */}
           <div className="px-4 pb-4">
             {voting || localSubmitting ? (
-              <div className="flex items-center justify-center gap-2 p-2 bg-slate-50 border border-slate-100 rounded-md text-slate-700">
-                <Loader2 className="w-4 h-4 animate-spin text-[var(--color-primary)]" />
+              <div className="flex items-center justify-center gap-2 p-2 border rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)", color: themeStyles.secondaryTextColor }}>
+                <Loader2 className="w-4 h-4 animate-spin" style={{ color: themeStyles.accentColor }} />
                 <span className="font-medium">Recording response...</span>
               </div>
             ) : hasVoted ? (
               isWordCloud ? null : (
-                <div className="flex items-center justify-center gap-2 p-2 bg-emerald-50 border border-emerald-100 rounded-md text-emerald-700">
+                <div className="flex items-center justify-center gap-2 p-2 border rounded-md text-emerald-400" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
                   <Check className="w-4 h-4" />
                   <span className="font-medium">Answer recorded!</span>
                 </div>
               )
             ) : !poll.currentQuestionActive ? (
-              <div className="flex items-center justify-center gap-2 p-2 bg-yellow-50 border border-yellow-100 rounded-md text-yellow-700">
+              <div className="flex items-center justify-center gap-2 p-2 border rounded-md text-amber-400" style={{ backgroundColor: "rgba(245,158,11,0.1)", borderColor: "rgba(245,158,11,0.2)" }}>
                 <Lock className="w-4 h-4" />
                 <span className="font-medium">Voting locked. Wait for host.</span>
               </div>
             ) : isWordCloud ? (
-              <div className="text-center p-2.5 bg-emerald-50 border border-emerald-100/50 rounded-md text-emerald-700 font-semibold text-xs md:text-sm">
+              <div className="text-center p-2.5 border rounded-md font-semibold text-xs md:text-sm text-emerald-400" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
                 <span>Enter a word and tap submit to record your response</span>
               </div>
             ) : (
-              <div className="text-center p-2.5 bg-emerald-50 border border-emerald-100/50 rounded-md text-emerald-700 font-semibold text-xs md:text-sm animate-pulse">
+              <div className="text-center p-2.5 border rounded-md font-semibold text-xs md:text-sm animate-pulse text-emerald-400" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
                 <span>Tap an option to lock in your answer</span>
               </div>
             )}
@@ -1071,7 +700,7 @@ export default function StandardPoll({
 
         {/* Emoji Reactions Panel */}
         {poll.status === "live" && poll.status !== undefined && (
-          <div className={emojiPanelClass}>
+          <div className="p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md">
             {["❤️", "🔥", "👏", "😂", "🤯"].map((emoji, idx) => (
               <button
                 key={idx}
@@ -1161,9 +790,6 @@ export default function StandardPoll({
           }
         `}</style>
       </div>
-
-      {/* Floating QR button and modal */}
-      {renderQrButtonAndModal()}
     </div>
   );
 }

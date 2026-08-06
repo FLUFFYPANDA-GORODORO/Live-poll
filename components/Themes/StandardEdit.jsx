@@ -110,7 +110,7 @@ function VerticalBarChart({ options, theme }) {
 }
 
 function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete, theme }) {
-  const optionCount = question.options ? question.options.filter(o => o.trim()).length : 0;
+  const optionCount = question.options ? question.options.filter(o => typeof o === "string" ? o.trim() !== "" : (o?.text || "").trim() !== "").length : 0;
   
   const isMasterclass = theme === "masterclass";
   const isSynergy = theme === "synergy_sphere";
@@ -232,6 +232,128 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
   );
 }
 
+function LiveVisualizationPreview({ question, theme }) {
+  const viz = question?.visualization || (question?.type === "WordCloud" ? "WordCloud" : question?.type === "Ranking" ? "RankedBars" : question?.type === "OpenEnded" ? "Cards" : "Bars");
+  const options = (question?.options || []).map((o) => typeof o === "string" ? { text: o } : o);
+
+  if (viz === "Donut" || viz === "Pie") {
+    const isDonut = viz === "Donut";
+    const colors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6", "#06B6D4"];
+    const count = Math.max(options.length, 1);
+    const slicePct = 100 / count;
+    const conicStops = options.length > 0 
+      ? options.map((_, idx) => {
+          const start = idx * slicePct;
+          const end = (idx + 1) * slicePct;
+          const color = colors[idx % colors.length];
+          return `${color} ${start}% ${end}%`;
+        }).join(", ")
+      : `${colors[0]} 0% 100%`;
+
+    return (
+      <div className="flex flex-col md:flex-row items-center justify-center gap-6 p-4">
+        <div
+          className="relative w-40 h-40 md:w-48 md:h-48 rounded-full shadow-lg flex items-center justify-center shrink-0"
+          style={{ background: `conic-gradient(${conicStops})` }}
+        >
+          {isDonut && (
+            <div className="w-24 h-24 rounded-full bg-white shadow-inner flex flex-col items-center justify-center text-slate-800">
+              <span className="text-lg font-bold">100%</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Votes</span>
+            </div>
+          )}
+        </div>
+        <div className="space-y-2 text-left">
+          {options.map((opt, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+              <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
+              <span>{opt.text || `Option ${i + 1}`}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (viz === "RankedList") {
+    return (
+      <div className="space-y-2 w-full max-w-md mx-auto p-4">
+        {options.map((opt, i) => (
+          <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-800 font-medium text-sm">
+            <span className="w-6 h-6 rounded-full bg-[#6366F1] text-[#FFFFFF] font-bold text-xs flex items-center justify-center">
+              #{i + 1}
+            </span>
+            <span>{opt.text || `Option ${i + 1}`}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (viz === "RankedBars") {
+    const mockPoints = [100, 75, 50, 25];
+    return (
+      <div className="space-y-2.5 w-full max-w-md mx-auto p-4 text-left">
+        {options.map((opt, i) => (
+          <div key={i} className="space-y-1">
+            <div className="flex justify-between text-xs font-semibold text-slate-700">
+              <span>{opt.text || `Option ${i + 1}`}</span>
+              <span className="text-[#6366F1] font-bold">#{i + 1}</span>
+            </div>
+            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] rounded-full" style={{ width: `${mockPoints[i % mockPoints.length]}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (viz === "Cards") {
+    return (
+      <div className="grid grid-cols-2 gap-3 p-4">
+        <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-left space-y-1">
+          <p className="text-xs text-slate-700 font-medium">"Great presentation and clear explanations!"</p>
+          <span className="text-[10px] text-slate-400">Sample response card</span>
+        </div>
+        <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl text-left space-y-1">
+          <p className="text-xs text-slate-700 font-medium">"Looking forward to the next poll!"</p>
+          <span className="text-[10px] text-slate-400">Sample response card</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (viz === "List") {
+    return (
+      <div className="space-y-2 p-4 max-w-md mx-auto text-left">
+        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+          <p className="font-medium">1. Detailed audience text response sample...</p>
+        </div>
+        <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-700">
+          <p className="font-medium">2. Second audience text response sample...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (viz === "WordCloud") {
+    return (
+      <div className="flex flex-wrap gap-3 items-center justify-center p-6 min-h-[160px] text-[#6366F1]">
+        <span className="text-3xl font-extrabold opacity-95">Interactive</span>
+        <span className="text-xl font-bold opacity-65">Word</span>
+        <span className="text-4xl font-black animate-pulse text-[#6366F1]">Cloud</span>
+        <span className="text-lg font-medium opacity-55">Realtime</span>
+        <span className="text-2xl font-semibold opacity-75">Live</span>
+      </div>
+    );
+  }
+
+  return (
+    <VerticalBarChart options={options} theme={theme} />
+  );
+}
+
 export default function StandardEdit({
   title,
   setTitle,
@@ -281,7 +403,23 @@ export default function StandardEdit({
 
   const updateOption = (optionIndex, value) => {
     const newQuestions = [...questions];
-    newQuestions[activeQuestionIndex].options[optionIndex] = value;
+    const currentOpt = newQuestions[activeQuestionIndex].options[optionIndex];
+    if (typeof currentOpt === "object" && currentOpt !== null) {
+      newQuestions[activeQuestionIndex].options[optionIndex] = { ...currentOpt, text: value };
+    } else {
+      newQuestions[activeQuestionIndex].options[optionIndex] = { text: value, imageUrl: "" };
+    }
+    setQuestions(newQuestions);
+  };
+
+  const updateOptionImageUrl = (optionIndex, value) => {
+    const newQuestions = [...questions];
+    const currentOpt = newQuestions[activeQuestionIndex].options[optionIndex];
+    if (typeof currentOpt === "object" && currentOpt !== null) {
+      newQuestions[activeQuestionIndex].options[optionIndex] = { ...currentOpt, imageUrl: value };
+    } else {
+      newQuestions[activeQuestionIndex].options[optionIndex] = { text: String(currentOpt || ""), imageUrl: value };
+    }
     setQuestions(newQuestions);
   };
 
@@ -509,29 +647,7 @@ export default function StandardEdit({
                       {activeQuestion.text}
                     </h3>
                   )}
-                  {activeQuestion.type === "WordCloud" ? (
-                    <div className={`flex flex-wrap gap-4 items-center justify-center p-6 min-h-[180px] ${
-                      isMasterclass ? "text-emerald-500" : isSynergy ? "text-rose-500" : "text-[#6366F1]"
-                    }`}>
-                      <span className="text-4xl font-extrabold opacity-95">Interactive</span>
-                      <span className="text-2xl font-bold opacity-65">Word</span>
-                      <span className={`text-5xl font-black animate-pulse ${
-                        isMasterclass ? "text-emerald-600" : isSynergy ? "text-rose-600" : "text-[#6366F1]"
-                      }`}>Cloud</span>
-                      <span className="text-xl font-medium opacity-55">Realtime</span>
-                      <span className="text-3xl font-semibold opacity-75">Live</span>
-                    </div>
-                  ) : (
-                    <VerticalBarChart
-                      key={activeQuestionIndex}
-                      options={
-                        activeQuestion?.options 
-                          ? activeQuestion.options.map((o) => typeof o === "string" ? { text: o } : o) 
-                          : []
-                      }
-                      theme={theme}
-                    />
-                  )}
+                  <LiveVisualizationPreview question={activeQuestion} theme={theme} />
                   <p className={`text-xs text-center mt-6 italic ${
                     isMasterclass ? "text-emerald-450" : isSynergy ? "text-rose-200/60" : "text-slate-400"
                   }`}>
@@ -596,6 +712,63 @@ export default function StandardEdit({
               </select>
             </div>
 
+            {/* Question Image URL Input */}
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase tracking-wider block mb-2 text-slate-500">
+                Question Image URL (Optional)
+              </label>
+              <input
+                type="text"
+                value={activeQuestion?.imageUrl || ""}
+                onChange={(e) => {
+                  const newQuestions = [...questions];
+                  newQuestions[activeQuestionIndex].imageUrl = e.target.value;
+                  setQuestions(newQuestions);
+                }}
+                placeholder="https://example.com/image.jpg"
+                className="w-full p-2 rounded-lg border border-slate-200 text-sm focus:ring-1 focus:border-[#6366F1] bg-white text-slate-700 outline-none"
+              />
+            </div>
+
+            {/* Visualization Type Selector */}
+            <div className="mb-6">
+              <label className="text-xs font-bold uppercase tracking-wider block mb-2 text-slate-500">
+                Chart / Visualization Style
+              </label>
+              <select
+                value={activeQuestion?.visualization || "Bars"}
+                onChange={(e) => {
+                  const newQuestions = [...questions];
+                  newQuestions[activeQuestionIndex].visualization = e.target.value;
+                  setQuestions(newQuestions);
+                }}
+                className="w-full p-2 rounded-lg border border-slate-200 text-sm focus:ring-1 focus:border-[#6366F1] bg-white text-slate-700 outline-none"
+              >
+                {activeQuestion?.type === "MultipleChoice" && (
+                  <>
+                    <option value="Bars">Vertical Bars</option>
+                    <option value="Donut">Donut Chart</option>
+                    <option value="Pie">Pie Chart</option>
+                  </>
+                )}
+                {activeQuestion?.type === "Ranking" && (
+                  <>
+                    <option value="RankedBars">Ranked Bars</option>
+                    <option value="RankedList">Ranked List</option>
+                  </>
+                )}
+                {activeQuestion?.type === "OpenEnded" && (
+                  <>
+                    <option value="Cards">Response Cards</option>
+                    <option value="List">Response List</option>
+                  </>
+                )}
+                {activeQuestion?.type === "WordCloud" && (
+                  <option value="WordCloud">Word Cloud Canvas</option>
+                )}
+              </select>
+            </div>
+
             {/* Options Management */}
             {activeQuestion?.type !== "WordCloud" && activeQuestion?.type !== "OpenEnded" ? (
               <div className="mb-6">
@@ -634,24 +807,33 @@ export default function StandardEdit({
                           className="w-1.5 h-8 rounded-full flex-shrink-0"
                           style={{ backgroundColor: indicatorBg }}
                         />
-                        <div className="relative flex-1">
+                        <div className="relative flex-1 space-y-1">
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={typeof option === "string" ? option : option?.text || ""}
+                              onChange={(e) => updateOption(idx, e.target.value)}
+                              placeholder={`Option ${idx + 1}`}
+                              className={inputClass}
+                            />
+                            {activeQuestion.options.length > 2 && (
+                              <button
+                                onClick={() => removeOption(idx)}
+                                className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${
+                                  isMasterclass ? "text-emerald-300 hover:text-red-500" : isSynergy ? "text-rose-300 hover:text-red-500" : "text-slate-300 hover:text-red-500"
+                                }`}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
                           <input
                             type="text"
-                            value={typeof option === "string" ? option : option?.text || ""}
-                            onChange={(e) => updateOption(idx, e.target.value)}
-                            placeholder={`Option ${idx + 1}`}
-                            className={inputClass}
+                            value={typeof option === "object" ? option?.imageUrl || "" : ""}
+                            onChange={(e) => updateOptionImageUrl(idx, e.target.value)}
+                            placeholder="Image URL (Optional)"
+                            className="w-full pl-2 pr-2 py-1 text-xs rounded border border-slate-200 bg-slate-50 text-slate-600 outline-none focus:border-[#6366F1]"
                           />
-                          {activeQuestion.options.length > 2 && (
-                            <button
-                              onClick={() => removeOption(idx)}
-                              className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${
-                                isMasterclass ? "text-emerald-300 hover:text-red-500" : isSynergy ? "text-rose-300 hover:text-red-500" : "text-slate-300 hover:text-red-500"
-                              }`}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
                         </div>
                       </div>
                     );

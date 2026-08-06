@@ -6,22 +6,21 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
-
 import StandardCreate from "@/components/Themes/StandardCreate";
+import ThemeSelectorModal from "@/components/Dashboard/ThemeSelectorModal";
 
 export default function CreatePoll() {
   const router = useRouter();
   const { user } = useAuth();
   const [title, setTitle] = useState("");
-  const [questions, setQuestions] = useState([{ text: "", type: "MultipleChoice", options: ["", ""] }]);
+  const [questions, setQuestions] = useState([
+    { text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] },
+  ]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
-  const [selectedTheme, setSelectedTheme] = useState("standard");
-  const [enableBidding, setEnableBidding] = useState(false);
-  const [skillCost, setSkillCost] = useState(20);
+  const [selectedThemeId, setSelectedThemeId] = useState("11111111-1111-1111-1111-111111111111");
 
   const { createPoll, isSaving } = usePollStore();
 
-  // Create poll handler
   const handleCreatePoll = async (redirectPath = "present") => {
     if (!user) {
       toast.error("Please log in to create a poll");
@@ -34,16 +33,6 @@ export default function CreatePoll() {
       return;
     }
 
-    // Append suffix to title when sending to backend
-    let titleWithSuffix = title.trim();
-    if (selectedTheme === "synergy_sphere") {
-      titleWithSuffix = `${titleWithSuffix} ~SS`;
-    } else if (selectedTheme === "masterclass") {
-      titleWithSuffix = `${titleWithSuffix} ~MC`;
-    } else if (selectedTheme === "iu") {
-      titleWithSuffix = `${titleWithSuffix} ~IU`;
-    }
-
     const cleanedQuestions = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
@@ -53,28 +42,44 @@ export default function CreatePoll() {
         return;
       }
       if (q.type === "WordCloud" || q.type === "OpenEnded") {
-        cleanedQuestions.push({ ...q, options: [] });
+        cleanedQuestions.push({
+          text: q.text.trim(),
+          type: q.type,
+          visualization: q.visualization || null,
+          imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          options: [],
+        });
       } else {
-        const validOptions = q.options.filter((opt) => opt.trim() !== "");
+        const validOptions = q.options.filter((opt) =>
+          typeof opt === "string" ? opt.trim() !== "" : (opt.text || "").trim() !== "",
+        );
         if (validOptions.length < 2) {
           toast.error(`Question ${i + 1} needs at least 2 options`);
           setActiveQuestionIndex(i);
           return;
         }
-        cleanedQuestions.push({ ...q, options: validOptions });
+        cleanedQuestions.push({
+          text: q.text.trim(),
+          type: q.type,
+          visualization: q.visualization || null,
+          imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          options: validOptions.map((opt) =>
+            typeof opt === "string"
+              ? { text: opt.trim(), imageUrl: null }
+              : { text: (opt.text || "").trim(), imageUrl: opt.imageUrl ? opt.imageUrl.trim() : null },
+          ),
+        });
       }
     }
 
     try {
-      // Send title to API with suffix to persist theme
-      const actualSkillCost = enableBidding ? skillCost : 0;
-      const pollId = await createPoll(titleWithSuffix, cleanedQuestions, selectedTheme, actualSkillCost);
+      const pollId = await createPoll(title.trim(), cleanedQuestions, selectedThemeId);
 
       toast.success("Poll created successfully!");
       if (redirectPath === "dashboard") {
         router.push("/dashboard");
       } else {
-        router.push(`/present/${pollId}?theme=${selectedTheme}`);
+        router.push(`/present/${pollId}`);
       }
     } catch (err) {
       console.error("Error creating poll:", err);
@@ -82,28 +87,11 @@ export default function CreatePoll() {
     }
   };
 
-  // Shared Theme Dropdown component
   const themeDropdown = (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <label htmlFor="theme-select" className="text-xs font-bold uppercase tracking-wider text-slate-500">
-          Theme:
-        </label>
-        <select
-          id="theme-select"
-          value={selectedTheme}
-          onChange={(e) => {
-            setSelectedTheme(e.target.value);
-          }}
-          className="bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold focus:outline-none focus:border-slate-500 text-slate-700"
-        >
-          <option value="standard">Standard</option>
-          <option value="synergy_sphere">Synergy Sphere</option>
-          <option value="masterclass">Masterclass</option>
-          <option value="iu">IU</option>
-        </select>
-      </div>
-    </div>
+    <ThemeSelectorModal
+      selectedThemeId={selectedThemeId}
+      onSelectTheme={(id) => setSelectedThemeId(id)}
+    />
   );
 
   return (
@@ -119,7 +107,6 @@ export default function CreatePoll() {
         handleCreatePoll={handleCreatePoll}
         router={router}
         themeDropdown={themeDropdown}
-        theme={selectedTheme}
       />
     </ProtectedRoute>
   );

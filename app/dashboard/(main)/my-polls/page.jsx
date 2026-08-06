@@ -102,15 +102,6 @@ function ShareModal({ poll, onClose }) {
             {copied ? "Copied" : "Copy"}
           </button>
         </div>
-
-        {/* Export */}
-        <button 
-          onClick={exportResults}
-          className="w-full btn-secondary flex items-center justify-center gap-2"
-        >
-          <Download className="w-4 h-4" />
-          Export Results (CSV)
-        </button>
       </div>
     </div>
   );
@@ -186,15 +177,8 @@ export default function MyPolls() {
         options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
       }));
 
-      // Parse theme and append suffix
-      const { cleanTitle, theme } = parseTheme(fullPoll.title || "");
-      let suffix = "";
-      if (theme === "synergy_sphere") suffix = " ~SS";
-      else if (theme === "masterclass") suffix = " ~MC";
-      else if (theme === "iu") suffix = " ~IU";
-
       // 3. Create the cloned poll
-      await createPoll(`${cleanTitle} (Copy)${suffix}`, clonedQuestions, fullPoll.theme);
+      await createPoll(`${cleanTitle} (Copy)`, clonedQuestions, fullPoll.themeId || "11111111-1111-1111-1111-111111111111");
 
       // 4. Refresh polls list
       await fetchPolls(user.uid);
@@ -328,13 +312,6 @@ export default function MyPolls() {
             <p className="text-sm text-slate-500 mt-1">Manage all your polls in one place</p>
           </div>
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => router.push("/dashboard/analytics")}
-              className="border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <BarChart3 className="w-4 h-4 text-purple-500" />
-              Detailed Analytics
-            </button>
             <button 
               onClick={handleImportPoll}
               className="border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2"

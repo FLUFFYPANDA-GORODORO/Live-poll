@@ -39,15 +39,7 @@ export default function PollResults() {
     }
   }, [storeError]);
 
-  const handleExport = () => {
-    const apiBase = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5065").replace(/\/$/, "");
-    const link = document.createElement("a");
-    link.href = `${apiBase}/api/polls/${pollId}/export`;
-    link.setAttribute("download", `poll-${pollId}-export.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   const isQuestionWordCloud = (question) => {
     if (!question) return false;
@@ -143,13 +135,6 @@ export default function PollResults() {
               <h1 className="text-2xl md:text-3xl font-bold text-light-taupe">{poll.title}</h1>
               <p className="text-silver-pink mt-2">Poll ID: {pollId}</p>
             </div>
-            <button
-              onClick={handleExport}
-              className="flex items-center justify-center gap-2 bg-gradient-to-r from-light-taupe to-silver-pink hover:opacity-90 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm transition-all duration-200 self-start md:self-auto"
-            >
-              <Download className="w-5 h-5" />
-              <span>Export to CSV</span>
-            </button>
           </div>
 
           {/* Results */}

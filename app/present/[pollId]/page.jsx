@@ -1,24 +1,18 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { usePollStore } from "@/lib/store/usePollStore";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import { parseTheme } from "@/lib/themeHelper";
-
 import StandardPresent from "@/components/Themes/StandardPresent";
-import SynergySpherePresent from "@/components/Themes/SynergySpherePresent";
-import MasterclassPresent from "@/components/Themes/MasterclassPresent";
 
 export default function PresentationMode() {
   const { pollId } = useParams();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const urlTheme = searchParams.get("theme") || "";
-  const { user } = useAuth();
   const containerRef = useRef(null);
 
   const {
@@ -41,37 +35,8 @@ export default function PresentationMode() {
   const [reactions, setReactions] = useState([]);
   const [subscribedId, setSubscribedId] = useState(null);
 
-  // ── Theme-aware toast helper (works even before poll loads) ──
-  const rawTheme = urlTheme || "";
-  const isSynergyTheme = rawTheme === "synergy_sphere";
-  const isMasterclassTheme = rawTheme === "masterclass";
-
-  const toastStyle = isSynergyTheme
-    ? {
-        background: "#1c0a0a",
-        color: "#fda4af",
-        border: "1px solid rgba(244,63,94,0.25)",
-        borderRadius: "12px",
-        fontSize: "13px",
-        fontWeight: "500",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-        padding: "10px 14px",
-      }
-    : isMasterclassTheme
-    ? {
-        background: "#051a10",
-        color: "#6ee7b7",
-        border: "1px solid rgba(16,185,129,0.25)",
-        borderRadius: "12px",
-        fontSize: "13px",
-        fontWeight: "500",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
-        padding: "10px 14px",
-      }
-    : undefined; // use global default
-
-  const toastSuccess = (msg) => toast.success(msg, toastStyle ? { style: toastStyle, iconTheme: { primary: isSynergyTheme ? "#f43f5e" : "#10b981", secondary: isSynergyTheme ? "#1c0a0a" : "#051a10" } } : undefined);
-  const toastError   = (msg) => toast.error(msg,   toastStyle ? { style: toastStyle, iconTheme: { primary: "#ef4444", secondary: isSynergyTheme ? "#1c0a0a" : "#051a10" } } : undefined);
+  const toastSuccess = (msg) => toast.success(msg);
+  const toastError = (msg) => toast.error(msg);
 
   const addReaction = (emoji) => {
     const id = Date.now() + Math.random();
@@ -175,10 +140,9 @@ export default function PresentationMode() {
   };
 
   const handlePrevQuestion = async () => {
-    const isIu = theme === "iu";
-    if (isTransitioning || (isIu ? currentQuestionIndex < 0 : currentQuestionIndex <= 0)) return;
+    if (isTransitioning || currentQuestionIndex <= 0) return;
     try {
-      await prevQuestion(pollId, currentQuestionIndex, isIu);
+      await prevQuestion(pollId, currentQuestionIndex, false);
     } catch (err) {
       toastError("Failed to go to previous question");
     }
@@ -261,115 +225,8 @@ export default function PresentationMode() {
       ? `${window.location.origin}/poll/${pollId}`
       : "";
 
-  // Parse title and theme from title suffix
-  const { theme, cleanTitle } = parseTheme(poll.title, urlTheme, poll.theme);
+  const { cleanTitle } = parseTheme(poll.title);
 
-  // Render correct theme layout
-  if (theme === "synergy_sphere") {
-    return (
-      <ProtectedRoute>
-        <div ref={containerRef} className="w-full h-full relative">
-          <SynergySpherePresent
-            key={currentQuestionIndex}
-            poll={poll}
-            cleanTitle={cleanTitle}
-            pollId={pollId}
-            currentQuestionIndex={currentQuestionIndex}
-            currentQuestion={currentQuestion}
-            totalQuestions={totalQuestions}
-            isVotingActive={isVotingActive}
-            showQR={showQR}
-            setShowQR={setShowQR}
-            isFullscreen={isFullscreen}
-            toggleFullscreen={toggleFullscreen}
-            totalVotes={totalVotes}
-            getVoteCount={getVoteCount}
-            maxVotes={maxVotes}
-            handlePrevQuestion={handlePrevQuestion}
-            handleNextQuestion={handleNextQuestion}
-            handleStartVoting={handleStartVoting}
-            handleStopVoting={handleStopVoting}
-            handleEndPoll={handleEndPoll}
-            pollUrl={pollUrl}
-            router={router}
-            reactions={reactions}
-            addReaction={addReaction}
-            isTransitioning={isTransitioning}
-          />
-          {/* Floating Emojis Container */}
-          <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
-            {reactions.map((r) => (
-              <span
-                key={r.id}
-                className="absolute pointer-events-none animate-float-emoji text-3xl select-none"
-                style={{
-                  left: `calc(50% + ${r.left}px)`,
-                  transform: `rotate(${r.rotate}deg)`,
-                }}
-              >
-                {r.emoji}
-              </span>
-            ))}
-          </div>
-
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  if (theme === "masterclass") {
-    return (
-      <ProtectedRoute>
-        <div ref={containerRef} className="w-full h-full relative">
-          <MasterclassPresent
-            key={currentQuestionIndex}
-            poll={poll}
-            cleanTitle={cleanTitle}
-            pollId={pollId}
-            currentQuestionIndex={currentQuestionIndex}
-            currentQuestion={currentQuestion}
-            totalQuestions={totalQuestions}
-            isVotingActive={isVotingActive}
-            showQR={showQR}
-            setShowQR={setShowQR}
-            isFullscreen={isFullscreen}
-            toggleFullscreen={toggleFullscreen}
-            totalVotes={totalVotes}
-            getVoteCount={getVoteCount}
-            maxVotes={maxVotes}
-            handlePrevQuestion={handlePrevQuestion}
-            handleNextQuestion={handleNextQuestion}
-            handleStartVoting={handleStartVoting}
-            handleStopVoting={handleStopVoting}
-            handleEndPoll={handleEndPoll}
-            pollUrl={pollUrl}
-            router={router}
-            reactions={reactions}
-            addReaction={addReaction}
-            isTransitioning={isTransitioning}
-          />
-          {/* Floating Emojis Container */}
-          <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
-            {reactions.map((r) => (
-              <span
-                key={r.id}
-                className="absolute pointer-events-none animate-float-emoji text-3xl select-none"
-                style={{
-                  left: `calc(50% + ${r.left}px)`,
-                  transform: `rotate(${r.rotate}deg)`,
-                }}
-              >
-                {r.emoji}
-              </span>
-            ))}
-          </div>
-
-        </div>
-      </ProtectedRoute>
-    );
-  }
-
-  // Default Standard Present
   return (
     <ProtectedRoute>
       <div ref={containerRef} className="w-full h-full relative">
@@ -400,7 +257,6 @@ export default function PresentationMode() {
           addReaction={addReaction}
           isTransitioning={isTransitioning}
           deleteResponse={deleteResponse}
-          theme={theme}
         />
         {/* Floating Emojis Container */}
         <div className="fixed bottom-20 right-10 pointer-events-none z-50 w-36 h-72 overflow-hidden flex justify-center items-end">
@@ -417,7 +273,6 @@ export default function PresentationMode() {
             </span>
           ))}
         </div>
-
       </div>
     </ProtectedRoute>
   );

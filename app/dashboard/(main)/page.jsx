@@ -56,7 +56,7 @@ export default function Dashboard() {
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
             <div>
                <h1 className="text-2xl font-bold text-slate-900">Dashboard Overview</h1>
-               <p className="text-sm text-slate-500 mt-1">Real-time analytics and performance metrics</p>
+               <p className="text-sm text-slate-500 mt-1">Overview of your polls and activity</p>
             </div>
             <div className="flex items-center gap-4">
                 <button 
@@ -94,37 +94,7 @@ export default function Dashboard() {
                  />
             </div>
 
-            {/* Coming Soon Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
-                 <div className="flex justify-center mb-6">
-                    <div className="w-16 h-16 bg-[var(--color-primary)]/10 text-[var(--color-primary)] rounded-2xl flex items-center justify-center">
-                       <Rocket className="w-8 h-8" />
-                    </div>
-                 </div>
-                 
-                 <h2 className="text-xl font-bold text-slate-900 mb-3">Enhanced Analytics Coming Soon</h2>
-                 <p className="text-slate-500 max-w-lg mx-auto mb-8">
-                     We're working on powerful new insights to help you analyze audience engagement, track participation trends, and maximize the impact of your live polls.
-                 </p>
-                 
-                 <div className="flex items-center justify-center gap-6">
-                     <div className="p-3 bg-slate-50 rounded-xl text-[var(--color-secondary)]">
-                        <BarChart className="w-6 h-6" />
-                     </div>
-                     <div className="p-3 bg-slate-50 rounded-xl text-blue-500">
-                        <List className="w-6 h-6" />
-                     </div>
-                     <div className="p-3 bg-slate-50 rounded-xl text-pink-500">
-                        <Megaphone className="w-6 h-6" />
-                     </div>
-                     <div className="p-3 bg-slate-50 rounded-xl text-red-500">
-                        <Target className="w-6 h-6" />
-                     </div>
-                     <div className="p-3 bg-slate-50 rounded-xl text-yellow-500">
-                        <Lightbulb className="w-6 h-6" />
-                     </div>
-                 </div>
-            </div>
+
 
             {loading && (
                 <div className="flex justify-center py-20">

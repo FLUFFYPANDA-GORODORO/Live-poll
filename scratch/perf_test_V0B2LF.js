@@ -8,7 +8,7 @@
  *   node scratch/perf_test_V0B2LF.js V0B2LF 500
  */
 
-const API_BASE = process.env.API_BASE || "http://localhost:5065";
+const API_BASE = process.env.API_BASE || "http://localhost:5000";
 const POLL_ID = process.argv[2] || "V0B2LF";
 const TOTAL_VOTES = parseInt(process.argv[3] || "500", 10);
 

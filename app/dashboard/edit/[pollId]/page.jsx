@@ -7,29 +7,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
-import { parseTheme } from "@/lib/themeHelper";
-
 import EditScreen from "@/components/Themes/StandardEdit";
+import ThemeSelectorModal from "@/components/Dashboard/ThemeSelectorModal";
 
 export default function EditPoll() {
   const router = useRouter();
   const { pollId } = useParams();
   const { user } = useAuth();
-  
-  const {
-    fetchPollById,
-    savePoll,
-    isSaving,
-    loadingCurrent: loading
-  } = usePollStore();
+
+  const { fetchPollById, savePoll, isSaving, loadingCurrent: loading } = usePollStore();
 
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState([]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState("standard");
+  const [selectedThemeId, setSelectedThemeId] = useState("11111111-1111-1111-1111-111111111111");
 
-  // Load poll data
   useEffect(() => {
     if (!pollId || !user) return;
 
@@ -48,13 +41,11 @@ export default function EditPoll() {
           return;
         }
 
-        // Parse theme from title if suffix is present in DB
-        const parsed = parseTheme(data.title || "");
-        setTitle(parsed.cleanTitle);
-        setSelectedTheme(parsed.theme);
+        setTitle(data.title || "");
+        setSelectedThemeId(data.themeId || "11111111-1111-1111-1111-111111111111");
 
         setQuestions(
-          data.questions?.map(q => {
+          data.questions?.map((q) => {
             const typeStr = String(q.type || "").toLowerCase();
             let qType = "MultipleChoice";
             if (q.type === 1 || q.type === "1" || typeStr === "wordcloud") {
@@ -64,12 +55,18 @@ export default function EditPoll() {
             } else if (q.type === 3 || q.type === "3" || typeStr === "ranking") {
               qType = "Ranking";
             }
+
             return {
               text: q.text || "",
               type: qType,
-              options: q.options?.map(o => typeof o === "string" ? o : (o.text || "")) || (qType === "WordCloud" || qType === "OpenEnded" ? [] : ["", ""])
+              visualization: q.visualization || "Bars",
+              imageUrl: q.imageUrl || "",
+              options:
+                q.options?.map((o) =>
+                  typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" }
+                ) || (qType === "WordCloud" || qType === "OpenEnded" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }]),
             };
-          }) || [{ text: "", type: "MultipleChoice", options: ["", ""] }]
+          }) || [{ text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] }]
         );
       } catch (err) {
         console.error("Error loading poll:", err);
@@ -80,21 +77,10 @@ export default function EditPoll() {
     loadPoll();
   }, [pollId, user, router, fetchPollById]);
 
-  // Save poll handler
   const handleSavePoll = async () => {
     if (!title.trim()) {
       toast.error("Please enter a poll title");
       return;
-    }
-
-    // Append suffix to title when sending to backend to persist theme
-    let titleWithSuffix = title.trim();
-    if (selectedTheme === "synergy_sphere") {
-      titleWithSuffix = `${titleWithSuffix} ~SS`;
-    } else if (selectedTheme === "masterclass") {
-      titleWithSuffix = `${titleWithSuffix} ~MC`;
-    } else if (selectedTheme === "iu") {
-      titleWithSuffix = `${titleWithSuffix} ~IU`;
     }
 
     const cleanedQuestions = [];
@@ -106,21 +92,38 @@ export default function EditPoll() {
         return;
       }
       if (q.type === "WordCloud" || q.type === "OpenEnded") {
-        cleanedQuestions.push({ ...q, options: [] });
+        cleanedQuestions.push({
+          text: q.text.trim(),
+          type: q.type,
+          visualization: q.visualization || null,
+          imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          options: [],
+        });
       } else {
-        const validOptions = q.options.filter(opt => opt.trim() !== "");
+        const validOptions = q.options.filter((opt) =>
+          typeof opt === "string" ? opt.trim() !== "" : (opt.text || "").trim() !== ""
+        );
         if (validOptions.length < 2) {
           toast.error(`Question ${i + 1} needs at least 2 options`);
           setActiveQuestionIndex(i);
           return;
         }
-        cleanedQuestions.push({ ...q, options: validOptions });
+        cleanedQuestions.push({
+          text: q.text.trim(),
+          type: q.type,
+          visualization: q.visualization || null,
+          imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          options: validOptions.map((opt) =>
+            typeof opt === "string"
+              ? { text: opt.trim(), imageUrl: null }
+              : { text: (opt.text || "").trim(), imageUrl: opt.imageUrl ? opt.imageUrl.trim() : null }
+          ),
+        });
       }
     }
 
     try {
-      // Save title to backend with suffix to persist theme
-      await savePoll(pollId, titleWithSuffix, cleanedQuestions, selectedTheme);
+      await savePoll(pollId, title.trim(), cleanedQuestions, selectedThemeId);
       toast.success("Poll saved!");
       router.push("/dashboard");
     } catch (err) {
@@ -139,27 +142,13 @@ export default function EditPoll() {
     );
   }
 
-  // Theme selector dropdown
   const themeDropdown = (
-    <div className="flex items-center gap-2">
-      <label htmlFor="theme-select" className="text-xs font-bold uppercase tracking-wider text-slate-500">
-        Theme:
-      </label>
-      <select
-        id="theme-select"
-        value={selectedTheme}
-        onChange={(e) => setSelectedTheme(e.target.value)}
-        className="bg-white border border-slate-300 rounded px-2 py-1 text-sm font-semibold focus:outline-none text-slate-700"
-      >
-        <option value="standard">Standard</option>
-        <option value="synergy_sphere">Synergy Sphere</option>
-        <option value="masterclass">Masterclass</option>
-        <option value="iu">IU</option>
-      </select>
-    </div>
+    <ThemeSelectorModal
+      selectedThemeId={selectedThemeId}
+      onSelectTheme={(id) => setSelectedThemeId(id)}
+    />
   );
 
-  // Render layout using the merged component
   return (
     <ProtectedRoute>
       <EditScreen
@@ -175,7 +164,6 @@ export default function EditPoll() {
         handleSavePoll={handleSavePoll}
         router={router}
         themeDropdown={themeDropdown}
-        theme={selectedTheme}
       />
     </ProtectedRoute>
   );

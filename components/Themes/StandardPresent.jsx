@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import { getThemeStyles } from "@/lib/themeHelper";
 
 // ── Inject global styles once into <head> ──────────────────────────────────────
 const GLOBAL_STYLE_ID = "standard-present-styles";
@@ -252,6 +253,7 @@ export default function StandardPresent({
   deleteResponse,
   theme = "standard"
 }) {
+  const themeStyles = getThemeStyles(poll?.theme);
   const isIU = theme === "iu";
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
@@ -475,8 +477,8 @@ export default function StandardPresent({
                       </div>
                     );
                   }
-                  return responses.map((resp) => (
-                    <div key={resp.id} className="relative group bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl p-5 shadow-xl text-white flex flex-col justify-between hover:border-white/40 transition-all">
+                  return responses.map((resp, idx) => (
+                    <div key={resp.id || resp._id || idx} className="relative group bg-white/15 backdrop-blur-md border border-white/25 rounded-2xl p-5 shadow-xl text-white flex flex-col justify-between hover:border-white/40 transition-all">
                       <p className="text-base md:text-lg font-medium leading-relaxed break-words">{resp.text}</p>
                       <div className="flex justify-between items-center mt-4 text-xs text-white/50 border-t border-white/10 pt-2">
                         <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -526,20 +528,70 @@ export default function StandardPresent({
                   </div>
                 )}
               </div>
+            ) : (currentQuestion?.visualization === "Pie" || currentQuestion?.visualization === "Donut") ? (
+              /* Pie / Donut Visualization */
+              <div className="flex flex-col md:flex-row items-center justify-center gap-10 my-auto p-4 w-full max-w-5xl mx-auto">
+                <div
+                  className="relative w-64 h-64 md:w-80 md:h-80 rounded-full shadow-2xl flex items-center justify-center transition-transform duration-700 hover:scale-105 shrink-0"
+                  style={{
+                    background: totalVotes > 0
+                      ? `conic-gradient(${currentQuestion.options.map((_, idx) => {
+                          const v = getVoteCount(idx);
+                          const color = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
+                          return { v, color };
+                        }).reduce((acc, item, idx, arr) => {
+                          const prevPct = idx === 0 ? 0 : arr.slice(0, idx).reduce((sum, curr) => sum + (curr.v / totalVotes) * 100, 0);
+                          const currPct = prevPct + (item.v / totalVotes) * 100;
+                          acc.push(`${item.color} ${prevPct}% ${currPct}%`);
+                          return acc;
+                        }, []).join(", ")})`
+                      : `conic-gradient(${themeStyles.paletteColors[0]} 0% 100%)`
+                  }}
+                >
+                  {currentQuestion?.visualization === "Donut" && (
+                    <div className="w-36 h-36 md:w-44 md:h-44 rounded-full bg-[#1E293B] shadow-inner flex flex-col items-center justify-center text-white">
+                      <span className="text-3xl font-extrabold">{totalVotes}</span>
+                      <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total Votes</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 max-w-md w-full">
+                  {currentQuestion?.options?.map((option, idx) => {
+                    const votes = getVoteCount(idx);
+                    const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
+                    const color = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
+                    const text = typeof option === "string" ? option : option?.text || `Option ${idx + 1}`;
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15 text-white">
+                        <div className="flex items-center gap-3">
+                          <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                          <span className="font-semibold text-sm md:text-base">{text}</span>
+                        </div>
+                        <div className="flex items-center gap-3 font-mono text-sm">
+                          <span className="font-bold">{votes} votes</span>
+                          <span className="text-white/60">({percentage}%)</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             ) : (
+              /* Vertical Bars Visualization (Default) */
               <div className="w-full flex-1 flex flex-col justify-end mb-6">
                 <div className="flex items-end justify-center gap-6 md:gap-12 w-full mx-auto border-b border-white/40 pb-0">
                   {currentQuestion?.options?.map((option, idx) => {
                     const votes = getVoteCount(idx);
                     const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
-                    const gradient = isIU ? IU_PRESENTER_COLORS[idx % IU_PRESENTER_COLORS.length] : CHART_COLORS[idx % CHART_COLORS.length];
+                    const barBg = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
                     return (
                       <div key={idx} className="flex flex-col items-center flex-1 max-w-[140px] 2xl:max-w-[180px] h-[35vh] justify-end">
                         <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
                           <div className="text-white font-black text-xl 2xl:text-3xl mb-2 drop-shadow-md">{votes}</div>
                           {votes > 0 && (
                             <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
-                              style={{ background: gradient, boxShadow: "0 4px 20px rgba(255,255,255,0.1)" }} />
+                              style={{ background: barBg, boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }} />
                           )}
                         </div>
                       </div>

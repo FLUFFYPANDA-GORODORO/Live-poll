@@ -21,7 +21,6 @@ export default function Sidebar({ user, logout }) {
   const menuItems = [
     // { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: List, label: "My Polls", href: "/dashboard/my-polls" },
-    { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
     // { icon: LayoutTemplate, label: "Templates", href: "/dashboard/templates" },
     // { icon: HelpCircle, label: "Help", href: "/dashboard/help" },
   ];

@@ -2,21 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Sparkles, QrCode, X } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
+import { getThemeStyles } from "@/lib/themeHelper";
 
-const STANDARD_CHART_COLORS = [
-  "var(--color-primary)",
-  "var(--color-secondary)",
-  "var(--color-primary)",
-  "var(--color-secondary)",
-];
-
-const MASTERCLASS_CHART_COLORS = ["#10b981", "#059669", "#6ee7b7", "#047857"];
-const IU_CHART_COLORS = ["#145386", "#145386", "#145386", "#145386"];
-
-function VerticalBarChart({ options, votes, totalVotes, theme }) {
+function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B"] }) {
   const maxVotes = Math.max(...votes, 1);
-  const isSynergy = theme === "synergy_sphere";
-  const isIU = theme === "iu";
 
   return (
     <div className="flex items-end justify-center gap-4 md:gap-6 h-48 md:h-56 px-4">
@@ -24,29 +13,28 @@ function VerticalBarChart({ options, votes, totalVotes, theme }) {
         const voteCount = votes[idx] || 0;
         const percentage = totalVotes > 0 ? Math.round((voteCount / totalVotes) * 100) : 0;
         const height = maxVotes > 0 ? (voteCount / maxVotes) * 100 : 0;
+        const barColor = paletteColors[idx % paletteColors.length];
 
         return (
           <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px]">
-            <div className={`text-sm font-bold ${isSynergy ? "text-rose-950" : "text-[#1E293B]"}`}>
+            <div className="text-sm font-bold text-[#1E293B]">
               {voteCount}
             </div>
             <div className="relative h-32 md:h-40 w-full flex items-end justify-center">
               <div
-                className={`w-10 md:w-12 rounded-t-lg transition-all duration-700 ease-out ${isSynergy ? "bg-gradient-to-t from-red-600 to-rose-500" : ""
-                  }`}
+                className="w-10 md:w-12 rounded-t-lg transition-all duration-700 ease-out"
                 style={{
                   height: `${height}%`,
-                  backgroundColor: isSynergy ? undefined : (isIU ? IU_CHART_COLORS[idx % IU_CHART_COLORS.length] : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length]),
+                  backgroundColor: barColor,
                   minHeight: voteCount > 0 ? "8px" : "4px",
                 }}
               />
             </div>
             <div className="text-center">
-              <div className={`text-xs md:text-sm font-semibold truncate max-w-[70px] ${isSynergy ? "text-rose-950" : "text-[#1E293B]"
-                }`}>
-                {option.text}
+              <div className="text-xs md:text-sm font-semibold truncate max-w-[70px] text-[#1E293B]" title={typeof option === "string" ? option : option?.text}>
+                {typeof option === "string" ? option : option?.text}
               </div>
-              <div className={`text-xs ${isSynergy ? "text-rose-500 font-bold" : "text-[#64748B]"}`}>
+              <div className="text-xs text-[#64748B]">
                 {percentage}%
               </div>
             </div>
@@ -239,6 +227,7 @@ export default function StandardPoll({
   handleSendEmoji,
   theme = "standard" // default to standard
 }) {
+  const themeStyles = getThemeStyles(poll?.theme);
   const [wordInput, setWordInput] = useState("");
   const [openEndedInput, setOpenEndedInput] = useState("");
   const [rankingItems, setRankingItems] = useState([]);
@@ -924,7 +913,7 @@ export default function StandardPoll({
                       : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
                   }`;
                 badgeClass = "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0";
-                badgeStyle = { backgroundColor: isIU ? IU_CHART_COLORS[idx % IU_CHART_COLORS.length] : STANDARD_CHART_COLORS[idx % STANDARD_CHART_COLORS.length] };
+                badgeStyle = { backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] };
 
                 return (
                   <button

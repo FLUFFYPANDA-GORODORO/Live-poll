@@ -351,22 +351,6 @@ export default function MyPresentationsPage() {
               <Upload className="w-4 h-4 text-slate-500" />
               Import
             </button>
-
-            {/* Sort by */}
-            <div className="flex items-center gap-2 ml-4">
-              <span className="text-xs text-slate-400 font-medium whitespace-nowrap">Sort by</span>
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 appearance-none pr-8 cursor-pointer"
-                >
-                  <option value="recently_edited">Recently edited</option>
-                  <option value="name">Name</option>
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-            </div>
           </div>
         </div>
 

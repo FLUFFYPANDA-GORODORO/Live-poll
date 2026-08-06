@@ -21,6 +21,9 @@ import {
   Play
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
+import toast from "react-hot-toast";
 
 const STANDARD_CHART_COLORS = [
   "#6366F1", "#8B5CF6", "#EC4899", "#F59E0B",
@@ -245,6 +248,7 @@ export default function StandardEdit({
   themeDropdown,
   isCreateMode = false,
 }) {
+  const { user } = useAuth();
   const [activeRightTab, setActiveRightTab] = useState("content"); // 'content', 'theme', 'template'
   const [showNewSlideModal, setShowNewSlideModal] = useState(false);
 
@@ -666,27 +670,19 @@ export default function StandardEdit({
 
               {/* TEMPLATE DRAWER */}
               {activeRightTab === "template" && (
-                <div className="space-y-4">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">
-                    Presentation Templates
-                  </label>
-                  <div className="grid grid-cols-1 gap-3">
-                    {[
-                      { title: "Team Icebreaker", category: "Icebreaker" },
-                      { title: "Product Feedback Poll", category: "Survey" },
-                      { title: "General Knowledge Quiz", category: "Quiz" },
-                    ].map((t, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => toast.success(`Template '${t.title}' loaded!`)}
-                        className="p-3 rounded-xl border border-slate-200 hover:border-[#6366F1] bg-white cursor-pointer transition-all shadow-xs"
-                      >
-                        <p className="font-bold text-sm text-slate-800">{t.title}</p>
-                        <p className="text-xs text-slate-400">{t.category}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <TemplateDrawerSection
+                  user={user}
+                  onApplyTemplate={(templateQuestions, templateTitle) => {
+                    if (templateQuestions && templateQuestions.length > 0) {
+                      setQuestions(templateQuestions);
+                      if (setTitle && templateTitle) {
+                        setTitle(templateTitle);
+                      }
+                      setActiveQuestionIndex(0);
+                    }
+                  }}
+                  router={router}
+                />
               )}
             </div>
           </aside>
@@ -779,6 +775,156 @@ export default function StandardEdit({
               })}
             </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TemplateDrawerSection({ user, onApplyTemplate, router }) {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [usingId, setUsingId] = useState(null);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const data = await api.getTemplates(user?.uid);
+        setTemplates(data || []);
+      } catch (err) {
+        console.error("Error fetching templates:", err);
+        // Fallback default templates
+        setTemplates([
+          {
+            id: "template_icebreaker_pulse",
+            title: "Team Icebreaker",
+            category: "Icebreaker",
+            questions: [
+              { text: "How are you feeling today?", type: "MultipleChoice", options: [{ text: "⚡ Energized & Ready" }, { text: "☕ Need Coffee First" }, { text: "😌 Calm & Focused" }] },
+              { text: "Describe this week in one word:", type: "WordCloud", options: [] }
+            ]
+          },
+          {
+            id: "template_all_hands_qa",
+            title: "All-Hands Q&A & Feedback",
+            category: "Meeting",
+            questions: [
+              { text: "What topic should leadership address today?", type: "OpenEnded", options: [] },
+              { text: "Rank our upcoming product roadmap focus:", type: "Ranking", options: [{ text: "Performance & Speed" }, { text: "UI/UX Redesign" }, { text: "Mobile App" }] }
+            ]
+          },
+          {
+            id: "template_customer_feedback",
+            title: "Customer Product Survey",
+            category: "Feedback",
+            questions: [
+              { text: "Overall, how satisfied are you with our product?", type: "MultipleChoice", visualization: "Donut", options: [{ text: "😍 Extremely Satisfied" }, { text: "🙂 Satisfied" }, { text: "😐 Neutral" }] }
+            ]
+          }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTemplates();
+  }, [user]);
+
+  const handleUseTemplate = async (template) => {
+    if (!user) {
+      toast.error("Please log in to use templates");
+      return;
+    }
+
+    setUsingId(template.id);
+    const toastId = toast.loading("Loading template questions...");
+
+    try {
+      // 1. Trigger backend POST /api/templates/{id}/use
+      const createdPoll = await api.useTemplate(
+        template.id,
+        user.uid,
+        user.email || "user@livepoll.com",
+        user.displayName || "User"
+      );
+
+      toast.dismiss(toastId);
+      toast.success(`Template '${template.title}' added!`);
+
+      // 2. Map template questions to current editor state
+      const cleanedQuestions = (createdPoll?.questions || template.questions || []).map((q) => {
+        const typeStr = String(q.type || "").toLowerCase();
+        let qType = "MultipleChoice";
+        if (q.type === 1 || q.type === "1" || typeStr === "wordcloud") qType = "WordCloud";
+        else if (q.type === 2 || q.type === "2" || typeStr === "openended") qType = "OpenEnded";
+        else if (q.type === 3 || q.type === "3" || typeStr === "ranking") qType = "Ranking";
+
+        return {
+          text: q.text || "",
+          type: qType,
+          visualization: q.visualization || "Bars",
+          imageUrl: q.imageUrl || "",
+          options: q.options?.map((o) => typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" }) || [],
+        };
+      });
+
+      onApplyTemplate(cleanedQuestions, template.title);
+    } catch (err) {
+      console.error("Error using template endpoint:", err);
+      // Fallback local apply
+      const fallbackQuestions = (template.questions || []).map((q) => ({
+        text: q.text || "",
+        type: q.type || "MultipleChoice",
+        visualization: q.visualization || "Bars",
+        imageUrl: "",
+        options: q.options?.map((o) => typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: "" }) || [],
+      }));
+
+      toast.dismiss(toastId);
+      toast.success(`Template '${template.title}' applied to editor!`);
+      onApplyTemplate(fallbackQuestions, template.title);
+    } finally {
+      setUsingId(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-2">
+        Presentation Templates
+      </label>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-8 text-slate-400">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading templates...
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-3">
+          {templates.map((t) => (
+            <div
+              key={t.id}
+              className="p-4 rounded-xl border border-slate-200 bg-white hover:border-[#6366F1] transition-all shadow-xs flex items-center justify-between gap-3"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-sm text-slate-800 truncate">{t.title}</p>
+                <p className="text-xs text-slate-400 font-medium">{t.category || "Preset"}</p>
+              </div>
+
+              <button
+                type="button"
+                disabled={usingId === t.id}
+                onClick={() => handleUseTemplate(t)}
+                className="px-3.5 py-1.5 rounded-lg bg-[#6366F1] hover:bg-[#5558DD] text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shrink-0 shadow-xs cursor-pointer disabled:opacity-50"
+              >
+                {usingId === t.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <>
+                    <Sparkles className="w-3.5 h-3.5" /> Get
+                  </>
+                )}
+              </button>
+            </div>
+          ))}
         </div>
       )}
     </div>

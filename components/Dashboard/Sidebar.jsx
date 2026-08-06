@@ -3,159 +3,52 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  HelpCircle,
+  Home as HomeIcon,
+  Presentation,
   LogOut,
-  List,
-  LayoutTemplate,
-  Menu,
-  X,
-  BarChart3,
 } from "lucide-react";
-import { useState } from "react";
 
 export default function Sidebar({ user, logout }) {
   const pathname = usePathname();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const menuItems = [
-    { icon: List, label: "My Polls", href: "/home" },
+    { icon: HomeIcon, label: "Home", href: "/home" },
+    { icon: Presentation, label: "My presentations", href: "/home/presentations" },
   ];
 
   return (
-    <>
-      {/* Mobile Top Bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 p-4 flex items-center justify-between z-50">
-        <Link href="/home" className="flex items-center">
-          <span className="text-2xl font-bold tracking-tighter text-[var(--color-primary)] whitespace-nowrap">
-            Rapid poll
-          </span>
-        </Link>
+    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-[calc(100vh-4rem)] sticky top-16 shrink-0 z-20">
+      {/* Navigation Items */}
+      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+        {menuItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-purple-100/70 text-[#6366F1] font-semibold"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+            >
+              <item.icon className="w-4 h-4" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* Bottom Logout Button */}
+      <div className="p-4 border-t border-slate-100">
         <button
-          onClick={() => setIsMobileOpen(true)}
-          className="p-2 -mr-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+          onClick={logout}
+          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
         >
-          <Menu className="w-6 h-6" />
+          <LogOut className="w-4 h-4" />
+          <span>Logout</span>
         </button>
       </div>
-
-      {/* Mobile Spacer to prevent content overlap */}
-      <div className="md:hidden h-16" />
-
-      {/* Mobile Drawer Overlay */}
-      {isMobileOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
-            onClick={() => setIsMobileOpen(false)}
-          />
-
-          {/* Drawer */}
-          <div className="absolute top-0 bottom-0 left-0 w-3/4 max-w-xs bg-white shadow-2xl animate-slide-in-right flex flex-col">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-              <span className="font-bold text-xl text-slate-900">Menu</span>
-              <button
-                onClick={() => setIsMobileOpen(false)}
-                className="p-2 -mr-2 text-slate-400 hover:bg-slate-100 rounded-lg"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-              {menuItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
-                      isActive
-                        ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-bold"
-                        : "text-slate-600 hover:bg-slate-50"
-                    }`}
-                  >
-                    <item.icon className="w-5 h-5" />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <div className="p-4 border-t border-slate-100">
-              <div className="flex items-center gap-3 px-4 py-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600">
-                  {user?.displayName?.[0] || user?.email?.[0] || "U"}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900 truncate">
-                    {user?.displayName || "User"}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    {user?.email}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={logout}
-                className="flex items-center gap-4 px-4 py-3 w-full rounded-xl text-red-600 hover:bg-red-50 font-medium transition-all"
-              >
-                <LogOut className="w-5 h-5" />
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Desktop Sidebar (Unchanged logic, just keeping hidden md:flex) */}
-      <aside className="group hidden md:flex flex-col w-20 hover:w-64 transition-all duration-300 bg-slate-900 h-screen text-white sticky top-0 left-0 z-50 overflow-hidden shadow-xl">
-        {/* Logo Area */}
-        <div className="relative p-6 border-b border-slate-800 flex items-center justify-center whitespace-nowrap h-[80px]">
-          <span className="text-2xl font-bold tracking-tighter text-white transition-all duration-300">
-            <span className="group-hover:hidden">RP</span>
-            <span className="hidden group-hover:block">Rapid poll</span>
-          </span>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex items-center gap-4 px-3 py-3 rounded-xl transition-all whitespace-nowrap overflow-hidden ${
-                  isActive
-                    ? "bg-white text-slate-900 font-bold shadow-md"
-                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
-                }`}
-              >
-                <item.icon className="w-6 h-6 min-w-[24px]" />
-                <span className="opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100 transform translate-x-[-10px] group-hover:translate-x-0">
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User Actions */}
-        <div className="p-4 border-t border-slate-800">
-          <button
-            onClick={logout}
-            className="flex items-center gap-4 px-3 py-3 w-full rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all whitespace-nowrap overflow-hidden"
-          >
-            <LogOut className="w-6 h-6 min-w-[24px]" />
-            <span className="opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100 transform translate-x-[-10px] group-hover:translate-x-0">
-              Sign Out
-            </span>
-          </button>
-        </div>
-      </aside>
-    </>
+    </aside>
   );
 }

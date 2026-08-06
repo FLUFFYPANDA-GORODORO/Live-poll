@@ -5,78 +5,21 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
-import { QRCodeSVG } from "qrcode.react";
 import { 
   Plus, 
-  Loader2, 
-  X,
+  Upload, 
+  ChevronRight,
+  MoreVertical,
+  Play,
+  Share2,
+  Edit,
   Copy,
-  Check,
   Download,
-  FolderOpen,
-  Upload
+  Trash2,
+  Sparkles
 } from "lucide-react";
-import PollCard from "@/components/Dashboard/PollCard";
-import { parseTheme } from "@/lib/themeHelper";
 
-// Share Modal Component
-function ShareModal({ poll, onClose }) {
-  const [copied, setCopied] = useState(false);
-  const pollUrl = typeof window !== "undefined" 
-    ? `${window.location.origin}/poll/${poll.id}` 
-    : "";
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(pollUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900">Share Poll</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
-          </button>
-        </div>
-
-        {/* QR Code */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <QRCodeSVG value={pollUrl} size={180} />
-          </div>
-        </div>
-
-        {/* Poll Code */}
-        <div className="text-center mb-6">
-          <p className="text-slate-500 text-sm mb-2">Poll Code</p>
-          <p className="text-3xl font-bold text-[var(--color-primary)] font-mono">{poll.id}</p>
-        </div>
-
-        {/* Link */}
-        <div className="flex gap-2 mb-6">
-          <input
-            type="text"
-            value={pollUrl}
-            readOnly
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20"
-          />
-          <button 
-            onClick={copyLink}
-            className="px-4 py-2 bg-[var(--color-primary)] text-white rounded-lg hover:bg-[var(--color-primary-hover)] flex items-center gap-2 transition-colors"
-          >
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-            {copied ? "Copied" : "Copy"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export default function MyPolls() {
+export default function HomeOutlet() {
   const router = useRouter();
   const { user } = useAuth();
   
@@ -90,108 +33,26 @@ export default function MyPolls() {
     fetchPollById
   } = usePollStore();
 
-  const [shareModal, setShareModal] = useState(null);
   const [processingPoll, setProcessingPoll] = useState(null);
 
   useEffect(() => {
     if (user) fetchPolls(user.uid);
   }, [user, fetchPolls]);
 
-  const standardPolls = polls || [];
+  const recentWorks = (polls || []).slice(0, 4);
 
-  const handleDeletePoll = async (pollId) => {
-    if (!confirm("Delete this poll permanently?")) return;
-    setProcessingPoll(pollId);
-    try {
-      await deletePoll(pollId);
-      toast.success("Poll deleted");
-    } catch (err) {
-      toast.error("Failed to delete");
-    } finally {
-      setProcessingPoll(null);
-    }
-  };
+  const popularTemplates = [
+    { title: "Lunar New Year: Symbols and...", category: "Culture" },
+    { title: "How Much Do You Know...", category: "Quiz" },
+    { title: "Matching Pairs Quiz", category: "Interactive" },
+    { title: "Valentine Specials: The...", category: "Icebreaker" },
+    { title: "Random Song Generator", category: "Fun" },
+    { title: "LCP_Standards_Pilot_Modul...", category: "Education" },
+  ];
 
-  const handleRestartPoll = async (poll) => {
-    if (!confirm("Restart poll? This clears all votes.")) return;
-    setProcessingPoll(poll.id);
-    try {
-      await restartPoll(poll.id, poll);
-      fetchPolls(user.uid);
-      toast.success("Poll restarted");
-    } catch (err) {
-      toast.error("Failed to restart");
-    } finally {
-      setProcessingPoll(null);
-    }
-  };
-
-  const handleClonePoll = async (poll) => {
-    setProcessingPoll(poll.id);
-    const loadingToast = toast.loading("Cloning poll...");
-    try {
-      const fullPoll = await fetchPollById(poll.id);
-      if (!fullPoll || !fullPoll.questions) {
-        toast.dismiss(loadingToast);
-        toast.error("Failed to load poll details for cloning");
-        return;
-      }
-
-      const { cleanTitle } = parseTheme(fullPoll.title || "");
-      const clonedQuestions = fullPoll.questions.map((q) => ({
-        text: q.text,
-        type: q.type,
-        options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
-      }));
-
-      await createPoll(`${cleanTitle} (Copy)`, clonedQuestions, fullPoll.themeId || "11111111-1111-1111-1111-111111111111");
-      await fetchPolls(user.uid);
-      toast.dismiss(loadingToast);
-      toast.success("Poll cloned successfully!");
-    } catch (err) {
-      console.error("Error cloning poll:", err);
-      toast.dismiss(loadingToast);
-      toast.error("Failed to clone poll");
-    } finally {
-      setProcessingPoll(null);
-    }
-  };
-
-  const handleExportPoll = async (poll) => {
-    const loadingToast = toast.loading("Fetching poll details...");
-    try {
-      const fullPoll = await fetchPollById(poll.id);
-      if (!fullPoll || !fullPoll.questions) {
-        toast.dismiss(loadingToast);
-        toast.error("Failed to load poll details");
-        return;
-      }
-
-      const exportData = {
-        title: fullPoll.title,
-        theme: fullPoll.theme || "standard",
-        questions: fullPoll.questions.map((q) => ({
-          text: q.text,
-          type: q.type,
-          options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
-        })),
-      };
-
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      const { cleanTitle } = parseTheme(fullPoll.title || "");
-      a.href = url;
-      a.download = `${cleanTitle || "poll"}-config.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.dismiss(loadingToast);
-      toast.success("JSON exported successfully!");
-    } catch (err) {
-      console.error("Error exporting poll:", err);
-      toast.dismiss(loadingToast);
-      toast.error("Failed to export poll");
-    }
+  // Action Handlers
+  const handleCreateNew = () => {
+    router.push("/home/create");
   };
 
   const handleImportPoll = () => {
@@ -248,14 +109,20 @@ export default function MyPolls() {
             }
           }
 
-          const loadingToast = toast.loading("Creating poll from imported JSON...");
-          const theme = importData.theme || "standard";
-          const title = importData.title || "Imported Poll";
-          
-          await createPoll(title, cleanedQuestions, theme);
+          const loadingToast = toast.loading("Importing poll...");
+          const newPoll = await createPoll(
+            importData.title?.trim() || "Imported Presentation",
+            cleanedQuestions,
+            importData.theme || "11111111-1111-1111-1111-111111111111"
+          );
+
           await fetchPolls(user.uid);
           toast.dismiss(loadingToast);
-          toast.success("Poll imported and created successfully!");
+          toast.success("Poll imported successfully!");
+
+          if (newPoll && newPoll.id) {
+            router.push(`/present/${newPoll.id}`);
+          }
         } catch (err) {
           console.error("Error importing JSON:", err);
           toast.error("Failed to parse JSON file");
@@ -266,70 +133,135 @@ export default function MyPolls() {
     input.click();
   };
 
-  return (
-    <>
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">My Polls</h1>
-            <p className="text-sm text-slate-500 mt-1">Manage all your polls in one place</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleImportPoll}
-              className="border border-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4 text-blue-500" />
-              Import JSON
-            </button>
-            <button 
-              onClick={() => router.push("/home/create")}
-              className="bg-[var(--color-primary)] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg shadow-[var(--color-primary)]/20 hover:bg-[var(--color-primary-hover)] transition-all flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Create Poll
-            </button>
-          </div>
-        </header>
+  const getUserDisplayName = () => {
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split("@")[0];
+    return "User";
+  };
 
-        {/* Content */}
-        <main className="flex-1 overflow-auto p-8 bg-slate-50">
-          {loading ? (
-            <div className="flex justify-center py-20">
-              <Loader2 className="w-10 h-10 text-[var(--color-primary)] animate-spin" />
-            </div>
-          ) : standardPolls.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300 shadow-sm max-w-2xl mx-auto">
-              <FolderOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-700">No polls yet</h3>
-              <p className="text-slate-500 mb-6">Create your first poll to get started</p>
-              <button
-                onClick={() => router.push("/home/create")}
-                className="text-[var(--color-primary)] font-bold hover:underline"
-              >
-                Create New Poll
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-10">
-              {standardPolls.map(poll => (
-                <PollCard 
-                  key={poll.id} 
-                  poll={poll} 
-                  onDelete={handleDeletePoll} 
-                  onRestart={handleRestartPoll} 
-                  onClone={handleClonePoll}
-                  onShare={(p) => setShareModal(p)}
-                  onExport={handleExportPoll}
-                />
-              ))}
-            </div>
-          )}
-        </main>
+  const formatRelativeTime = (date) => {
+    if (!date) return "";
+    const now = new Date();
+    const diff = Math.floor((now - new Date(date)) / 1000);
+    if (diff < 3600) return "Just now";
+    if (diff < 86400) return "a day ago";
+    if (diff < 172800) return "2 days ago";
+    return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  return (
+    <div className="space-y-10 pb-12">
+      {/* Welcome Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+          Welcome, <span className="text-[#6366F1]">{getUserDisplayName()}!</span>
+        </h1>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 mt-6">
+          <button
+            onClick={handleCreateNew}
+            className="flex items-center gap-2 bg-[#6366F1] hover:bg-[#5558DD] text-white px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-colors cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            New presentation
+          </button>
+          <button
+            onClick={handleImportPoll}
+            className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-5 py-2.5 rounded-lg font-medium text-sm transition-colors cursor-pointer shadow-xs"
+          >
+            <Upload className="w-4 h-4 text-slate-500" />
+            Import
+          </button>
+        </div>
       </div>
 
-      {shareModal && <ShareModal poll={shareModal} onClose={() => setShareModal(null)} />}
-    </>
+      {/* Your Recent Works */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Your recent works</h2>
+          <button
+            onClick={() => router.push("/home/presentations")}
+            className="text-sm font-semibold text-[#6366F1] hover:underline flex items-center gap-1"
+          >
+            View more <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {recentWorks.length === 0 ? (
+          <div className="p-8 border border-dashed border-slate-200 rounded-2xl text-center bg-slate-50/50">
+            <p className="text-slate-500 text-sm mb-3">No presentations created yet.</p>
+            <button
+              onClick={handleCreateNew}
+              className="text-[#6366F1] font-semibold text-sm hover:underline"
+            >
+              Create your first presentation
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+            {recentWorks.map((poll) => (
+              <div
+                key={poll.id}
+                onClick={() => router.push(`/present/${poll.id}`)}
+                className="group border border-slate-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
+              >
+                {/* Grey image placeholder container */}
+                <div className="h-32 bg-slate-100 border-b border-slate-100 relative p-4 flex items-center justify-center">
+                  <div className="w-full h-full bg-slate-200/70 rounded-lg flex items-center justify-center">
+                    <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Presentation</span>
+                  </div>
+                </div>
+
+                <div className="p-3.5">
+                  <h3 className="font-bold text-slate-900 text-sm truncate group-hover:text-[#6366F1] transition-colors">
+                    {poll.title || "Untitled Presentation"}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {formatRelativeTime(poll.updatedAt || poll.createdAt)}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Explore Popular Templates */}
+      <section className="space-y-4 pt-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-slate-900">Explore popular templates</h2>
+          <button
+            onClick={() => router.push("/home/presentations")}
+            className="text-sm font-semibold text-[#6366F1] hover:underline flex items-center gap-1"
+          >
+            View more <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+          {popularTemplates.map((template, idx) => (
+            <div
+              key={idx}
+              onClick={handleCreateNew}
+              className="group border border-slate-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer flex flex-col"
+            >
+              {/* Grey image placeholder container */}
+              <div className="h-24 bg-slate-100 border-b border-slate-100 flex items-center justify-center p-2">
+                <div className="w-full h-full bg-slate-200/80 rounded-md flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-slate-400" />
+                </div>
+              </div>
+
+              <div className="p-2.5">
+                <h4 className="font-semibold text-slate-800 text-xs truncate group-hover:text-[#6366F1] transition-colors">
+                  {template.title}
+                </h4>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

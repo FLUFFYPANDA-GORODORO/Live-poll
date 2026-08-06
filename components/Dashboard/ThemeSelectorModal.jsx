@@ -258,38 +258,36 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
   );
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex flex-col">
-        <label className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">
-          Theme:
+    <div className="w-full flex flex-col gap-3">
+      <div className="flex flex-col gap-1.5 w-full">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          Selected Theme
         </label>
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedThemeId || "11111111-1111-1111-1111-111111111111"}
-            onChange={(e) => onSelectTheme(e.target.value)}
-            className="bg-white border border-slate-300 rounded px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 text-slate-800"
-          >
-            {themes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} {t.isPreset ? "(Preset)" : "(Custom)"}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-indigo-50 hover:bg-indigo-100 text-[var(--color-primary)] font-semibold text-xs transition-colors cursor-pointer"
-          >
-            <Palette className="w-4 h-4" />
-            Customize Theme
-          </button>
-        </div>
+        <select
+          value={selectedThemeId || "11111111-1111-1111-1111-111111111111"}
+          onChange={(e) => onSelectTheme(e.target.value)}
+          className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#6366F1]/20 text-slate-800 truncate"
+        >
+          {themes.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name} {t.isPreset ? "(Preset)" : "(Custom)"}
+            </option>
+          ))}
+        </select>
       </div>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(true);
+        }}
+        className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-[#6366F1] font-semibold text-xs transition-colors cursor-pointer"
+      >
+        <Palette className="w-4 h-4" />
+        Customize & Create Theme
+      </button>
 
       {isOpen && mounted && createPortal(modalJSX, document.body)}
     </div>

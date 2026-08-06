@@ -533,7 +533,7 @@ export default function StandardCreate({
         </header>
       ) : (
         <header className={headerClass}>
-          <div className="flex items-center justify-between max-w-7xl mx-auto w-full">
+          <div className="flex items-center justify-between w-full px-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push("/home")}

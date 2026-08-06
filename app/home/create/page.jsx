@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
-import StandardCreate from "@/components/Themes/StandardCreate";
+import StandardEdit from "@/components/Themes/StandardEdit";
 import ThemeSelectorModal from "@/components/Dashboard/ThemeSelectorModal";
 
 export default function CreatePoll() {
@@ -17,6 +17,7 @@ export default function CreatePoll() {
     { text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] },
   ]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
+  const [editingTitle, setEditingTitle] = useState(false);
   const [selectedThemeId, setSelectedThemeId] = useState("11111111-1111-1111-1111-111111111111");
 
   const { createPoll, isSaving } = usePollStore();
@@ -96,17 +97,20 @@ export default function CreatePoll() {
 
   return (
     <ProtectedRoute>
-      <StandardCreate
+      <StandardEdit
         title={title}
         setTitle={setTitle}
         questions={questions}
         setQuestions={setQuestions}
         activeQuestionIndex={activeQuestionIndex}
         setActiveQuestionIndex={setActiveQuestionIndex}
+        editingTitle={editingTitle}
+        setEditingTitle={setEditingTitle}
         isSaving={isSaving}
         handleCreatePoll={handleCreatePoll}
         router={router}
         themeDropdown={themeDropdown}
+        isCreateMode={true}
       />
     </ProtectedRoute>
   );

@@ -80,10 +80,10 @@ export default function EditPoll() {
     loadPoll();
   }, [pollId, user, router, fetchPollById]);
 
-  const handleSavePoll = async () => {
+  const handleSavePoll = async (skipRedirect = false) => {
     if (!title.trim()) {
-      toast.error("Please enter a poll title");
-      return;
+      toast.error("Please enter a poll title before saving");
+      return false;
     }
 
     const cleanedQuestions = [];
@@ -92,7 +92,7 @@ export default function EditPoll() {
       if (!q.text.trim()) {
         toast.error(`Please enter text for Question ${i + 1}`);
         setActiveQuestionIndex(i);
-        return;
+        return false;
       }
       if (q.type === "WordCloud" || q.type === "OpenEnded") {
         cleanedQuestions.push({
@@ -112,7 +112,7 @@ export default function EditPoll() {
         if (validOptions.length < 2) {
           toast.error(`Question ${i + 1} needs at least 2 options`);
           setActiveQuestionIndex(i);
-          return;
+          return false;
         }
         cleanedQuestions.push({
           text: q.text.trim(),
@@ -134,10 +134,14 @@ export default function EditPoll() {
     try {
       await savePoll(pollId, title.trim(), cleanedQuestions, selectedThemeId);
       toast.success("Poll saved!");
-      router.push("/home");
+      if (!skipRedirect) {
+        router.push("/home");
+      }
+      return true;
     } catch (err) {
       console.error("Error saving poll:", err);
       toast.error("Failed to save poll");
+      return false;
     }
   };
 
@@ -173,6 +177,7 @@ export default function EditPoll() {
         handleSavePoll={handleSavePoll}
         router={router}
         themeDropdown={themeDropdown}
+        selectedThemeId={selectedThemeId}
       />
     </ProtectedRoute>
   );

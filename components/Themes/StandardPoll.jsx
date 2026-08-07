@@ -4,7 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { getThemeStyles } from "@/lib/themeHelper";
 
-function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B"] }) {
+function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"] }) {
   const maxVotes = Math.max(...votes, 1);
 
   return (
@@ -484,7 +484,16 @@ export default function StandardPoll({
         >
           {/* Card Header */}
           <div className="p-4 sm:p-6">
-            <h2 className="text-lg sm:text-xl md:text-2xl font-light text-center mb-2" style={{ color: themeStyles.primaryTextColor }}>
+            <h2
+              className={`text-lg sm:text-xl md:text-2xl font-light mb-2 ${
+                activeQuestion?.alignment === "left"
+                  ? "text-left"
+                  : activeQuestion?.alignment === "right"
+                  ? "text-right"
+                  : "text-center"
+              }`}
+              style={{ color: themeStyles.primaryTextColor }}
+            >
               {activeQuestion.text}
             </h2>
           </div>

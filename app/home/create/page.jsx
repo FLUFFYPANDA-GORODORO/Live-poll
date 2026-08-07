@@ -31,16 +31,16 @@ export default function CreatePoll() {
 
   const { createPoll, isSaving } = usePollStore();
 
-  const handleCreatePoll = async (redirectPath = "present") => {
+  const handleCreatePoll = async (redirectPath = "present", skipRedirect = false) => {
     if (!user) {
       toast.error("Please log in to create a poll");
       router.push("/login");
-      return;
+      return false;
     }
 
     if (!title.trim()) {
-      toast.error("Please enter a poll title");
-      return;
+      toast.error("Please enter a poll title before saving");
+      return false;
     }
 
     const cleanedQuestions = [];
@@ -49,7 +49,7 @@ export default function CreatePoll() {
       if (!q.text.trim()) {
         toast.error(`Please enter text for Question ${i + 1}`);
         setActiveQuestionIndex(i);
-        return;
+        return false;
       }
       if (q.type === "WordCloud" || q.type === "OpenEnded") {
         cleanedQuestions.push({
@@ -69,7 +69,7 @@ export default function CreatePoll() {
         if (validOptions.length < 2) {
           toast.error(`Question ${i + 1} needs at least 2 options`);
           setActiveQuestionIndex(i);
-          return;
+          return false;
         }
         cleanedQuestions.push({
           text: q.text.trim(),
@@ -92,14 +92,18 @@ export default function CreatePoll() {
       const pollId = await createPoll(title.trim(), cleanedQuestions, selectedThemeId);
 
       toast.success("Poll created successfully!");
-      if (redirectPath === "dashboard") {
-        router.push("/home");
-      } else {
-        router.push(`/present/${pollId}`);
+      if (!skipRedirect) {
+        if (redirectPath === "dashboard") {
+          router.push("/home");
+        } else {
+          router.push(`/present/${pollId}`);
+        }
       }
+      return true;
     } catch (err) {
       console.error("Error creating poll:", err);
       toast.error("Failed to create poll");
+      return false;
     }
   };
 
@@ -125,6 +129,7 @@ export default function CreatePoll() {
         handleCreatePoll={handleCreatePoll}
         router={router}
         themeDropdown={themeDropdown}
+        selectedThemeId={selectedThemeId}
         isCreateMode={true}
       />
     </ProtectedRoute>

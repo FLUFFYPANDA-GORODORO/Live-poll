@@ -36,6 +36,7 @@ import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
 import RightToolbar from "@/components/Themes/RightToolbar";
 import MediaUploadModal from "@/components/MediaUploadModal";
+import ContentCanvas from "@/components/ContentSlide/ContentCanvas";
 
 const DEFAULT_PALETTE = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
 
@@ -313,7 +314,7 @@ export default function StandardEdit({
   const updateQuestionType = (type) => {
     const newQuestions = [...questions];
     newQuestions[activeQuestionIndex].type = type;
-    if (type === "WordCloud" || type === "OpenEnded") {
+    if (type === "WordCloud" || type === "OpenEnded" || type === "Content") {
       newQuestions[activeQuestionIndex].options = [];
     } else if (!newQuestions[activeQuestionIndex].options?.length) {
       newQuestions[activeQuestionIndex].options = [
@@ -355,11 +356,29 @@ export default function StandardEdit({
   const addQuestionWithType = (type = "MultipleChoice") => {
     const newQuestions = [...questions];
     newQuestions.push({
-      text: "",
+      text: type === "Content" ? "Content Slide" : "",
       type: type,
       visualization: "Bars",
       imageUrl: "",
-      options: type === "WordCloud" || type === "OpenEnded" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }],
+      elements: type === "Content" ? [
+        {
+          id: "elem-title",
+          type: "text",
+          text: "Add title",
+          preset: "Title",
+          x: 80,
+          y: 60,
+          width: 400,
+          height: 80,
+          fontSize: 48,
+          fontWeight: "bold",
+          fontStyle: "normal",
+          color: "#1E293B",
+          align: "left",
+          locked: false,
+        }
+      ] : [],
+      options: type === "WordCloud" || type === "OpenEnded" || type === "Content" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }],
     });
     setQuestions(newQuestions);
     setActiveQuestionIndex(newQuestions.length - 1);
@@ -381,6 +400,7 @@ export default function StandardEdit({
     { type: "WordCloud", label: "Word Cloud", icon: Cloud, description: "Live word cloud visualization from audience" },
     { type: "OpenEnded", label: "Open Ended", icon: MessageSquare, description: "Freeform text responses from participants" },
     { type: "Ranking", label: "Ranking", icon: ListOrdered, description: "Rank options in order of preference" },
+    { type: "Content", label: "Content", icon: LayoutTemplate, description: "Freestyle canvas slide from scratch (Text, Shapes, Media)" },
   ];
 
   return (
@@ -476,115 +496,127 @@ export default function StandardEdit({
 
         {/* Center Preview Canvas */}
         <main className="flex-1 p-6 md:p-10 flex flex-col items-center justify-center overflow-auto bg-slate-100/90">
-          <div
-            className="w-full max-w-4xl rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl p-8 md:p-12 min-h-[480px] flex flex-col justify-between relative transition-all overflow-hidden"
-            style={{
-              backgroundColor: themeStyles.backgroundStyle?.backgroundColor || "#0F172A",
-              ...themeStyles.backgroundStyle,
-              color: themeStyles.primaryTextColor || "#FFFFFF",
-              fontFamily: themeStyles.containerStyle?.fontFamily
-            }}
-          >
-            {/* Top Canvas Header Bar (RapidPolls logo on left, Custom theme logo on right) */}
-            <div className="w-full flex items-center justify-between mb-4 z-10">
-              <img
-                src="/RapidPolls.png"
-                alt="RapidPolls"
-                className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md"
-              />
-
-              {themeStyles.logoUrl ? (
+          {activeQuestion?.type === "Content" ? (
+            <ContentCanvas
+              question={activeQuestion}
+              onChange={(updatedQ) => {
+                const newQuestions = [...questions];
+                newQuestions[activeQuestionIndex] = updatedQ;
+                setQuestions(newQuestions);
+              }}
+              themeStyles={themeStyles}
+            />
+          ) : (
+            <div
+              className="w-full max-w-4xl rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl p-8 md:p-12 min-h-[480px] flex flex-col justify-between relative transition-all overflow-hidden"
+              style={{
+                backgroundColor: themeStyles.backgroundStyle?.backgroundColor || "#0F172A",
+                ...themeStyles.backgroundStyle,
+                color: themeStyles.primaryTextColor || "#FFFFFF",
+                fontFamily: themeStyles.containerStyle?.fontFamily
+              }}
+            >
+              {/* Top Canvas Header Bar (RapidPolls logo on left, Custom theme logo on right) */}
+              <div className="w-full flex items-center justify-between mb-4 z-10">
                 <img
-                  src={themeStyles.logoUrl}
-                  alt="Custom Logo"
-                  className="h-8 md:h-10 max-w-[140px] object-contain filter drop-shadow-md"
+                  src="/RapidPolls.png"
+                  alt="RapidPolls"
+                  className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md"
                 />
-              ) : <div />}
-            </div>
 
-            <div className="w-full mb-6 text-left">
-              <div
-                className="border focus-within:border-[#6366F1] focus-within:ring-2 focus-within:ring-[#6366F1]/20 rounded-xl p-3 shadow-xs transition-all w-full"
-                style={{
-                  backgroundColor:
-                    themeStyles.primaryTextColor === "#FFFFFF" ||
-                    themeStyles.backgroundStyle?.backgroundColor === "#0F172A" ||
-                    themeStyles.backgroundStyle?.backgroundColor === "#18181B" ||
-                    themeStyles.backgroundStyle?.backgroundImage
-                      ? "rgba(255, 255, 255, 0.12)"
-                      : "rgba(241, 245, 249, 0.8)",
-                  borderColor:
-                    themeStyles.primaryTextColor === "#FFFFFF"
-                      ? "rgba(255, 255, 255, 0.2)"
-                      : "rgba(226, 232, 240, 0.9)",
-                }}
-              >
-                <input
-                  type="text"
-                  value={activeQuestion?.text || ""}
-                  onChange={(e) => updateQuestionText(e.target.value)}
-                  placeholder="Type your question here..."
-                  className={`w-full text-xl md:text-2xl font-bold bg-transparent focus:outline-none placeholder:text-slate-400 ${
-                    activeQuestion?.alignment === "left"
-                      ? "text-left"
-                      : activeQuestion?.alignment === "right"
-                      ? "text-right"
-                      : "text-center"
-                  }`}
+                {themeStyles.logoUrl ? (
+                  <img
+                    src={themeStyles.logoUrl}
+                    alt="Custom Logo"
+                    className="h-8 md:h-10 max-w-[140px] object-contain filter drop-shadow-md"
+                  />
+                ) : <div />}
+              </div>
+
+              <div className="w-full mb-6 text-left">
+                <div
+                  className="border focus-within:border-[#6366F1] focus-within:ring-2 focus-within:ring-[#6366F1]/20 rounded-xl p-3 shadow-xs transition-all w-full"
                   style={{
-                    color: themeStyles.primaryTextColor || "#000000",
-                    fontFamily: themeStyles.containerStyle?.fontFamily
+                    backgroundColor:
+                      themeStyles.primaryTextColor === "#FFFFFF" ||
+                      themeStyles.backgroundStyle?.backgroundColor === "#0F172A" ||
+                      themeStyles.backgroundStyle?.backgroundColor === "#18181B" ||
+                      themeStyles.backgroundStyle?.backgroundImage
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(241, 245, 249, 0.8)",
+                    borderColor:
+                      themeStyles.primaryTextColor === "#FFFFFF"
+                        ? "rgba(255, 255, 255, 0.2)"
+                        : "rgba(226, 232, 240, 0.9)",
                   }}
-                />
+                >
+                  <input
+                    type="text"
+                    value={activeQuestion?.text || ""}
+                    onChange={(e) => updateQuestionText(e.target.value)}
+                    placeholder="Type your question here..."
+                    className={`w-full text-xl md:text-2xl font-bold bg-transparent focus:outline-none placeholder:text-slate-400 ${
+                      activeQuestion?.alignment === "left"
+                        ? "text-left"
+                        : activeQuestion?.alignment === "right"
+                        ? "text-right"
+                        : "text-center"
+                    }`}
+                    style={{
+                      color: themeStyles.primaryTextColor || "#000000",
+                      fontFamily: themeStyles.containerStyle?.fontFamily
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Slide Preview Content */}
+              <div className="flex-1 flex flex-col justify-center my-auto">
+                {activeQuestion?.type === "WordCloud" ? (
+                  <WordCloudPreview />
+                ) : activeQuestion?.type === "OpenEnded" ? (
+                  <OpenEndedPreview />
+                ) : activeQuestion?.type === "Ranking" && activeQuestion?.visualization === "Bars" ? (
+                  <VerticalBarChart
+                    options={activeQuestion?.options || []}
+                    showPercentage={activeQuestion?.showPercentage}
+                    paletteColors={themeStyles.paletteColors}
+                    textColor={themeStyles.primaryTextColor}
+                    fontFamily={themeStyles.containerStyle?.fontFamily}
+                  />
+                ) : activeQuestion?.type === "Ranking" ? (
+                  <RankingPreview
+                    options={activeQuestion?.options || []}
+                    paletteColors={themeStyles.paletteColors}
+                  />
+                ) : activeQuestion?.visualization === "Donut" ? (
+                  <DonutPieChart
+                    options={activeQuestion?.options || []}
+                    isDonut={true}
+                    paletteColors={themeStyles.paletteColors}
+                    textColor={themeStyles.primaryTextColor}
+                    fontFamily={themeStyles.containerStyle?.fontFamily}
+                  />
+                ) : activeQuestion?.visualization === "Pie" ? (
+                  <DonutPieChart
+                    options={activeQuestion?.options || []}
+                    isDonut={false}
+                    paletteColors={themeStyles.paletteColors}
+                    textColor={themeStyles.primaryTextColor}
+                    fontFamily={themeStyles.containerStyle?.fontFamily}
+                  />
+                ) : (
+                  <VerticalBarChart
+                    options={activeQuestion?.options || []}
+                    showPercentage={activeQuestion?.showPercentage}
+                    paletteColors={themeStyles.paletteColors}
+                    textColor={themeStyles.primaryTextColor}
+                    fontFamily={themeStyles.containerStyle?.fontFamily}
+                  />
+                )}
               </div>
             </div>
-
-            {/* Slide Preview Content */}
-            <div className="flex-1 flex flex-col justify-center my-auto">
-              {activeQuestion?.type === "WordCloud" ? (
-                <WordCloudPreview />
-              ) : activeQuestion?.type === "OpenEnded" ? (
-                <OpenEndedPreview />
-              ) : activeQuestion?.type === "Ranking" && activeQuestion?.visualization === "Bars" ? (
-                <VerticalBarChart
-                  options={activeQuestion?.options || []}
-                  showPercentage={activeQuestion?.showPercentage}
-                  paletteColors={themeStyles.paletteColors}
-                  textColor={themeStyles.primaryTextColor}
-                  fontFamily={themeStyles.containerStyle?.fontFamily}
-                />
-              ) : activeQuestion?.type === "Ranking" ? (
-                <RankingPreview
-                  options={activeQuestion?.options || []}
-                  paletteColors={themeStyles.paletteColors}
-                />
-              ) : activeQuestion?.visualization === "Donut" ? (
-                <DonutPieChart
-                  options={activeQuestion?.options || []}
-                  isDonut={true}
-                  paletteColors={themeStyles.paletteColors}
-                  textColor={themeStyles.primaryTextColor}
-                  fontFamily={themeStyles.containerStyle?.fontFamily}
-                />
-              ) : activeQuestion?.visualization === "Pie" ? (
-                <DonutPieChart
-                  options={activeQuestion?.options || []}
-                  isDonut={false}
-                  paletteColors={themeStyles.paletteColors}
-                  textColor={themeStyles.primaryTextColor}
-                  fontFamily={themeStyles.containerStyle?.fontFamily}
-                />
-              ) : (
-                <VerticalBarChart
-                  options={activeQuestion?.options || []}
-                  showPercentage={activeQuestion?.showPercentage}
-                  paletteColors={themeStyles.paletteColors}
-                  textColor={themeStyles.primaryTextColor}
-                  fontFamily={themeStyles.containerStyle?.fontFamily}
-                />
-              )}
-            </div>
-          </div>
+          )}
         </main>
 
         {/* Right Drawer Panel (Opens when an icon in far right strip is clicked) */}

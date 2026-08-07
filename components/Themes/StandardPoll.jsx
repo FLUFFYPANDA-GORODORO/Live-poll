@@ -3,6 +3,7 @@ import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Spar
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { getThemeStyles } from "@/lib/themeHelper";
+import ContentPresentView from "@/components/ContentSlide/ContentPresentView";
 
 function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"] }) {
   const maxVotes = Math.max(...votes, 1);
@@ -301,10 +302,11 @@ export default function StandardPoll({
   const qTypeStr = String(activeQuestion?.type || "").toLowerCase();
   const isRanking = qTypeStr === "ranking" || activeQuestion?.type === 3;
   const isOpenEnded = qTypeStr === "openended" || activeQuestion?.type === 2;
-  const isWordCloud = !isRanking && !isOpenEnded && (activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || qTypeStr === "wordcloud" || !activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
+  const isContent = qTypeStr === "content" || activeQuestion?.type === 4;
+  const isWordCloud = !isRanking && !isOpenEnded && !isContent && (activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || qTypeStr === "wordcloud" || (!activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
     const txt = typeof opt === "string" ? opt : (opt.text || "");
     return !txt.trim();
-  }));
+  })));
 
   // Sync ranking items when active question options change
   useEffect(() => {
@@ -479,12 +481,17 @@ export default function StandardPoll({
         ) : <div />}
       </div>
 
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
-        <div
-          key={isWordCloud ? 'question-wc' : 'question-mcq'}
-          className="rounded-2xl border border-slate-100/20 shadow-2xl overflow-hidden"
-          style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
-        >
+      {isContent ? (
+        <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
+          <ContentPresentView question={activeQuestion} themeStyles={themeStyles} />
+        </div>
+      ) : (
+        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
+          <div
+            key={isWordCloud ? 'question-wc' : 'question-mcq'}
+            className="rounded-2xl border border-slate-100/20 shadow-2xl overflow-hidden"
+            style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
+          >
           {/* Card Header */}
           <div className="p-4 sm:p-6">
             <h2
@@ -702,6 +709,7 @@ export default function StandardPoll({
             )}
           </div>
         </div>
+      )}
 
         {/* Emoji Reactions Panel */}
         {poll.status === "live" && poll.status !== undefined && activeQuestion?.allowReactions !== false && (

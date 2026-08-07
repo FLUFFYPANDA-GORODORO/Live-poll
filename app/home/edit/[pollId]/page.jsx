@@ -9,6 +9,8 @@ import toast from "react-hot-toast";
 import { Loader2 } from "lucide-react";
 import EditScreen from "@/components/Themes/StandardEdit";
 import ThemeSelectorModal from "@/components/Dashboard/ThemeSelectorModal";
+import { generateContentSlideSnapshot } from "@/lib/canvasSnapshot";
+import { api } from "@/lib/api";
 
 export default function EditPoll() {
   const router = useRouter();
@@ -54,6 +56,8 @@ export default function EditPoll() {
               qType = "OpenEnded";
             } else if (q.type === 3 || q.type === "3" || typeStr === "ranking") {
               qType = "Ranking";
+            } else if (q.type === 4 || q.type === "4" || typeStr === "content") {
+              qType = "Content";
             }
 
             return {
@@ -61,13 +65,16 @@ export default function EditPoll() {
               type: qType,
               visualization: q.visualization || "Bars",
               imageUrl: q.imageUrl || "",
+              elements: q.elements || [],
+              backgroundColor: q.backgroundColor || "#FFFFFF",
+              backgroundImage: q.backgroundImage || "",
               showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
               showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
               allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
               options:
                 q.options?.map((o) =>
                   typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" }
-                ) || (qType === "WordCloud" || qType === "OpenEnded" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }]),
+                ) || (qType === "WordCloud" || qType === "OpenEnded" || qType === "Content" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }]),
             };
           }) || [{ text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", showResponseCount: true, showPercentage: false, allowReactions: true, options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] }]
         );
@@ -94,12 +101,15 @@ export default function EditPoll() {
         setActiveQuestionIndex(i);
         return false;
       }
-      if (q.type === "WordCloud" || q.type === "OpenEnded") {
+      if (q.type === "WordCloud" || q.type === "OpenEnded" || q.type === "Content") {
         cleanedQuestions.push({
           text: q.text.trim(),
           type: q.type,
           visualization: q.visualization || null,
-          imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          imageUrl: (q.imageUrl || q.snapshotUrl || "").trim() || null,
+          elements: q.elements || [],
+          backgroundColor: q.backgroundColor || "#FFFFFF",
+          backgroundImage: q.backgroundImage || "",
           showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
           showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
           allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
@@ -132,6 +142,29 @@ export default function EditPoll() {
     }
 
     try {
+      // Auto-generate & upload Cloudinary snapshots for Content slides if needed
+      for (let i = 0; i < cleanedQuestions.length; i++) {
+        const q = cleanedQuestions[i];
+        if (q.type === "Content" && (!q.imageUrl || !q.imageUrl.startsWith("http"))) {
+          try {
+            const dataUrl = await generateContentSlideSnapshot(q);
+            if (dataUrl) {
+              const res = await fetch(dataUrl);
+              const blob = await res.blob();
+              const file = new File([blob], `slide-${Date.now()}.png`, { type: "image/png" });
+              const uploadRes = await api.uploadImage(file, "polls/slides");
+              if (uploadRes?.url) {
+                q.imageUrl = uploadRes.url;
+              } else {
+                q.imageUrl = dataUrl;
+              }
+            }
+          } catch (snapErr) {
+            console.warn("Auto snapshot upload warning:", snapErr);
+          }
+        }
+      }
+
       await savePoll(pollId, title.trim(), cleanedQuestions, selectedThemeId);
       toast.success("Poll saved!");
       if (!skipRedirect) {

@@ -15,6 +15,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
+import ContentPresentView from "@/components/ContentSlide/ContentPresentView";
 
 // ── Inject global styles once into <head> ──────────────────────────────────────
 const GLOBAL_STYLE_ID = "standard-present-styles";
@@ -255,18 +256,20 @@ export default function StandardPresent({
   const qTypeStr = String(currentQuestion?.type || "").toLowerCase();
   const isRanking = qTypeStr === "ranking" || currentQuestion?.type === 3;
   const isOpenEnded = qTypeStr === "openended" || currentQuestion?.type === 2;
+  const isContent = qTypeStr === "content" || currentQuestion?.type === 4;
   const isWordCloud =
     !isRanking &&
     !isOpenEnded &&
+    !isContent &&
     (currentQuestion?.type === "WordCloud" ||
       currentQuestion?.type === 1 ||
       qTypeStr === "wordcloud" ||
-      !currentQuestion?.options ||
-      currentQuestion.options.length === 0 ||
-      currentQuestion.options.every((opt) => {
-        const txt = typeof opt === "string" ? opt : opt.text || "";
-        return !txt.trim();
-      }));
+      (!currentQuestion?.options ||
+        currentQuestion.options.length === 0 ||
+        currentQuestion.options.every((opt) => {
+          const txt = typeof opt === "string" ? opt : opt.text || "";
+          return !txt.trim();
+        })));
 
   const seenWordsOrder = useRef([]);
   const prevQuestionIndex = useRef(currentQuestionIndex);
@@ -444,7 +447,9 @@ export default function StandardPresent({
               </h2>
             </div>
 
-            {isRanking ? (
+            {isContent ? (
+              <ContentPresentView question={currentQuestion} themeStyles={themeStyles} />
+            ) : isRanking ? (
               <div className="w-full flex-1 flex flex-col justify-center max-w-4xl mx-auto mb-6 px-4 space-y-4">
                 {(() => {
                   const rankingsData = poll?.rankingCounts?.[currentQuestionIndex.toString()] || {};

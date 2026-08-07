@@ -8,6 +8,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
 import StandardEdit from "@/components/Themes/StandardEdit";
 import ThemeSelectorModal from "@/components/Dashboard/ThemeSelectorModal";
+import { generateContentSlideSnapshot } from "@/lib/canvasSnapshot";
+import { api } from "@/lib/api";
 
 export default function CreatePoll() {
   const router = useRouter();
@@ -51,12 +53,15 @@ export default function CreatePoll() {
         setActiveQuestionIndex(i);
         return false;
       }
-      if (q.type === "WordCloud" || q.type === "OpenEnded") {
+      if (q.type === "WordCloud" || q.type === "OpenEnded" || q.type === "Content") {
         cleanedQuestions.push({
           text: q.text.trim(),
           type: q.type,
           visualization: q.visualization || null,
-          imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          imageUrl: (q.imageUrl || q.snapshotUrl || "").trim() || null,
+          elements: q.elements || [],
+          backgroundColor: q.backgroundColor || "#FFFFFF",
+          backgroundImage: q.backgroundImage || "",
           showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
           showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
           allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
@@ -89,6 +94,29 @@ export default function CreatePoll() {
     }
 
     try {
+      // Auto-generate & upload Cloudinary snapshots for Content slides if needed
+      for (let i = 0; i < cleanedQuestions.length; i++) {
+        const q = cleanedQuestions[i];
+        if (q.type === "Content" && (!q.imageUrl || !q.imageUrl.startsWith("http"))) {
+          try {
+            const dataUrl = await generateContentSlideSnapshot(q);
+            if (dataUrl) {
+              const res = await fetch(dataUrl);
+              const blob = await res.blob();
+              const file = new File([blob], `slide-${Date.now()}.png`, { type: "image/png" });
+              const uploadRes = await api.uploadImage(file, "polls/slides");
+              if (uploadRes?.url) {
+                q.imageUrl = uploadRes.url;
+              } else {
+                q.imageUrl = dataUrl;
+              }
+            }
+          } catch (snapErr) {
+            console.warn("Auto snapshot upload warning:", snapErr);
+          }
+        }
+      }
+
       const pollId = await createPoll(title.trim(), cleanedQuestions, selectedThemeId);
 
       toast.success("Poll created successfully!");

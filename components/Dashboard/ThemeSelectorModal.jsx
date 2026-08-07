@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePollStore } from "@/lib/store/usePollStore";
 import { useAuth } from "@/contexts/AuthContext";
-import { Palette, Check, X, Loader2, Plus, HelpCircle, ChevronDown, Trash2, Sparkles } from "lucide-react";
+import { Palette, Check, X, Loader2, Plus, HelpCircle, ChevronDown, Trash2, Sparkles, Pencil, ChevronLeft } from "lucide-react";
 import toast from "react-hot-toast";
 
 const DEFAULT_STANDARD_DARK = {
@@ -40,7 +40,17 @@ function checkLowContrast(bgValue, bgType, textHex) {
   return false;
 }
 
-export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
+function isThemeDark(t) {
+  if (!t) return false;
+  if (t.backgroundType === "image") return true;
+  const bg = (t.backgroundValue && typeof t.backgroundValue === "string" && t.backgroundValue.trim().startsWith("#"))
+    ? t.backgroundValue.trim()
+    : "#F8FAFC";
+  return getLuminance(bg) < 0.5;
+}
+
+
+export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onPreviewTheme }) {
   const { user } = useAuth();
   const { themes, palettes, fetchThemes, fetchPalettes, createTheme, updateTheme, deleteTheme } = usePollStore();
 
@@ -67,6 +77,50 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
     fetchPalettes();
   }, [user?.uid, fetchThemes, fetchPalettes]);
 
+  // Real-time Live Preview Effect
+  useEffect(() => {
+    if (activeTab === "customise") {
+      const matchedPalette = palettes.find((p) => p.id === paletteId);
+      const paletteColors = matchedPalette?.colors || ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
+      const draftTheme = {
+        id: savedCustomThemeId || "draft_preview",
+        name: name || "Draft Custom Theme",
+        backgroundType,
+        backgroundValue,
+        mobileBackgroundValue,
+        logoUrl,
+        fontFamily,
+        textColor: primaryTextColor,
+        primaryTextColor,
+        secondaryTextColor,
+        accentColor,
+        cardBackgroundColor,
+        paletteId,
+        palette: { colors: paletteColors },
+        paletteColors,
+      };
+      onPreviewTheme?.(draftTheme);
+    } else {
+      onPreviewTheme?.(null);
+    }
+  }, [
+    activeTab,
+    backgroundType,
+    backgroundValue,
+    mobileBackgroundValue,
+    logoUrl,
+    fontFamily,
+    primaryTextColor,
+    secondaryTextColor,
+    accentColor,
+    cardBackgroundColor,
+    paletteId,
+    palettes,
+    savedCustomThemeId,
+    name,
+    onPreviewTheme,
+  ]);
+
   const customThemes = themes.filter((t) => !t.isPreset);
   const presetThemes = themes.filter((t) => t.isPreset);
   const displayPresets = presetThemes.length > 0 ? presetThemes : [DEFAULT_STANDARD_DARK];
@@ -89,6 +143,11 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
 
   const handleSelectCustomTheme = (t) => {
     onSelectTheme(t.id);
+  };
+
+  const handleEditCustomTheme = (t, e) => {
+    if (e) e.stopPropagation();
+    onSelectTheme(t.id);
     setSavedCustomThemeId(t.id);
     setName(t.name || "");
     setBackgroundType(t.backgroundType || "color");
@@ -101,6 +160,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
     setAccentColor(t.accentColor || "#6366F1");
     setCardBackgroundColor(t.cardBackgroundColor || "#FFFFFF");
     setPaletteId(t.paletteId || "palette_indigo_sunset");
+    setActiveTab("customise");
   };
 
   const handleDeleteTheme = async (themeId, e) => {
@@ -162,34 +222,21 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
 
   return (
     <div className="w-full flex flex-col space-y-4 text-slate-800">
-      {/* ── Top Header Tabs: Themes | Customise ── */}
-      <div className="flex items-center border-b border-slate-200 w-full">
-        <button
-          type="button"
-          onClick={() => setActiveTab("themes")}
-          className={`flex-1 pb-2.5 text-center text-sm font-bold transition-all relative cursor-pointer ${
-            activeTab === "themes" ? "text-indigo-600" : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          Themes
-          {activeTab === "themes" && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
-          )}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("customise")}
-          className={`flex-1 pb-2.5 text-center text-sm font-bold transition-all relative cursor-pointer ${
-            activeTab === "customise" ? "text-indigo-600" : "text-slate-500 hover:text-slate-700"
-          }`}
-        >
-          Customise
-          {activeTab === "customise" && (
-            <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
-          )}
-        </button>
-      </div>
+      {/* ── Top Header Navigation for Customise View ── */}
+      {activeTab === "customise" && (
+        <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("themes")}
+            className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" /> Back to themes
+          </button>
+          <span className="text-xs font-bold text-slate-400">
+            {savedCustomThemeId ? "Edit Theme" : "New Theme"}
+          </span>
+        </div>
+      )}
 
       {/* ── TAB 1: THEMES ── */}
       {activeTab === "themes" && (
@@ -212,7 +259,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
                 {customThemes.map((t) => {
                   const isSelected = selectedThemeId === t.id;
                   const colors = t.palette?.colors || ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
-                  const isDark = t.primaryTextColor === "#FFFFFF";
+                  const isDark = isThemeDark(t);
 
                   return (
                     <div
@@ -232,8 +279,9 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
                       <div className="flex items-center justify-between">
                         <span
                           className={`text-xs font-bold truncate ${
-                            isDark ? "text-white" : "text-slate-800"
+                            isDark ? "text-white drop-shadow-xs" : "text-slate-900"
                           }`}
+                          style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}
                         >
                           {t.name}
                         </span>
@@ -245,8 +293,20 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
                           )}
                           <button
                             type="button"
+                            onClick={(e) => handleEditCustomTheme(t, e)}
+                            className={`p-1 rounded-md transition-colors shrink-0 cursor-pointer ${
+                              isDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                            }`}
+                            title="Edit theme"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
                             onClick={(e) => handleDeleteTheme(t.id, e)}
-                            className="p-1 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50/80 transition-colors shrink-0 cursor-pointer"
+                            className={`p-1 rounded-md transition-colors shrink-0 cursor-pointer ${
+                              isDark ? "text-slate-300 hover:text-red-400 hover:bg-white/10" : "text-slate-400 hover:text-red-500 hover:bg-red-50/80"
+                            }`}
                             title="Delete theme"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -286,7 +346,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
               {displayPresets.map((pt) => {
                 const isSelected = (selectedThemeId || "11111111-1111-1111-1111-111111111111") === pt.id;
                 const colors = pt.palette?.colors || pt.colors || ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
-                const isDark = pt.primaryTextColor === "#FFFFFF" || pt.textColor === "#FFFFFF" || pt.backgroundValue === "#0F172A" || pt.backgroundValue === "#18181B";
+                const isDark = isThemeDark(pt);
 
                 return (
                   <div
@@ -304,7 +364,10 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
                     }
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`text-xs font-bold truncate ${isDark ? "text-white" : "text-slate-800"}`}>
+                      <span
+                        className={`text-xs font-bold truncate ${isDark ? "text-white drop-shadow-xs" : "text-slate-900"}`}
+                        style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}
+                      >
                         {pt.name}
                       </span>
                       {isSelected && (
@@ -359,17 +422,18 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
               </select>
             </div>
             {backgroundType === "image" ? (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 block mb-1">Desktop Image URL (Presenter)</label>
                   <input
                     type="text"
                     value={backgroundValue}
                     onChange={(e) => setBackgroundValue(e.target.value)}
-                    placeholder="https://example.com/desktop-bg.jpg"
+                    placeholder="Pexels / Unsplash / Direct image link (.jpg, .png, .webp)"
                     className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
+
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 block mb-1">Mobile Image URL (Participant / Optional)</label>
                   <input
@@ -418,7 +482,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
           <div className="space-y-3 border-b border-slate-100 pb-3">
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-700 text-xs flex items-center gap-1">
-                Text <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                Text
               </label>
 
               <div className="flex items-center gap-2">
@@ -468,12 +532,36 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
                 >
                   <span className="w-4 h-4 rounded-full bg-slate-900" />
                 </button>
+
+                {/* Custom Color Picker Button */}
+                <div
+                  className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center bg-white shadow-2xs relative transition-all cursor-pointer overflow-hidden ${
+                    primaryTextColor !== "#FFFFFF" && primaryTextColor !== "#ffffff" && primaryTextColor !== "#000000" && primaryTextColor !== "#0f172a"
+                      ? "border-purple-600 ring-2 ring-purple-500/20"
+                      : "border-slate-300 hover:border-slate-400"
+                  }`}
+                  title="Custom Text Color Palette"
+                >
+                  <span
+                    className="w-4 h-4 rounded-full border border-slate-300 shadow-2xs"
+                    style={{
+                      background: primaryTextColor && primaryTextColor !== "#FFFFFF" && primaryTextColor !== "#000000"
+                        ? primaryTextColor
+                        : "conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)"
+                    }}
+                  />
+                  <input
+                    type="color"
+                    value={primaryTextColor && primaryTextColor.startsWith("#") ? primaryTextColor : "#6366F1"}
+                    onChange={(e) => {
+                      setPrimaryTextColor(e.target.value);
+                      setSecondaryTextColor(e.target.value);
+                    }}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                </div>
               </div>
             </div>
-
-            <p className="text-[11px] text-slate-500 leading-relaxed">
-              Changing the font applies to all slides instantly.
-            </p>
 
             {/* Readability Callout Alert Box (Only shown on low contrast) */}
             {checkLowContrast(backgroundValue, backgroundType, primaryTextColor) && (

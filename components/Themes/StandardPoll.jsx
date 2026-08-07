@@ -408,11 +408,12 @@ export default function StandardPoll({
         style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
         {/* Top Header */}
-        {themeStyles.logoUrl ? (
-          <div className="w-full flex items-center justify-end z-20 shrink-0 mb-4 pointer-events-none">
+        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4 pointer-events-none">
+          <img src="/RapidPolls.png" alt="RapidPolls" className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md" />
+          {themeStyles.logoUrl ? (
             <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
-          </div>
-        ) : null}
+          ) : <div />}
+        </div>
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
@@ -443,11 +444,12 @@ export default function StandardPoll({
         className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
         style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
-        {themeStyles.logoUrl ? (
-          <div className="w-full flex items-center justify-end z-20 shrink-0 mb-4 pointer-events-none">
+        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4 pointer-events-none">
+          <img src="/RapidPolls.png" alt="RapidPolls" className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md" />
+          {themeStyles.logoUrl ? (
             <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
-          </div>
-        ) : null}
+          ) : <div />}
+        </div>
 
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
           <h1 className="text-4xl md:text-6xl leading-tight drop-shadow-2xl tracking-wide select-none font-light" style={{ color: themeStyles.primaryTextColor }}>
@@ -470,11 +472,12 @@ export default function StandardPoll({
       className="h-screen max-h-screen p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative select-none"
       style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
     >
-      {themeStyles.logoUrl ? (
-        <div className="w-full flex items-center justify-end z-20 shrink-0 mb-4 pointer-events-none">
+      <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4 pointer-events-none">
+        <img src="/RapidPolls.png" alt="RapidPolls" className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md" />
+        {themeStyles.logoUrl ? (
           <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
-        </div>
-      ) : null}
+        ) : <div />}
+      </div>
 
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
         <div

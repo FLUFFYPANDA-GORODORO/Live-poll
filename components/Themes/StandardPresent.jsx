@@ -8,9 +8,13 @@ import {
   Minimize,
   Users,
   X,
+  Zap,
+  Copy,
+  Check,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { getThemeStyles } from "@/lib/themeHelper";
+import toast from "react-hot-toast";
 
 // ── Inject global styles once into <head> ──────────────────────────────────────
 const GLOBAL_STYLE_ID = "standard-present-styles";
@@ -377,13 +381,19 @@ export default function StandardPresent({
       }}
     >
       {/* Top Bar */}
-      {themeStyles.logoUrl ? (
-        <header className="w-full z-20 relative bg-transparent pointer-events-none">
-          <div className="w-full px-6 py-4 flex items-center justify-end">
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-16 2xl:h-20 w-auto object-contain filter drop-shadow-md" />
-          </div>
-        </header>
-      ) : null}
+      <header className="w-full z-20 relative bg-transparent pointer-events-none">
+        <div className="w-full px-8 py-6 flex items-center justify-between">
+          <img
+            src="/RapidPolls.png"
+            alt="RapidPolls"
+            className="h-8 md:h-10 w-auto object-contain filter drop-shadow-md"
+          />
+
+          {themeStyles.logoUrl ? (
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-14 2xl:h-18 w-auto object-contain filter drop-shadow-md" />
+          ) : <div />}
+        </div>
+      </header>
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative w-full mx-auto bg-transparent rounded-3xl my-4">
@@ -654,7 +664,22 @@ export default function StandardPresent({
             <div className="bg-white p-4 rounded-2xl mb-4"><QRCodeSVG value={pollUrl} size={400} /></div>
             <p className="text-emerald-350 font-mono font-bold tracking-wider text-base select-all">{pollId}</p>
             <p className="text-slate-400 text-xs text-center mt-2">Scan the QR code or click the link below to participate:</p>
-            <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline mt-4 text-sm font-semibold break-all text-center">{pollUrl}</a>
+            <div className="mt-4 flex items-center justify-center gap-2 max-w-full px-2 flex-wrap">
+              <a href={pollUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:text-emerald-300 hover:underline text-sm font-semibold break-all text-center">{pollUrl}</a>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    navigator.clipboard.writeText(pollUrl);
+                    toast.success("Link copied to clipboard!");
+                  }
+                }}
+                className="p-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-all shrink-0 flex items-center justify-center cursor-pointer shadow-xs active:scale-95"
+                title="Copy Link"
+              >
+                <Copy className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

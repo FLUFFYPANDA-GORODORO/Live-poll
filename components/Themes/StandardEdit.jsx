@@ -24,18 +24,20 @@ import {
   HelpCircle,
   ArrowUpDown,
   Music,
-  ChevronDown
+  ChevronDown,
+  Zap
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePollStore } from "@/lib/store/usePollStore";
 import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
+import RightToolbar from "@/components/Themes/RightToolbar";
 
 const DEFAULT_PALETTE = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
 
-function VerticalBarChart({ options, showPercentage = false, paletteColors = DEFAULT_PALETTE }) {
+function VerticalBarChart({ options, showPercentage = false, paletteColors = DEFAULT_PALETTE, textColor = null, fontFamily = null }) {
   const colors = paletteColors?.length ? paletteColors : DEFAULT_PALETTE;
   const generateSampleVotes = () => {
     const total = 100;
@@ -60,7 +62,7 @@ function VerticalBarChart({ options, showPercentage = false, paletteColors = DEF
   return (
     <div className="w-full flex-1 flex flex-col justify-end my-auto py-2">
       {/* Bars Container with Baseline Horizontal Line */}
-      <div className="flex items-end justify-center gap-4 md:gap-8 w-full mx-auto border-b-2 border-slate-300 pb-0">
+      <div className="flex items-end justify-center gap-4 md:gap-8 w-full mx-auto border-b-2 border-white/40 pb-0">
         {options.map((option, idx) => {
           const votes = sampleVotes[idx] || 0;
           const percentage = Math.round((votes / totalVotes) * 100);
@@ -70,7 +72,10 @@ function VerticalBarChart({ options, showPercentage = false, paletteColors = DEF
           return (
             <div key={idx} className="flex flex-col items-center flex-1 max-w-[120px] md:max-w-[140px] h-52 justify-end">
               <div className="w-full flex flex-col items-center justify-end" style={{ height: `${Math.max(height, 14)}%` }}>
-                <div className="font-extrabold text-xs md:text-sm mb-1.5 drop-shadow-xs text-center" style={{ color: colors[0] }}>
+                <div
+                  className="font-extrabold text-xs md:text-sm mb-1.5 text-center drop-shadow-md"
+                  style={{ color: textColor || "#FFFFFF", fontFamily: fontFamily || "inherit" }}
+                >
                   {showPercentage ? `${percentage}%` : `${votes} votes`}
                 </div>
                 <div
@@ -89,7 +94,11 @@ function VerticalBarChart({ options, showPercentage = false, paletteColors = DEF
           const optionText = typeof option === "string" ? option : (option?.text || "");
           return (
             <div key={idx} className="flex-1 max-w-[120px] md:max-w-[140px] text-center">
-              <div className="font-bold text-xs md:text-sm whitespace-normal break-words w-full leading-snug text-slate-800" title={optionText}>
+              <div
+                className="font-bold text-xs md:text-sm whitespace-normal break-words w-full leading-snug drop-shadow-md"
+                style={{ color: textColor || "#FFFFFF", fontFamily: fontFamily || "inherit" }}
+                title={optionText}
+              >
                 {optionText || `Option ${idx + 1}`}
               </div>
             </div>
@@ -100,7 +109,7 @@ function VerticalBarChart({ options, showPercentage = false, paletteColors = DEF
   );
 }
 
-function DonutPieChart({ options, isDonut = true, paletteColors = DEFAULT_PALETTE }) {
+function DonutPieChart({ options, isDonut = true, paletteColors = DEFAULT_PALETTE, textColor = null, fontFamily = null }) {
   const colors = paletteColors?.length ? paletteColors : DEFAULT_PALETTE;
   const count = options?.length || 1;
   const sliceSize = 100 / count;
@@ -121,8 +130,8 @@ function DonutPieChart({ options, isDonut = true, paletteColors = DEFAULT_PALETT
         }}
       >
         {isDonut && (
-          <div className="w-24 h-24 bg-white rounded-full flex flex-col items-center justify-center shadow-inner">
-            <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Options</span>
+          <div className="w-24 h-24 bg-white/90 rounded-full flex flex-col items-center justify-center shadow-inner">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Options</span>
             <span className="text-xl font-extrabold text-slate-800">{count}</span>
           </div>
         )}
@@ -132,7 +141,11 @@ function DonutPieChart({ options, isDonut = true, paletteColors = DEFAULT_PALETT
         {options.map((opt, idx) => {
           const text = typeof opt === "string" ? opt : opt?.text || `Option ${idx + 1}`;
           return (
-            <div key={idx} className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-200">
+            <div
+              key={idx}
+              className="flex items-center gap-2 text-xs font-semibold px-2.5 py-1 rounded-md border border-white/20 bg-black/20 backdrop-blur-xs drop-shadow-xs"
+              style={{ color: textColor || "#FFFFFF", fontFamily: fontFamily || "inherit" }}
+            >
               <span
                 className="w-3 h-3 rounded-full shrink-0 shadow-xs"
                 style={{ background: colors[idx % colors.length] }}
@@ -273,7 +286,9 @@ export default function StandardEdit({
   const [activeOptionImageInputs, setActiveOptionImageInputs] = useState({});
   const [pendingTemplate, setPendingTemplate] = useState(null);
 
-  const activeTheme = themes.find((t) => t.id === selectedThemeId) || themes[0];
+  const [previewTheme, setPreviewTheme] = useState(null);
+
+  const activeTheme = previewTheme || themes.find((t) => t.id === selectedThemeId) || themes[0];
   const themeStyles = getThemeStyles(activeTheme);
 
   const activeQuestion = questions[activeQuestionIndex] || questions[0];
@@ -453,27 +468,43 @@ export default function StandardEdit({
           <div
             className="w-full max-w-4xl rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl p-8 md:p-12 min-h-[480px] flex flex-col justify-between relative transition-all overflow-hidden"
             style={{
+              backgroundColor: themeStyles.backgroundStyle?.backgroundColor || "#0F172A",
               ...themeStyles.backgroundStyle,
-              backgroundColor: themeStyles.cardBackgroundColor || themeStyles.backgroundStyle?.backgroundColor || "#0F172A",
               color: themeStyles.primaryTextColor || "#FFFFFF",
               fontFamily: themeStyles.containerStyle?.fontFamily
             }}
           >
+            {/* Top Canvas Header Bar (RapidPolls logo on left, Custom theme logo on right) */}
+            <div className="w-full flex items-center justify-between mb-4 z-10">
+              <img
+                src="/RapidPolls.png"
+                alt="RapidPolls"
+                className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md"
+              />
+
+              {themeStyles.logoUrl ? (
+                <img
+                  src={themeStyles.logoUrl}
+                  alt="Custom Logo"
+                  className="h-8 md:h-10 max-w-[140px] object-contain filter drop-shadow-md"
+                />
+              ) : <div />}
+            </div>
+
             <div className="w-full mb-6 text-left">
               <div
                 className="border focus-within:border-[#6366F1] focus-within:ring-2 focus-within:ring-[#6366F1]/20 rounded-xl p-3 shadow-xs transition-all w-full"
                 style={{
                   backgroundColor:
                     themeStyles.primaryTextColor === "#FFFFFF" ||
-                    themeStyles.cardBackgroundColor === "#0F172A" ||
-                    themeStyles.cardBackgroundColor === "#18181B"
-                      ? "rgba(255, 255, 255, 0.08)"
+                    themeStyles.backgroundStyle?.backgroundColor === "#0F172A" ||
+                    themeStyles.backgroundStyle?.backgroundColor === "#18181B" ||
+                    themeStyles.backgroundStyle?.backgroundImage
+                      ? "rgba(255, 255, 255, 0.12)"
                       : "rgba(241, 245, 249, 0.8)",
                   borderColor:
-                    themeStyles.primaryTextColor === "#FFFFFF" ||
-                    themeStyles.cardBackgroundColor === "#0F172A" ||
-                    themeStyles.cardBackgroundColor === "#18181B"
-                      ? "rgba(255, 255, 255, 0.15)"
+                    themeStyles.primaryTextColor === "#FFFFFF"
+                      ? "rgba(255, 255, 255, 0.2)"
                       : "rgba(226, 232, 240, 0.9)",
                 }}
               >
@@ -489,7 +520,10 @@ export default function StandardEdit({
                       ? "text-right"
                       : "text-center"
                   }`}
-                  style={{ color: themeStyles.primaryTextColor || "#000000" }}
+                  style={{
+                    color: themeStyles.primaryTextColor || "#000000",
+                    fontFamily: themeStyles.containerStyle?.fontFamily
+                  }}
                 />
               </div>
             </div>
@@ -501,15 +535,42 @@ export default function StandardEdit({
               ) : activeQuestion?.type === "OpenEnded" ? (
                 <OpenEndedPreview />
               ) : activeQuestion?.type === "Ranking" && activeQuestion?.visualization === "Bars" ? (
-                <VerticalBarChart options={activeQuestion?.options || []} showPercentage={activeQuestion?.showPercentage} paletteColors={themeStyles.paletteColors} />
+                <VerticalBarChart
+                  options={activeQuestion?.options || []}
+                  showPercentage={activeQuestion?.showPercentage}
+                  paletteColors={themeStyles.paletteColors}
+                  textColor={themeStyles.primaryTextColor}
+                  fontFamily={themeStyles.containerStyle?.fontFamily}
+                />
               ) : activeQuestion?.type === "Ranking" ? (
-                <RankingPreview options={activeQuestion?.options || []} paletteColors={themeStyles.paletteColors} />
+                <RankingPreview
+                  options={activeQuestion?.options || []}
+                  paletteColors={themeStyles.paletteColors}
+                />
               ) : activeQuestion?.visualization === "Donut" ? (
-                <DonutPieChart options={activeQuestion?.options || []} isDonut={true} paletteColors={themeStyles.paletteColors} />
+                <DonutPieChart
+                  options={activeQuestion?.options || []}
+                  isDonut={true}
+                  paletteColors={themeStyles.paletteColors}
+                  textColor={themeStyles.primaryTextColor}
+                  fontFamily={themeStyles.containerStyle?.fontFamily}
+                />
               ) : activeQuestion?.visualization === "Pie" ? (
-                <DonutPieChart options={activeQuestion?.options || []} isDonut={false} paletteColors={themeStyles.paletteColors} />
+                <DonutPieChart
+                  options={activeQuestion?.options || []}
+                  isDonut={false}
+                  paletteColors={themeStyles.paletteColors}
+                  textColor={themeStyles.primaryTextColor}
+                  fontFamily={themeStyles.containerStyle?.fontFamily}
+                />
               ) : (
-                <VerticalBarChart options={activeQuestion?.options || []} showPercentage={activeQuestion?.showPercentage} paletteColors={themeStyles.paletteColors} />
+                <VerticalBarChart
+                  options={activeQuestion?.options || []}
+                  showPercentage={activeQuestion?.showPercentage}
+                  paletteColors={themeStyles.paletteColors}
+                  textColor={themeStyles.primaryTextColor}
+                  fontFamily={themeStyles.containerStyle?.fontFamily}
+                />
               )}
             </div>
           </div>
@@ -862,7 +923,9 @@ export default function StandardEdit({
               {/* THEME DRAWER */}
               {activeRightTab === "theme" && (
                 <div>
-                  {themeDropdown}
+                  {React.isValidElement(themeDropdown)
+                    ? React.cloneElement(themeDropdown, { onPreviewTheme: setPreviewTheme })
+                    : themeDropdown}
                 </div>
               )}
 
@@ -891,55 +954,10 @@ export default function StandardEdit({
         )}
 
         {/* Far Right Vertical Icon Strip */}
-        <aside className="my-3 mr-3 bg-white border border-slate-200/90 rounded-2xl shadow-lg flex flex-col items-center py-3 px-2 space-y-2 shrink-0 z-20 self-start">
-          {/* AI Sparkles Placeholder */}
-          <div className="w-10 h-10 rounded-md bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 flex items-center justify-center shadow-xs cursor-pointer">
-            <div className="w-full h-full bg-white rounded-md flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-indigo-500" />
-            </div>
-          </div>
-
-          <div className="w-8 h-[1px] bg-slate-200 my-0.5" />
-
-          {/* Content (Edit) Icon */}
-          <button
-            onClick={() => setActiveRightTab(activeRightTab === "content" ? null : "content")}
-            className={`w-10 h-10 rounded-md flex items-center justify-center transition-all cursor-pointer ${
-              activeRightTab === "content"
-                ? "bg-indigo-100/90 text-[#6366F1]"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-            title="Edit Content"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
-
-          {/* Theme Icon */}
-          <button
-            onClick={() => setActiveRightTab(activeRightTab === "theme" ? null : "theme")}
-            className={`w-10 h-10 rounded-md flex items-center justify-center transition-all cursor-pointer ${
-              activeRightTab === "theme"
-                ? "bg-indigo-100/90 text-[#6366F1]"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-            title="Themes"
-          >
-            <Palette className="w-5 h-5" />
-          </button>
-
-          {/* Templates Icon */}
-          <button
-            onClick={() => setActiveRightTab(activeRightTab === "template" ? null : "template")}
-            className={`w-10 h-10 rounded-md flex items-center justify-center transition-all cursor-pointer ${
-              activeRightTab === "template"
-                ? "bg-indigo-100/90 text-[#6366F1]"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-            title="Templates"
-          >
-            <LayoutTemplate className="w-5 h-5" />
-          </button>
-        </aside>
+        <RightToolbar
+          activeRightTab={activeRightTab}
+          setActiveRightTab={setActiveRightTab}
+        />
       </div>
 
       {/* ── Template Confirmation Modal ── */}

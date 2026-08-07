@@ -53,6 +53,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
   const [name, setName] = useState("");
   const [backgroundType, setBackgroundType] = useState("color");
   const [backgroundValue, setBackgroundValue] = useState("#F8FAFC");
+  const [mobileBackgroundValue, setMobileBackgroundValue] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [fontFamily, setFontFamily] = useState("Inter");
   const [primaryTextColor, setPrimaryTextColor] = useState("#000000");
@@ -75,6 +76,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
     setName("");
     setBackgroundType("color");
     setBackgroundValue("#F8FAFC");
+    setMobileBackgroundValue("");
     setLogoUrl("");
     setFontFamily("Inter");
     setPrimaryTextColor("#000000");
@@ -91,9 +93,10 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
     setName(t.name || "");
     setBackgroundType(t.backgroundType || "color");
     setBackgroundValue(t.backgroundValue || "#F8FAFC");
+    setMobileBackgroundValue(t.mobileBackgroundValue || "");
     setLogoUrl(t.logoUrl || "");
     setFontFamily(t.fontFamily || "Inter");
-    setPrimaryTextColor(t.primaryTextColor || "#000000");
+    setPrimaryTextColor(t.primaryTextColor || t.textColor || "#000000");
     setSecondaryTextColor(t.secondaryTextColor || "#94A3B8");
     setAccentColor(t.accentColor || "#6366F1");
     setCardBackgroundColor(t.cardBackgroundColor || "#FFFFFF");
@@ -124,6 +127,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
       name: themeName,
       backgroundType,
       backgroundValue: backgroundValue.trim(),
+      mobileBackgroundValue: mobileBackgroundValue.trim() || null,
       logoUrl: logoUrl.trim() || null,
       fontFamily,
       textColor: primaryTextColor,
@@ -355,13 +359,28 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme }) {
               </select>
             </div>
             {backgroundType === "image" ? (
-              <input
-                type="text"
-                value={backgroundValue}
-                onChange={(e) => setBackgroundValue(e.target.value)}
-                placeholder="https://example.com/bg.jpg"
-                className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
-              />
+              <div className="space-y-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1">Desktop Image URL (Presenter)</label>
+                  <input
+                    type="text"
+                    value={backgroundValue}
+                    onChange={(e) => setBackgroundValue(e.target.value)}
+                    placeholder="https://example.com/desktop-bg.jpg"
+                    className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1">Mobile Image URL (Participant / Optional)</label>
+                  <input
+                    type="text"
+                    value={mobileBackgroundValue}
+                    onChange={(e) => setMobileBackgroundValue(e.target.value)}
+                    placeholder="https://example.com/mobile-bg.jpg"
+                    className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
             ) : (
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-semibold text-slate-500">Hex Color</span>

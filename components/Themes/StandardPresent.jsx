@@ -377,11 +377,13 @@ export default function StandardPresent({
       }}
     >
       {/* Top Bar */}
-      <header className="w-full z-20 relative bg-transparent">
-        <div className="w-full px-6 py-4 flex items-center justify-between">
-          <div><img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-20 2xl:h-24 w-auto object-contain filter drop-shadow-md" /></div>
-        </div>
-      </header>
+      {themeStyles.logoUrl ? (
+        <header className="w-full z-20 relative bg-transparent pointer-events-none">
+          <div className="w-full px-6 py-4 flex items-center justify-end">
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-16 2xl:h-20 w-auto object-contain filter drop-shadow-md" />
+          </div>
+        </header>
+      ) : null}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative w-full mx-auto bg-transparent rounded-3xl my-4">

@@ -405,14 +405,14 @@ export default function StandardPoll({
     return (
       <div
         className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
-        style={{ ...themeStyles.backgroundStyle, ...themeStyles.containerStyle }}
+        style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
         {/* Top Header */}
-        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-          <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-8 md:h-11 w-auto object-contain" />
-          </a>
-        </div>
+        {themeStyles.logoUrl ? (
+          <div className="w-full flex items-center justify-end z-20 shrink-0 mb-4 pointer-events-none">
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
+          </div>
+        ) : null}
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
@@ -441,13 +441,13 @@ export default function StandardPoll({
     return (
       <div
         className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
-        style={{ ...themeStyles.backgroundStyle, ...themeStyles.containerStyle }}
+        style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
-        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-          <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-            <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-8 md:h-11 w-auto object-contain" />
-          </a>
-        </div>
+        {themeStyles.logoUrl ? (
+          <div className="w-full flex items-center justify-end z-20 shrink-0 mb-4 pointer-events-none">
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
+          </div>
+        ) : null}
 
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
           <h1 className="text-4xl md:text-6xl leading-tight drop-shadow-2xl tracking-wide select-none font-light" style={{ color: themeStyles.primaryTextColor }}>
@@ -468,13 +468,13 @@ export default function StandardPoll({
   return (
     <div
       className="h-screen max-h-screen p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative select-none"
-      style={{ ...themeStyles.backgroundStyle, ...themeStyles.containerStyle }}
+      style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
     >
-      <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4">
-        <a href="https://www.gryphonacademy.co.in/" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-          <img src="/GryphonWhite.png" alt="Gryphon Logo" className="h-8 md:h-11 w-auto object-contain" />
-        </a>
-      </div>
+      {themeStyles.logoUrl ? (
+        <div className="w-full flex items-center justify-end z-20 shrink-0 mb-4 pointer-events-none">
+          <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
+        </div>
+      ) : null}
 
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
         <div
@@ -517,6 +517,16 @@ export default function StandardPoll({
                 const isOptionSelected = hasVoted && selectedOption === idx;
                 const isOptionUnselected = hasVoted && selectedOption !== idx;
 
+                const buttonStyleClass = `w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${
+                  isOptionSelected
+                    ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default opacity-100"
+                    : isOptionUnselected
+                      ? "bg-slate-50 border-slate-100 opacity-40 cursor-default text-slate-400"
+                      : poll.currentQuestionActive && !voting
+                        ? "bg-slate-50 hover:bg-slate-100/50 border-slate-200 hover:border-slate-300 cursor-pointer active:scale-[0.98] text-slate-800"
+                        : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
+                }`;
+
                 const badgeStyle = { backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] };
 
                 return (
@@ -524,24 +534,7 @@ export default function StandardPoll({
                     key={idx}
                     onClick={() => voteForOptionHandler(idx)}
                     disabled={!poll.currentQuestionActive || voting || hasVoted}
-                    className={`w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${
-                      isOptionSelected
-                        ? "shadow-md font-bold cursor-default opacity-100"
-                        : isOptionUnselected
-                          ? "opacity-40 cursor-default"
-                          : poll.currentQuestionActive && !voting
-                            ? "hover:opacity-90 cursor-pointer active:scale-[0.98]"
-                            : "cursor-not-allowed opacity-60"
-                    }`}
-                    style={{
-                      backgroundColor: isOptionSelected
-                        ? `${themeStyles.accentColor}33`
-                        : "rgba(255,255,255,0.06)",
-                      borderColor: isOptionSelected
-                        ? themeStyles.accentColor
-                        : "rgba(255,255,255,0.15)",
-                      color: themeStyles.primaryTextColor,
-                    }}
+                    className={buttonStyleClass}
                   >
                     <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0" style={badgeStyle}>
                       {String.fromCharCode(65 + idx)}

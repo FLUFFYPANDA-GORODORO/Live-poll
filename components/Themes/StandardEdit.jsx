@@ -30,7 +30,7 @@ const STANDARD_CHART_COLORS = [
   "#10B981", "#3B82F6", "#EF4444", "#14B8A6",
 ];
 
-function VerticalBarChart({ options }) {
+function VerticalBarChart({ options, showPercentage = false }) {
   const generateSampleVotes = () => {
     const total = 100;
     let remaining = total;
@@ -62,7 +62,7 @@ function VerticalBarChart({ options }) {
         return (
           <div key={idx} className="flex flex-col items-center gap-2 flex-1 max-w-[80px] h-full justify-end">
             <div className="text-xs font-bold text-[#6366F1]">
-              {percentage}%
+              {showPercentage ? `${percentage}%` : `${votes} votes`}
             </div>
             <div className="relative w-full flex items-end h-28 rounded-t-lg overflow-hidden border bg-slate-50 border-slate-200">
               <div
@@ -451,7 +451,7 @@ export default function StandardEdit({
               ) : activeQuestion?.type === "OpenEnded" ? (
                 <OpenEndedPreview />
               ) : activeQuestion?.type === "Ranking" && activeQuestion?.visualization === "Bars" ? (
-                <VerticalBarChart options={activeQuestion?.options || []} />
+                <VerticalBarChart options={activeQuestion?.options || []} showPercentage={activeQuestion?.showPercentage} />
               ) : activeQuestion?.type === "Ranking" ? (
                 <RankingPreview options={activeQuestion?.options || []} />
               ) : activeQuestion?.visualization === "Donut" ? (
@@ -459,7 +459,7 @@ export default function StandardEdit({
               ) : activeQuestion?.visualization === "Pie" ? (
                 <DonutPieChart options={activeQuestion?.options || []} isDonut={false} />
               ) : (
-                <VerticalBarChart options={activeQuestion?.options || []} />
+                <VerticalBarChart options={activeQuestion?.options || []} showPercentage={activeQuestion?.showPercentage} />
               )}
             </div>
           </div>
@@ -592,6 +592,71 @@ export default function StandardEdit({
                       </div>
                     </div>
                   )}
+
+                  {/* Question Settings Section */}
+                  <div className="pt-2 border-t border-slate-200 space-y-3">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                      Question Settings
+                    </label>
+
+                    {/* Show percentage toggle */}
+                    {(activeQuestion?.type === "MultipleChoice" || activeQuestion?.type === "Ranking") && (
+                      <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-slate-700 hover:text-slate-900 select-none">
+                        <input
+                          type="checkbox"
+                          checked={activeQuestion?.showPercentage || false}
+                          onChange={(e) => {
+                            const newQuestions = [...questions];
+                            newQuestions[activeQuestionIndex].showPercentage = e.target.checked;
+                            setQuestions(newQuestions);
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-[#6366F1] focus:ring-[#6366F1]"
+                        />
+                        <span>Show results in percentage (%)</span>
+                      </label>
+                    )}
+
+                    {/* Show response count toggle */}
+                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-slate-700 hover:text-slate-900 select-none">
+                      <input
+                        type="checkbox"
+                        checked={activeQuestion?.showResponseCount !== false}
+                        onChange={(e) => {
+                          const newQuestions = [...questions];
+                          newQuestions[activeQuestionIndex].showResponseCount = e.target.checked;
+                          setQuestions(newQuestions);
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-[#6366F1] focus:ring-[#6366F1]"
+                      />
+                      <span>Show audience response count badge</span>
+                    </label>
+                  </div>
+
+                  {/* Distinct Poll / Participant Settings Section */}
+                  <div className="p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-[#6366F1]">
+                        Participant Screen Setting
+                      </span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-[#6366F1]">
+                        Poll-Wide
+                      </span>
+                    </div>
+
+                    <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-800 hover:text-slate-900 select-none pt-1">
+                      <input
+                        type="checkbox"
+                        checked={activeQuestion?.allowReactions !== false}
+                        onChange={(e) => {
+                          const newQuestions = [...questions];
+                          newQuestions[activeQuestionIndex].allowReactions = e.target.checked;
+                          setQuestions(newQuestions);
+                        }}
+                        className="w-4 h-4 rounded border-slate-300 text-[#6366F1] focus:ring-[#6366F1]"
+                      />
+                      <span>Allow live emoji reactions (❤️ 🔥 👏)</span>
+                    </label>
+                  </div>
 
                   {/* Options List for MultipleChoice and Ranking */}
                   {(activeQuestion?.type === "MultipleChoice" || activeQuestion?.type === "Ranking") && (

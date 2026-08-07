@@ -14,7 +14,16 @@ export default function CreatePoll() {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [questions, setQuestions] = useState([
-    { text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] },
+    {
+      text: "",
+      type: "MultipleChoice",
+      visualization: "Bars",
+      imageUrl: "",
+      showResponseCount: true,
+      showPercentage: false,
+      allowReactions: true,
+      options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }]
+    },
   ]);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -48,6 +57,9 @@ export default function CreatePoll() {
           type: q.type,
           visualization: q.visualization || null,
           imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+          showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+          allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
           options: [],
         });
       } else {
@@ -64,6 +76,9 @@ export default function CreatePoll() {
           type: q.type,
           visualization: q.visualization || null,
           imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+          showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+          allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
           options: validOptions.map((opt) =>
             typeof opt === "string"
               ? { text: opt.trim(), imageUrl: null }

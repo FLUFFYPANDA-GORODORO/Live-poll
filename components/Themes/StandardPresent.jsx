@@ -595,8 +595,14 @@ export default function StandardPresent({
                           <span className="font-semibold text-sm md:text-base">{text}</span>
                         </div>
                         <div className="flex items-center gap-3 font-mono text-sm">
-                          <span className="font-bold">{votes} votes</span>
-                          <span style={{ color: themeStyles.secondaryTextColor }}>({percentage}%)</span>
+                          {currentQuestion?.showPercentage ? (
+                            <span className="font-bold">{percentage}%</span>
+                          ) : (
+                            <>
+                              <span className="font-bold">{votes} votes</span>
+                              <span style={{ color: themeStyles.secondaryTextColor }}>({percentage}%)</span>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -609,12 +615,14 @@ export default function StandardPresent({
                 <div className="flex items-end justify-center gap-6 md:gap-12 w-full mx-auto border-b border-white/40 pb-0">
                   {currentQuestion?.options?.map((option, idx) => {
                     const votes = getVoteCount(idx);
+                    const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
                     const height = maxVotes > 0 ? (votes / maxVotes) * 100 : 0;
                     const barBg = themeStyles.paletteColors[idx % themeStyles.paletteColors.length];
+                    const displayLabel = currentQuestion?.showPercentage ? `${percentage}%` : votes;
                     return (
                       <div key={idx} className="flex flex-col items-center flex-1 max-w-[140px] 2xl:max-w-[180px] h-[35vh] justify-end">
                         <div className="w-full flex flex-col items-center justify-end" style={votes > 0 ? { height: `${Math.max(height, 16)}%` } : {}}>
-                          <div className="font-black text-xl 2xl:text-3xl mb-2 drop-shadow-md" style={{ color: themeStyles.primaryTextColor }}>{votes}</div>
+                          <div className="font-black text-xl 2xl:text-3xl mb-2 drop-shadow-md" style={{ color: themeStyles.primaryTextColor }}>{displayLabel}</div>
                           {votes > 0 && (
                             <div className="w-full rounded-t border-t-2 border-x-2 border-white flex-1 transition-all duration-700 ease-out"
                               style={{ background: barBg, boxShadow: "0 4px 20px rgba(0,0,0,0.15)" }} />
@@ -676,12 +684,16 @@ export default function StandardPresent({
 
         {/* Right: Stats + QR + fullscreen */}
         <div className="bg-black/60 border border-white/10 rounded-xl p-2 flex items-center gap-2 shadow-2xl pointer-events-auto relative">
-          <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
-            <Users className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{totalVotes}</span>
-          </div>
+          {currentQuestion?.showResponseCount !== false && (
+            <>
+              <div className="flex items-center gap-1.5 text-slate-300 text-xs font-bold bg-white/5 px-2 py-1.5 rounded-lg border border-white/5">
+                <Users className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{totalVotes}</span>
+              </div>
 
-          <div className="w-px h-4 bg-white/20" />
+              <div className="w-px h-4 bg-white/20" />
+            </>
+          )}
 
           <button onClick={() => setShowQR(!showQR)} className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQR ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"}`} title="Toggle QR Code">QR</button>
           <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5" title="Toggle Fullscreen">

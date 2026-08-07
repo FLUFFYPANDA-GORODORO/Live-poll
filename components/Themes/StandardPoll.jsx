@@ -699,7 +699,7 @@ export default function StandardPoll({
         </div>
 
         {/* Emoji Reactions Panel */}
-        {poll.status === "live" && poll.status !== undefined && (
+        {poll.status === "live" && poll.status !== undefined && activeQuestion?.allowReactions !== false && (
           <div className="p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md">
             {["❤️", "🔥", "👏", "😂", "🤯"].map((emoji, idx) => (
               <button

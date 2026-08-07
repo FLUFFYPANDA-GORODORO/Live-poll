@@ -769,6 +769,71 @@ export default function StandardCreate({
               </select>
             </div>
 
+            {/* Question Settings Section */}
+            <div className="mb-6 pt-2 border-t border-slate-200 space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block">
+                Question Settings
+              </label>
+
+              {/* Show percentage toggle */}
+              {(activeQuestion?.type === "MultipleChoice" || activeQuestion?.type === "Ranking") && (
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-slate-700 hover:text-slate-900 select-none">
+                  <input
+                    type="checkbox"
+                    checked={activeQuestion?.showPercentage || false}
+                    onChange={(e) => {
+                      const newQuestions = [...questions];
+                      newQuestions[activeQuestionIndex].showPercentage = e.target.checked;
+                      setQuestions(newQuestions);
+                    }}
+                    className="w-4 h-4 rounded border-slate-300 text-[#6366F1] focus:ring-[#6366F1]"
+                  />
+                  <span>Show results in percentage (%)</span>
+                </label>
+              )}
+
+              {/* Show response count toggle */}
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-slate-700 hover:text-slate-900 select-none">
+                <input
+                  type="checkbox"
+                  checked={activeQuestion?.showResponseCount !== false}
+                  onChange={(e) => {
+                    const newQuestions = [...questions];
+                    newQuestions[activeQuestionIndex].showResponseCount = e.target.checked;
+                    setQuestions(newQuestions);
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-[#6366F1] focus:ring-[#6366F1]"
+                />
+                <span>Show audience response count badge</span>
+              </label>
+            </div>
+
+            {/* Distinct Poll / Participant Settings Section */}
+            <div className="mb-6 p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-100 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#6366F1]">
+                  Participant Screen Setting
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-[#6366F1]">
+                  Poll-Wide
+                </span>
+              </div>
+
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-slate-800 hover:text-slate-900 select-none pt-1">
+                <input
+                  type="checkbox"
+                  checked={activeQuestion?.allowReactions !== false}
+                  onChange={(e) => {
+                    const newQuestions = [...questions];
+                    newQuestions[activeQuestionIndex].allowReactions = e.target.checked;
+                    setQuestions(newQuestions);
+                  }}
+                  className="w-4 h-4 rounded border-slate-300 text-[#6366F1] focus:ring-[#6366F1]"
+                />
+                <span>Allow live emoji reactions (❤️ 🔥 👏)</span>
+              </label>
+            </div>
+
             {/* Options Management */}
             {activeQuestion?.type !== "WordCloud" && activeQuestion?.type !== "OpenEnded" ? (
               <div className="mb-6">

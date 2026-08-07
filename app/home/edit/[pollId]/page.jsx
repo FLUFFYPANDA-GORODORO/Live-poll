@@ -61,12 +61,15 @@ export default function EditPoll() {
               type: qType,
               visualization: q.visualization || "Bars",
               imageUrl: q.imageUrl || "",
+              showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+              showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+              allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
               options:
                 q.options?.map((o) =>
                   typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" }
                 ) || (qType === "WordCloud" || qType === "OpenEnded" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }]),
             };
-          }) || [{ text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] }]
+          }) || [{ text: "", type: "MultipleChoice", visualization: "Bars", imageUrl: "", showResponseCount: true, showPercentage: false, allowReactions: true, options: [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }] }]
         );
       } catch (err) {
         console.error("Error loading poll:", err);
@@ -97,11 +100,14 @@ export default function EditPoll() {
           type: q.type,
           visualization: q.visualization || null,
           imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+          showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+          allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
           options: [],
         });
       } else {
         const validOptions = q.options.filter((opt) =>
-          typeof opt === "string" ? opt.trim() !== "" : (opt.text || "").trim() !== ""
+          typeof opt === "string" ? opt.trim() !== "" : (opt.text || "").trim() !== "",
         );
         if (validOptions.length < 2) {
           toast.error(`Question ${i + 1} needs at least 2 options`);
@@ -113,6 +119,9 @@ export default function EditPoll() {
           type: q.type,
           visualization: q.visualization || null,
           imageUrl: q.imageUrl ? q.imageUrl.trim() : null,
+          showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+          showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+          allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
           options: validOptions.map((opt) =>
             typeof opt === "string"
               ? { text: opt.trim(), imageUrl: null }

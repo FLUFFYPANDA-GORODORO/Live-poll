@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { usePollStore } from "@/lib/store/usePollStore";
 import { useAuth } from "@/contexts/AuthContext";
-import { Palette, Check, X, Loader2, Plus, HelpCircle, ChevronDown, Trash2, Sparkles, Pencil, ChevronLeft } from "lucide-react";
+import { Palette, Check, X, Loader2, Plus, HelpCircle, ChevronDown, Trash2, Sparkles, Pencil, ChevronLeft, Image as ImageIcon, Upload } from "lucide-react";
 import toast from "react-hot-toast";
+import MediaUploadModal from "@/components/MediaUploadModal";
 
 const DEFAULT_STANDARD_DARK = {
   id: "11111111-1111-1111-1111-111111111111",
@@ -58,6 +59,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
   const [isCreating, setIsCreating] = useState(false);
   const [showBgImageInput, setShowBgImageInput] = useState(false);
   const [savedCustomThemeId, setSavedCustomThemeId] = useState(null);
+  const [mediaModalConfig, setMediaModalConfig] = useState({ isOpen: false, target: null, initialUrl: "", title: "" });
 
   // New Custom Theme Form State
   const [name, setName] = useState("");
@@ -424,7 +426,23 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
             {backgroundType === "image" ? (
               <div className="space-y-2.5">
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-500 block mb-1">Desktop Image URL (Presenter)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-500">Desktop Image (Presenter)</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMediaModalConfig({
+                          isOpen: true,
+                          target: "desktopBg",
+                          initialUrl: backgroundValue,
+                          title: "Desktop Background Image",
+                        })
+                      }
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Upload className="w-3 h-3" /> Select / Upload
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={backgroundValue}
@@ -435,7 +453,23 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-semibold text-slate-500 block mb-1">Mobile Image URL (Participant / Optional)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[11px] font-semibold text-slate-500">Mobile Image (Participant / Optional)</label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMediaModalConfig({
+                          isOpen: true,
+                          target: "mobileBg",
+                          initialUrl: mobileBackgroundValue,
+                          title: "Mobile Background Image",
+                        })
+                      }
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                    >
+                      <Upload className="w-3 h-3" /> Select / Upload
+                    </button>
+                  </div>
                   <input
                     type="text"
                     value={mobileBackgroundValue}
@@ -468,7 +502,23 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
 
           {/* Theme Logo URL */}
           <div className="border-b border-slate-100 pb-3">
-            <label className="font-bold text-slate-700 text-xs block mb-1">Logo URL (Optional)</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="font-bold text-slate-700 text-xs">Logo URL (Optional)</label>
+              <button
+                type="button"
+                onClick={() =>
+                  setMediaModalConfig({
+                    isOpen: true,
+                    target: "logo",
+                    initialUrl: logoUrl,
+                    title: "Theme Logo Image",
+                  })
+                }
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+              >
+                <Upload className="w-3 h-3" /> Select / Upload
+              </button>
+            </div>
             <input
               type="text"
               value={logoUrl}
@@ -617,6 +667,20 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
           </div>
         </form>
       )}
+
+      {/* Media Upload Modal for Background and Logo Images */}
+      <MediaUploadModal
+        isOpen={mediaModalConfig.isOpen}
+        onClose={() => setMediaModalConfig({ isOpen: false, target: null, initialUrl: "", title: "" })}
+        initialUrl={mediaModalConfig.initialUrl}
+        title={mediaModalConfig.title}
+        type="image"
+        onSelectUrl={(url) => {
+          if (mediaModalConfig.target === "desktopBg") setBackgroundValue(url);
+          else if (mediaModalConfig.target === "mobileBg") setMobileBackgroundValue(url);
+          else if (mediaModalConfig.target === "logo") setLogoUrl(url);
+        }}
+      />
     </div>
   );
 }

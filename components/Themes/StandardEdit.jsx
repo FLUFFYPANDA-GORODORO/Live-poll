@@ -25,7 +25,8 @@ import {
   ArrowUpDown,
   Music,
   ChevronDown,
-  Zap
+  Zap,
+  Upload
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
@@ -34,6 +35,7 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
 import RightToolbar from "@/components/Themes/RightToolbar";
+import MediaUploadModal from "@/components/MediaUploadModal";
 
 const DEFAULT_PALETTE = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
 
@@ -280,11 +282,20 @@ export default function StandardEdit({
 }) {
   const { user } = useAuth();
   const { themes } = usePollStore();
-  const [activeRightTab, setActiveRightTab] = useState("content"); // 'content', 'theme', 'template'
+  const [activeRightTab, setActiveRightTab] = useState("content"); // 'content', 'theme', 'template', 'audio'
   const [showNewSlideModal, setShowNewSlideModal] = useState(false);
   const [showQuestionImageInput, setShowQuestionImageInput] = useState(false);
   const [activeOptionImageInputs, setActiveOptionImageInputs] = useState({});
   const [pendingTemplate, setPendingTemplate] = useState(null);
+  const [audioSubTab, setAudioSubTab] = useState("myAudio"); // "defaultAudio" | "myAudio"
+  const [mediaModalConfig, setMediaModalConfig] = useState({
+    isOpen: false,
+    type: "image",
+    target: null,
+    initialUrl: "",
+    title: "",
+    optionIdx: null,
+  });
 
   const [previewTheme, setPreviewTheme] = useState(null);
 
@@ -662,21 +673,35 @@ export default function StandardEdit({
 
                         <button
                           type="button"
-                          onClick={() => setShowQuestionImageInput(!showQuestionImageInput)}
+                          onClick={() => {
+                            setShowQuestionImageInput(true);
+                            setMediaModalConfig({
+                              isOpen: true,
+                              type: "image",
+                              target: "questionImage",
+                              initialUrl: activeQuestion?.imageUrl || "",
+                              title: "Question Image",
+                            });
+                          }}
                           className={`p-1 transition-colors cursor-pointer ${
                             showQuestionImageInput || activeQuestion?.imageUrl
                               ? "text-indigo-600"
                               : "text-slate-400 hover:text-slate-600"
                           }`}
-                          title="Add question image"
+                          title="Add / Upload question image"
                         >
                           <ImageIcon className="w-4 h-4" />
                         </button>
 
                         <button
                           type="button"
-                          className="p-1 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
-                          title="Audio / Music"
+                          onClick={() => setActiveRightTab("audio")}
+                          className={`p-1 transition-colors cursor-pointer ${
+                            activeRightTab === "audio" || activeQuestion?.audioUrl
+                              ? "text-indigo-600"
+                              : "text-slate-400 hover:text-slate-600"
+                          }`}
+                          title="Audio / Soundtracks Settings"
                         >
                           <Music className="w-4 h-4" />
                         </button>
@@ -684,7 +709,25 @@ export default function StandardEdit({
 
                       {/* Question Image URL Input */}
                       {(showQuestionImageInput || activeQuestion?.imageUrl) && (
-                        <div className="pt-2 border-t border-slate-100">
+                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-semibold text-slate-500">Question Image</span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setMediaModalConfig({
+                                  isOpen: true,
+                                  type: "image",
+                                  target: "questionImage",
+                                  initialUrl: activeQuestion?.imageUrl || "",
+                                  title: "Question Image",
+                                })
+                              }
+                              className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <Upload className="w-3 h-3" /> Select / Upload
+                            </button>
+                          </div>
                           <input
                             type="text"
                             value={activeQuestion?.imageUrl || ""}
@@ -739,16 +782,24 @@ export default function StandardEdit({
                                 {/* Image Toggle Button */}
                                 <button
                                   type="button"
-                                  onClick={() =>
+                                  onClick={() => {
                                     setActiveOptionImageInputs((prev) => ({
                                       ...prev,
-                                      [optIdx]: !prev[optIdx],
-                                    }))
-                                  }
+                                      [optIdx]: true,
+                                    }));
+                                    setMediaModalConfig({
+                                      isOpen: true,
+                                      type: "image",
+                                      target: "optionImage",
+                                      optionIdx: optIdx,
+                                      initialUrl: imgVal,
+                                      title: `Option ${optIdx + 1} Image`,
+                                    });
+                                  }}
                                   className={`w-9 h-10 border border-slate-200/90 rounded-r-md flex items-center justify-center transition-colors shrink-0 cursor-pointer ${
                                     isImageActive ? "bg-indigo-50 text-indigo-600" : "bg-slate-50/80 text-slate-500 hover:bg-slate-100"
                                   }`}
-                                  title="Add option image"
+                                  title="Add / Upload option image"
                                 >
                                   <ImageIcon className="w-4 h-4" />
                                 </button>
@@ -768,7 +819,26 @@ export default function StandardEdit({
 
                               {/* Expandable Option Image URL Field */}
                               {isImageActive && (
-                                <div className="pl-9 pr-10">
+                                <div className="pl-9 pr-10 space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-semibold text-slate-400">Option Image URL</span>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setMediaModalConfig({
+                                          isOpen: true,
+                                          type: "image",
+                                          target: "optionImage",
+                                          optionIdx: optIdx,
+                                          initialUrl: imgVal,
+                                          title: `Option ${optIdx + 1} Image`,
+                                        })
+                                      }
+                                      className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
+                                    >
+                                      <Upload className="w-2.5 h-2.5" /> Upload / Select
+                                    </button>
+                                  </div>
                                   <input
                                     type="text"
                                     value={imgVal}
@@ -949,6 +1019,117 @@ export default function StandardEdit({
                   router={router}
                 />
               )}
+
+              {/* AUDIO DRAWER */}
+              {activeRightTab === "audio" && (
+                <div className="space-y-4 text-slate-800">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                    <h4 className="font-bold text-sm text-slate-800 flex items-center gap-2">
+                      <Music className="w-4 h-4 text-indigo-600" /> Audio & Soundtracks
+                    </h4>
+                  </div>
+
+                  {/* Sub-tabs: Default Audio vs My Audio */}
+                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => setAudioSubTab("defaultAudio")}
+                      className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
+                        audioSubTab === "defaultAudio"
+                          ? "bg-white text-indigo-600 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      Default Audio
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAudioSubTab("myAudio")}
+                      className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${
+                        audioSubTab === "myAudio"
+                          ? "bg-white text-indigo-600 shadow-xs"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      My Audio
+                    </button>
+                  </div>
+
+                  {audioSubTab === "defaultAudio" ? (
+                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-5 text-center space-y-1">
+                      <p className="text-xs font-bold text-slate-700">No default audio seeded yet</p>
+                      <p className="text-[11px] text-slate-500">
+                        Default background music tracks will appear here once seeded. Switch to <strong>My Audio</strong> to upload custom tracks.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* Audio Enable Switch */}
+                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold text-slate-800">Enable Question Audio</p>
+                          <p className="text-[10px] text-slate-500">Play soundtrack when slide is live</p>
+                        </div>
+                        <input
+                          type="checkbox"
+                          checked={activeQuestion?.enableAudio || false}
+                          onChange={(e) => {
+                            const newQuestions = [...questions];
+                            newQuestions[activeQuestionIndex].enableAudio = e.target.checked;
+                            setQuestions(newQuestions);
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Add Audio Button */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMediaModalConfig({
+                            isOpen: true,
+                            type: "audio",
+                            target: "questionAudio",
+                            initialUrl: activeQuestion?.audioUrl || "",
+                            title: "Question Audio / Soundtrack",
+                          })
+                        }
+                        className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4" /> Select / Upload Audio File
+                      </button>
+
+                      {/* Audio Track Preview */}
+                      {activeQuestion?.audioUrl ? (
+                        <div className="p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-xl space-y-2">
+                          <div className="flex items-center justify-between text-xs font-bold text-indigo-900">
+                            <span className="truncate max-w-[200px]" title={activeQuestion.audioUrl}>
+                              🎵 {activeQuestion.audioUrl.split("/").pop() || "Audio Track"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newQuestions = [...questions];
+                                newQuestions[activeQuestionIndex].audioUrl = "";
+                                newQuestions[activeQuestionIndex].enableAudio = false;
+                                setQuestions(newQuestions);
+                              }}
+                              className="text-red-500 hover:underline text-[11px] font-semibold cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <audio controls src={activeQuestion.audioUrl} className="w-full h-8 rounded-md" />
+                        </div>
+                      ) : (
+                        <div className="border border-slate-200 rounded-xl p-3 text-center text-xs text-slate-400">
+                          No audio track attached to this question yet.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </aside>
         )}
@@ -959,6 +1140,49 @@ export default function StandardEdit({
           setActiveRightTab={setActiveRightTab}
         />
       </div>
+
+      {/* Global Media Upload Modal (Images & Audio via Cloudinary) */}
+      <MediaUploadModal
+        isOpen={mediaModalConfig.isOpen}
+        onClose={() =>
+          setMediaModalConfig({
+            isOpen: false,
+            type: "image",
+            target: null,
+            initialUrl: "",
+            title: "",
+            optionIdx: null,
+          })
+        }
+        type={mediaModalConfig.type}
+        initialUrl={mediaModalConfig.initialUrl}
+        title={mediaModalConfig.title}
+        onSelectUrl={(url) => {
+          if (mediaModalConfig.target === "questionImage") {
+            const newQuestions = [...questions];
+            newQuestions[activeQuestionIndex].imageUrl = url;
+            setQuestions(newQuestions);
+            setShowQuestionImageInput(Boolean(url));
+          } else if (mediaModalConfig.target === "questionAudio") {
+            const newQuestions = [...questions];
+            newQuestions[activeQuestionIndex].audioUrl = url;
+            newQuestions[activeQuestionIndex].enableAudio = Boolean(url);
+            setQuestions(newQuestions);
+          } else if (mediaModalConfig.target === "optionImage" && mediaModalConfig.optionIdx !== null) {
+            const optIdx = mediaModalConfig.optionIdx;
+            const newQuestions = [...questions];
+            const opts = [...(newQuestions[activeQuestionIndex].options || [])];
+            if (typeof opts[optIdx] === "string") {
+              opts[optIdx] = { text: opts[optIdx], imageUrl: url };
+            } else {
+              opts[optIdx] = { ...opts[optIdx], imageUrl: url };
+            }
+            newQuestions[activeQuestionIndex].options = opts;
+            setQuestions(newQuestions);
+            setActiveOptionImageInputs((prev) => ({ ...prev, [optIdx]: Boolean(url) }));
+          }
+        }}
+      />
 
       {/* ── Template Confirmation Modal ── */}
       {pendingTemplate && (

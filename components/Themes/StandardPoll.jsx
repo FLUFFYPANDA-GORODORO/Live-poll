@@ -409,13 +409,14 @@ export default function StandardPoll({
         className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
         style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
-        {/* Top Header */}
-        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4 pointer-events-none">
-          <img src="/RapidPolls.png" alt="RapidPolls" className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md" />
-          {themeStyles.logoUrl ? (
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
-          ) : <div />}
-        </div>
+        {/* Absolute top-left corner logo */}
+        <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
+
+        {themeStyles.logoUrl && (
+          <div className="w-full flex justify-end z-20 shrink-0 mb-4 pointer-events-none">
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-7 md:h-9 w-auto object-contain filter drop-shadow-md" />
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
@@ -446,12 +447,13 @@ export default function StandardPoll({
         className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
         style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
-        <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4 pointer-events-none">
-          <img src="/RapidPolls.png" alt="RapidPolls" className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md" />
-          {themeStyles.logoUrl ? (
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
-          ) : <div />}
-        </div>
+        <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
+
+        {themeStyles.logoUrl && (
+          <div className="w-full flex justify-end z-20 shrink-0 mb-4 pointer-events-none">
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-7 md:h-9 w-auto object-contain filter drop-shadow-md" />
+          </div>
+        )}
 
         <div className="max-w-4xl text-center mx-auto my-auto z-10 relative w-full px-6 flex flex-col justify-center items-center">
           <h1 className="text-4xl md:text-6xl leading-tight drop-shadow-2xl tracking-wide select-none font-light" style={{ color: themeStyles.primaryTextColor }}>
@@ -474,12 +476,13 @@ export default function StandardPoll({
       className="h-screen max-h-screen p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative select-none"
       style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
     >
-      <div className="w-full flex items-center justify-between z-20 shrink-0 mb-4 pointer-events-none">
-        <img src="/RapidPolls.png" alt="RapidPolls" className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md" />
-        {themeStyles.logoUrl ? (
-          <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-8 md:h-11 w-auto object-contain filter drop-shadow-md" />
-        ) : <div />}
-      </div>
+      <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
+
+      {themeStyles.logoUrl && (
+        <div className="w-full flex justify-end z-20 shrink-0 mb-4 pointer-events-none">
+          <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-7 md:h-9 w-auto object-contain filter drop-shadow-md" />
+        </div>
+      )}
 
       {isContent ? (
         <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col justify-center py-2">

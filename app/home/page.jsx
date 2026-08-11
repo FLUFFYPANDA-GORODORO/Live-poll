@@ -5,50 +5,46 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
-import { 
-  Plus, 
-  Upload, 
+import {
+  Plus,
+  Upload,
   ChevronRight,
-  MoreVertical,
-  Play,
-  Share2,
-  Edit,
-  Copy,
-  Download,
+  ArrowRight,
+  MoreHorizontal,
   Trash2,
-  Sparkles
+  RotateCcw,
+  X,
 } from "lucide-react";
 
 export default function HomeOutlet() {
   const router = useRouter();
   const { user } = useAuth();
-  
+  const [openMenuId, setOpenMenuId] = useState(null);
+
   const {
     polls,
     loading,
+    templates,
     fetchPolls,
+    fetchTemplates,
     deletePoll,
     restartPoll,
     createPoll,
-    fetchPollById
+    useTemplate,
   } = usePollStore();
 
-  const [processingPoll, setProcessingPoll] = useState(null);
-
   useEffect(() => {
-    if (user) fetchPolls(user.uid);
-  }, [user, fetchPolls]);
+    if (user) {
+      fetchPolls(user.uid);
+      fetchTemplates(user.uid);
+    }
+  }, [user, fetchPolls, fetchTemplates]);
 
-  const recentWorks = (polls || []).slice(0, 4);
-
-  const popularTemplates = [
-    { title: "Lunar New Year: Symbols and...", category: "Culture" },
-    { title: "How Much Do You Know...", category: "Quiz" },
-    { title: "Matching Pairs Quiz", category: "Interactive" },
-    { title: "Valentine Specials: The...", category: "Icebreaker" },
-    { title: "Random Song Generator", category: "Fun" },
-    { title: "LCP_Standards_Pilot_Modul...", category: "Education" },
-  ];
+  const getUserDisplayName = () => {
+    if (user?.displayName) return user.displayName;
+    if (user?.email) return user.email.split("@")[0];
+    return "Creator";
+  };
 
   // Action Handlers
   const handleCreateNew = () => {
@@ -68,7 +64,9 @@ export default function HomeOutlet() {
         try {
           const importData = JSON.parse(event.target.result);
           if (!importData || !Array.isArray(importData.questions)) {
-            toast.error("Invalid JSON format. Must contain a 'questions' array.");
+            toast.error(
+              "Invalid JSON format. Must contain a 'questions' array."
+            );
             return;
           }
 
@@ -80,13 +78,18 @@ export default function HomeOutlet() {
               return;
             }
 
-            const isQWordCloud = q.type === "WordCloud" || q.type === 1 || String(q.type).toLowerCase() === "wordcloud" || !q.options || q.options.length === 0;
+            const isQWordCloud =
+              q.type === "WordCloud" ||
+              q.type === 1 ||
+              String(q.type).toLowerCase() === "wordcloud" ||
+              !q.options ||
+              q.options.length === 0;
 
             if (isQWordCloud) {
               cleanedQuestions.push({
                 text: q.text.trim(),
                 type: "WordCloud",
-                options: []
+                options: [],
               });
             } else {
               if (!Array.isArray(q.options) || q.options.length < 2) {
@@ -94,17 +97,21 @@ export default function HomeOutlet() {
                 return;
               }
               const validOptions = q.options
-                .map(o => typeof o === "string" ? o.trim() : (o.text || "").trim())
-                .filter(opt => opt !== "");
+                .map((o) =>
+                  typeof o === "string" ? o.trim() : (o.text || "").trim()
+                )
+                .filter((opt) => opt !== "");
 
               if (validOptions.length < 2) {
-                toast.error(`Question ${i + 1} needs at least 2 non-empty options`);
+                toast.error(
+                  `Question ${i + 1} needs at least 2 non-empty options`
+                );
                 return;
               }
               cleanedQuestions.push({
                 text: q.text.trim(),
                 type: "MultipleChoice",
-                options: validOptions
+                options: validOptions,
               });
             }
           }
@@ -133,10 +140,24 @@ export default function HomeOutlet() {
     input.click();
   };
 
-  const getUserDisplayName = () => {
-    if (user?.displayName) return user.displayName;
-    if (user?.email) return user.email.split("@")[0];
-    return "User";
+  const handleUseTemplate = async (template) => {
+    try {
+      const loadingToast = toast.loading("Creating from template...");
+      const result = await useTemplate(
+        template.id,
+        user.uid,
+        user.email,
+        user.displayName
+      );
+      await fetchPolls(user.uid);
+      toast.dismiss(loadingToast);
+      toast.success("Created from template!");
+      if (result?.id) {
+        router.push(`/home/edit/${result.id}`);
+      }
+    } catch (err) {
+      toast.error("Failed to create from template");
+    }
   };
 
   const formatRelativeTime = (date) => {
@@ -146,122 +167,265 @@ export default function HomeOutlet() {
     if (diff < 3600) return "Just now";
     if (diff < 86400) return "a day ago";
     if (diff < 172800) return "2 days ago";
-    return new Date(date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
+  const handleDeletePoll = async (e, pollId) => {
+    e.stopPropagation();
+    setOpenMenuId(null);
+    if (!confirm("Delete this presentation?")) return;
+    try {
+      await deletePoll(pollId);
+      toast.success("Deleted!");
+    } catch {
+      toast.error("Failed to delete");
+    }
+  };
+
+  const handleRestartPoll = async (e, pollId) => {
+    e.stopPropagation();
+    setOpenMenuId(null);
+    try {
+      await restartPoll(pollId);
+      toast.success("Restarted!");
+    } catch {
+      toast.error("Failed to restart");
+    }
+  };
+
+  // Template card colors for visual variety
+  const templateColors = [
+    "#7B2FF2", "#10B981", "#3B82F6", "#F59E0B", "#EC4899", "#6366F1",
+    "#14B8A6", "#F97316", "#8B5CF6", "#EF4444",
+  ];
+
+  // Mini bar chart SVG for poll preview thumbnails
+  const PollPreviewBars = () => (
+    <div className="w-full h-full flex items-end justify-center gap-[3px] px-3 pb-2">
+      <div className="w-3 bg-indigo-400/90 rounded-t-sm" style={{ height: "55%" }} />
+      <div className="w-3 bg-pink-400/90 rounded-t-sm" style={{ height: "80%" }} />
+      <div className="w-3 bg-emerald-400/90 rounded-t-sm" style={{ height: "35%" }} />
+      <div className="w-3 bg-amber-400/80 rounded-t-sm" style={{ height: "65%" }} />
+    </div>
+  );
+
   return (
-    <div className="space-y-10 pb-12">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
-          Welcome, <span className="text-[#6366F1]">{getUserDisplayName()}!</span>
+    <div
+      className="min-h-screen -m-6 md:-m-8"
+      style={{
+        background: `
+          radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.26), transparent 50%),
+          radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.24), transparent 50%),
+          linear-gradient(to bottom, rgba(245, 243, 255, 0.9), #ffffff 75%)
+        `,
+      }}
+    >
+      {/* ── Hero Heading ── */}
+      <div className="flex flex-col items-center pt-14 pb-6 px-6">
+        <h1 className="text-3xl md:text-[42px] font-bold tracking-tight text-center leading-tight text-slate-900">
+          Welcome, {getUserDisplayName()} !
         </h1>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 mt-6">
+        <div className="flex items-center justify-center gap-4 mt-7">
           <button
             onClick={handleCreateNew}
-            className="flex items-center gap-2 bg-[#6366F1] hover:bg-[#5558DD] text-white px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-colors cursor-pointer"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-7 py-3 rounded-md font-semibold text-sm shadow-md hover:shadow-lg transition-all transform hover:-translate-y-0.5 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-white" />
             New presentation
           </button>
           <button
             onClick={handleImportPoll}
-            className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-5 py-2.5 rounded-lg font-medium text-sm transition-colors cursor-pointer shadow-xs"
+            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 px-7 py-3 rounded-md font-semibold text-sm shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 cursor-pointer"
           >
-            <Upload className="w-4 h-4 text-slate-500" />
-            Import
+            <Upload className="w-4 h-4 text-slate-700" />
+            Import presentation
           </button>
         </div>
       </div>
 
-      {/* Your Recent Works */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">Your recent works</h2>
-          <button
-            onClick={() => router.push("/home/presentations")}
-            className="text-sm font-semibold text-[#6366F1] hover:underline flex items-center gap-1"
-          >
-            View more <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
+      {/* ── Content area (seamless from gradient) ── */}
+      <div className="px-8 md:px-10 pb-16">
 
-        {recentWorks.length === 0 ? (
-          <div className="p-8 border border-dashed border-slate-200 rounded-2xl text-center bg-slate-50/50">
-            <p className="text-slate-500 text-sm mb-3">No presentations created yet.</p>
-            <button
-              onClick={handleCreateNew}
-              className="text-[#6366F1] font-semibold text-sm hover:underline"
-            >
-              Create your first presentation
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-            {recentWorks.map((poll) => (
-              <div
-                key={poll.id}
-                onClick={() => router.push(`/present/${poll.id}`)}
-                className="group border border-slate-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer flex flex-col justify-between"
-              >
-                {/* Grey image placeholder container */}
-                <div className="h-32 bg-slate-100 border-b border-slate-100 relative p-4 flex items-center justify-center">
-                  <div className="w-full h-full bg-slate-200/70 rounded-lg flex items-center justify-center">
-                    <span className="text-slate-400 font-semibold text-xs uppercase tracking-wider">Presentation</span>
-                  </div>
-                </div>
-
-                <div className="p-3.5">
-                  <h3 className="font-bold text-slate-900 text-sm truncate group-hover:text-[#6366F1] transition-colors">
-                    {poll.title || "Untitled Presentation"}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    {formatRelativeTime(poll.updatedAt || poll.createdAt)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Explore Popular Templates */}
-      <section className="space-y-4 pt-2">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-slate-900">Explore popular templates</h2>
-          <button
-            onClick={() => router.push("/home/presentations")}
-            className="text-sm font-semibold text-[#6366F1] hover:underline flex items-center gap-1"
-          >
-            View more <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-          {popularTemplates.map((template, idx) => (
-            <div
-              key={idx}
-              onClick={handleCreateNew}
-              className="group border border-slate-200 rounded-xl overflow-hidden bg-white hover:shadow-md transition-all cursor-pointer flex flex-col"
-            >
-              {/* Grey image placeholder container */}
-              <div className="h-24 bg-slate-100 border-b border-slate-100 flex items-center justify-center p-2">
-                <div className="w-full h-full bg-slate-200/80 rounded-md flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-slate-400" />
-                </div>
-              </div>
-
-              <div className="p-2.5">
-                <h4 className="font-semibold text-slate-800 text-xs truncate group-hover:text-[#6366F1] transition-colors">
-                  {template.title}
-                </h4>
-              </div>
+        {/* ── Continue Designing / My Polls (Only shown if polls exist or loading) ── */}
+        {(loading || (polls && polls.length > 0)) && (
+          <section className="mt-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900">
+                Continue designing
+              </h2>
+              {polls?.length > 0 && (
+                <button
+                  onClick={() => router.push("/home/presentations")}
+                  className="text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1 cursor-pointer"
+                >
+                  See all
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
             </div>
-          ))}
-        </div>
-      </section>
+
+            {loading ? (
+              <div className="grid grid-cols-5 gap-4.5 w-full">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div
+                    key={i}
+                    className="w-full h-[155px] rounded-xl bg-slate-100 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 gap-4.5 w-full">
+                {(polls || []).slice(0, 5).map((poll) => {
+                  // Get theme background for card
+                  const themeBg = poll.theme;
+                  const cardBgStyle = themeBg?.backgroundType === "image" && themeBg?.backgroundValue
+                    ? { backgroundImage: `url("${themeBg.backgroundValue}")`, backgroundSize: "cover", backgroundPosition: "center" }
+                    : { backgroundColor: themeBg?.backgroundValue?.startsWith("#") ? themeBg.backgroundValue : "#0F172A" };
+
+                  return (
+                    <div
+                      key={poll.id}
+                      onClick={() => router.push(`/home/edit/${poll.id}`)}
+                      className="group w-full h-[155px] flex flex-col justify-between rounded-xl bg-white border border-slate-200/80 hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 relative"
+                    >
+                      {/* More Menu (Direct child of outer card so overflow-hidden doesn't clip the dropdown) */}
+                      <div className="absolute top-1.5 right-1.5 z-30">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === poll.id ? null : poll.id);
+                          }}
+                          className="p-1 rounded-md bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer"
+                        >
+                          {openMenuId === poll.id ? (
+                            <X className="w-3.5 h-3.5" />
+                          ) : (
+                            <MoreHorizontal className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        {openMenuId === poll.id && (
+                          <div className="absolute right-0 top-7 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-50 min-w-[150px] text-xs font-medium text-slate-700">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(null);
+                                router.push(`/present/${poll.id}`);
+                              }}
+                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-emerald-600 font-semibold cursor-pointer"
+                            >
+                              <ArrowRight className="w-3.5 h-3.5" /> Present
+                            </button>
+                            <button
+                              onClick={(e) => handleRestartPoll(e, poll.id)}
+                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-slate-700 cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" /> Restart
+                            </button>
+                            <button
+                              onClick={(e) => handleDeletePoll(e, poll.id)}
+                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-red-50 text-red-600 font-medium cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bar chart preview thumbnail */}
+                      <div
+                        className="h-[105px] flex items-end justify-end gap-3 pl-12 pr-4 relative rounded-t-xl overflow-hidden shrink-0"
+                        style={cardBgStyle}
+                      >
+                        {/* Two wider bars (w-16) touching bottom with empty space above */}
+                        <div className="w-16 bg-[#6366F1] rounded-t-md" style={{ height: "42px" }} />
+                        <div className="w-16 bg-[#818CF8] rounded-t-md" style={{ height: "70px" }} />
+                      </div>
+
+                      {/* Compact Poll title + timestamp footer */}
+                      <div className="px-3 py-2 border-t border-slate-100 bg-white shrink-0 rounded-b-xl">
+                        <p className="text-xs font-semibold text-slate-800 truncate leading-tight">
+                          {poll.title || "Untitled"}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-0.5 leading-none">
+                          Edited{" "}
+                          {formatRelativeTime(poll.updatedAt || poll.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── Templates Section ── */}
+        {templates && templates.length > 0 && (
+          <section className="mt-12">
+            <h2 className="text-lg font-bold text-slate-900 mb-4">
+              Templates
+            </h2>
+
+            <div className="grid grid-cols-5 gap-4.5 w-full">
+              {templates.slice(0, 5).map((template, idx) => {
+                const bgColor = templateColors[idx % templateColors.length];
+                const themeData = template.theme;
+                const hasThemeBg =
+                  themeData?.backgroundType === "image" &&
+                  themeData?.backgroundValue;
+
+                return (
+                  <div
+                    key={template.id}
+                    onClick={() => handleUseTemplate(template)}
+                    className="w-full h-[155px] rounded-xl overflow-hidden cursor-pointer group relative transition-all hover:-translate-y-1 hover:shadow-xl"
+                    style={{ backgroundColor: bgColor }}
+                  >
+                    {/* Card content */}
+                    <div className="p-4 flex flex-col h-full relative z-10">
+                      <div className="flex-1">
+                        <p className="text-white font-bold text-sm leading-snug max-w-[170px]">
+                          {template.title || "Untitled Template"}
+                          <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ArrowRight className="w-3.5 h-3.5 inline" />
+                          </span>
+                        </p>
+                        {template.description && (
+                          <p className="text-white/70 text-[11px] mt-1 line-clamp-2">
+                            {template.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="mt-auto">
+                        <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-semibold">
+                          {template.category || "General"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {hasThemeBg && (
+                      <div className="absolute bottom-2 right-2 w-16 h-12 rounded-md overflow-hidden shadow-lg opacity-80 group-hover:opacity-100 transition-opacity border border-white/20">
+                        <img
+                          src={themeData.backgroundValue}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

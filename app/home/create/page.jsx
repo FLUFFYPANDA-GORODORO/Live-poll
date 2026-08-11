@@ -18,7 +18,7 @@ export default function CreatePoll() {
   const [questions, setQuestions] = useState([
     {
       text: "",
-      type: "MultipleChoice",
+      type: "Unselected",
       visualization: "Bars",
       imageUrl: "",
       showResponseCount: true,
@@ -48,6 +48,9 @@ export default function CreatePoll() {
     const cleanedQuestions = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
+      if (q.type === "Unselected") {
+        q.type = "MultipleChoice";
+      }
       if (!q.text.trim()) {
         toast.error(`Please enter text for Question ${i + 1}`);
         setActiveQuestionIndex(i);

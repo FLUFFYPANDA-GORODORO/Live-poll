@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home as HomeIcon,
   Presentation,
   LogOut,
+  LayoutTemplate,
+  Bell,
 } from "lucide-react";
 
 export default function Sidebar({ user, logout }) {
@@ -13,41 +16,72 @@ export default function Sidebar({ user, logout }) {
 
   const menuItems = [
     { icon: HomeIcon, label: "Home", href: "/home" },
-    { icon: Presentation, label: "My presentations", href: "/home/presentations" },
+    { icon: Presentation, label: "Projects", href: "/home/presentations" },
+    { icon: LayoutTemplate, label: "Templates", href: "/home/templates" },
   ];
 
+  const getUserInitial = () => {
+    if (user?.displayName) return user.displayName[0].toUpperCase();
+    if (user?.email) return user.email[0].toUpperCase();
+    return "U";
+  };
+
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 flex flex-col h-[calc(100vh-4rem)] sticky top-16 shrink-0 z-20">
-      {/* Navigation Items */}
-      <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
+    <aside className="w-[72px] bg-slate-950 border-r border-slate-800 flex flex-col items-center h-screen sticky top-0 shrink-0 z-20 py-4 text-white">
+      {/* RapidPolls Logo at the top above Home */}
+      <Link href="/home" className="mb-3 transition-transform hover:scale-105">
+        <Image
+          src="/RapidPolls.png"
+          alt="RapidPolls Logo"
+          width={36}
+          height={36}
+          className="object-contain filter drop-shadow-md"
+        />
+      </Link>
+
+      {/* Navigation Icons */}
+      <nav className="flex-1 flex flex-col items-center gap-2 w-full px-1 mt-1">
         {menuItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.label}
               href={item.href}
-              className={`flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`flex flex-col items-center justify-center w-14 h-14 rounded-md text-[10px] font-medium transition-all gap-1 ${
                 isActive
-                  ? "bg-purple-100/70 text-[#6366F1] font-semibold"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-white text-slate-950 font-bold shadow-md"
+                  : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"
               }`}
             >
-              <item.icon className="w-4 h-4" />
-              <span>{item.label}</span>
+              <item.icon className="w-5 h-5" />
+              <span className="leading-none">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Bottom Logout Button */}
-      <div className="p-4 border-t border-slate-100">
+      {/* Bottom Section */}
+      <div className="flex flex-col items-center gap-1.5 pb-2">
+        {/* Bell */}
+        <button className="flex flex-col items-center justify-center w-14 h-10 rounded-md text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition-all cursor-pointer">
+          <Bell className="w-5 h-5" />
+        </button>
+
+        {/* Logout */}
         <button
           onClick={logout}
-          className="flex items-center gap-3 w-full px-4 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="flex flex-col items-center justify-center w-14 h-10 rounded-md text-slate-400 hover:bg-red-950/60 hover:text-red-400 transition-all cursor-pointer"
         >
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
+          <LogOut className="w-5 h-5" />
         </button>
+
+        {/* User Avatar */}
+        <div
+          className="w-9 h-9 rounded-md bg-white text-slate-950 flex items-center justify-center font-bold text-xs cursor-pointer shadow-md border border-slate-300 mt-1"
+          title={user?.email || "User Profile"}
+        >
+          {getUserInitial()}
+        </div>
       </div>
     </aside>
   );

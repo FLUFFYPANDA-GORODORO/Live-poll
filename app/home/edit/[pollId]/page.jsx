@@ -96,6 +96,9 @@ export default function EditPoll() {
     const cleanedQuestions = [];
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
+      if (q.type === "Unselected") {
+        q.type = "MultipleChoice";
+      }
       if (!q.text.trim()) {
         toast.error(`Please enter text for Question ${i + 1}`);
         setActiveQuestionIndex(i);

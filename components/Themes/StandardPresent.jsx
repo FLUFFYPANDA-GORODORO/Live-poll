@@ -383,20 +383,21 @@ export default function StandardPresent({
         ...themeStyles.containerStyle,
       }}
     >
-      {/* Top Bar */}
-      <header className="w-full z-20 relative bg-transparent pointer-events-none">
-        <div className="w-full px-8 py-6 flex items-center justify-between">
-          <img
-            src="/RapidPolls.png"
-            alt="RapidPolls"
-            className="h-8 md:h-10 w-auto object-contain filter drop-shadow-md"
-          />
+      {/* Top-left screen corner logo (Mentimeter style) */}
+      <img
+        src="/RapidPolls.png"
+        alt="RapidPolls"
+        className="absolute top-4 left-5 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none"
+      />
 
-          {themeStyles.logoUrl ? (
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-14 2xl:h-18 w-auto object-contain filter drop-shadow-md" />
-          ) : <div />}
-        </div>
-      </header>
+      {/* Top Bar for Custom Theme Logo */}
+      {themeStyles.logoUrl && (
+        <header className="w-full z-20 relative bg-transparent pointer-events-none">
+          <div className="w-full px-6 py-4 flex items-center justify-end">
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-10 2xl:h-14 w-auto object-contain filter drop-shadow-md" />
+          </div>
+        </header>
+      )}
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative w-full mx-auto bg-transparent rounded-3xl my-4">

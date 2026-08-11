@@ -353,11 +353,11 @@ export default function StandardEdit({
     setQuestions(newQuestions);
   };
 
-  const addQuestionWithType = (type = "MultipleChoice") => {
+  const addQuestionWithType = (type = "MultipleChoice", isNewBlank = false) => {
     const newQuestions = [...questions];
     newQuestions.push({
       text: type === "Content" ? "Content Slide" : "",
-      type: type,
+      type: isNewBlank ? "Unselected" : type,
       visualization: "Bars",
       imageUrl: "",
       elements: type === "Content" ? [
@@ -485,7 +485,7 @@ export default function StandardEdit({
 
             <button
               type="button"
-              onClick={() => setShowNewSlideModal(true)}
+              onClick={() => addQuestionWithType("MultipleChoice", true)}
               className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-500 font-semibold text-xs hover:border-indigo-400 hover:text-indigo-600 hover:bg-slate-50/50 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
@@ -506,6 +506,135 @@ export default function StandardEdit({
               }}
               themeStyles={themeStyles}
             />
+          ) : activeQuestion?.type === "Unselected" ? (
+            <div
+              className="w-full max-w-4xl rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl p-8 md:p-12 min-h-[480px] flex flex-col justify-between relative transition-all overflow-hidden"
+              style={{
+                backgroundColor: themeStyles.backgroundStyle?.backgroundColor || "#0F172A",
+                ...themeStyles.backgroundStyle,
+                color: themeStyles.primaryTextColor || "#FFFFFF",
+                fontFamily: themeStyles.containerStyle?.fontFamily
+              }}
+            >
+              {/* Top-left absolute corner logo */}
+              <img
+                src="/RapidPolls.png"
+                alt="RapidPolls"
+                className="absolute top-5 left-6 h-4 md:h-5 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-10"
+              />
+
+              {/* Custom Theme Logo (Top-right) */}
+              {themeStyles.logoUrl ? (
+                <div className="w-full flex justify-end mb-4 z-10">
+                  <img
+                    src={themeStyles.logoUrl}
+                    alt="Custom Logo"
+                    className="h-6 md:h-8 max-w-[120px] object-contain filter drop-shadow-md"
+                  />
+                </div>
+              ) : <div className="h-4" />}
+
+              {/* Question Text Input Bar */}
+              <div className="w-full mb-8 text-left mt-2">
+                <div
+                  className="border focus-within:border-[#6366F1] focus-within:ring-2 focus-within:ring-[#6366F1]/20 rounded-xl p-3 shadow-xs transition-all w-full"
+                  style={{
+                    backgroundColor:
+                      themeStyles.primaryTextColor === "#FFFFFF" ||
+                      themeStyles.backgroundStyle?.backgroundColor === "#0F172A" ||
+                      themeStyles.backgroundStyle?.backgroundColor === "#18181B" ||
+                      themeStyles.backgroundStyle?.backgroundImage
+                        ? "rgba(255, 255, 255, 0.12)"
+                        : "rgba(241, 245, 249, 0.8)",
+                    borderColor:
+                      themeStyles.primaryTextColor === "#FFFFFF"
+                        ? "rgba(255, 255, 255, 0.2)"
+                        : "rgba(226, 232, 240, 0.9)",
+                  }}
+                >
+                  <input
+                    type="text"
+                    value={activeQuestion?.text || ""}
+                    onChange={(e) => updateQuestionText(e.target.value)}
+                    placeholder="Type your question here..."
+                    className={`w-full text-xl md:text-2xl font-bold bg-transparent focus:outline-none placeholder:text-slate-400 ${
+                      activeQuestion?.alignment === "left"
+                        ? "text-left"
+                        : activeQuestion?.alignment === "right"
+                        ? "text-right"
+                        : "text-center"
+                    }`}
+                    style={{
+                      color: themeStyles.primaryTextColor || "#000000",
+                      fontFamily: themeStyles.containerStyle?.fontFamily
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* Gamma-style Single Row Slide Layout Picker */}
+              <div className="flex-1 flex flex-col items-center justify-center my-auto w-full pb-6">
+                <p className="text-xs font-semibold text-slate-300/80 mb-4 tracking-wide select-none self-start">
+                  Or select slide layout:
+                </p>
+
+                <div className="grid grid-cols-5 gap-3.5 w-full">
+                  {slideTypes.map((st) => {
+                    const IconComponent = st.icon;
+                    return (
+                      <button
+                        key={st.type}
+                        type="button"
+                        onClick={() => {
+                          const newQuestions = [...questions];
+                          newQuestions[activeQuestionIndex].type = st.type;
+                          if (st.type === "Content" && !newQuestions[activeQuestionIndex].text) {
+                            newQuestions[activeQuestionIndex].text = "Content Slide";
+                          }
+                          setQuestions(newQuestions);
+                        }}
+                        className="group flex flex-col items-center justify-between p-2.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 hover:border-indigo-400/90 backdrop-blur-md transition-all transform hover:-translate-y-1 shadow-md cursor-pointer aspect-[4/3] w-full"
+                      >
+                        {/* Slide Miniature Wireframe Thumbnail */}
+                        <div className="w-full flex-1 rounded-lg border border-white/20 bg-slate-950/40 p-2 flex flex-col justify-between overflow-hidden group-hover:border-indigo-400/50 transition-colors">
+                          {st.type === "MultipleChoice" ? (
+                            <div className="w-full flex-1 flex items-end justify-center gap-1 pt-1">
+                              <div className="w-2.5 h-[60%] bg-indigo-400/80 rounded-t-xs" />
+                              <div className="w-2.5 h-[85%] bg-pink-400/80 rounded-t-xs" />
+                              <div className="w-2.5 h-[40%] bg-emerald-400/80 rounded-t-xs" />
+                            </div>
+                          ) : st.type === "WordCloud" ? (
+                            <div className="w-full flex-1 flex flex-wrap items-center justify-center gap-1 p-0.5">
+                              <span className="h-1.5 w-6 bg-indigo-400/80 rounded-full" />
+                              <span className="h-1.5 w-4 bg-pink-400/80 rounded-full" />
+                              <span className="h-1.5 w-7 bg-amber-400/80 rounded-full" />
+                            </div>
+                          ) : st.type === "OpenEnded" ? (
+                            <div className="w-full flex-1 flex flex-col gap-1 justify-center px-1">
+                              <div className="w-full h-2 bg-white/30 rounded-xs" />
+                              <div className="w-3/4 h-2 bg-white/20 rounded-xs" />
+                            </div>
+                          ) : st.type === "Ranking" ? (
+                            <div className="w-full flex-1 flex flex-col gap-1 justify-center px-1">
+                              <div className="w-full h-1.5 bg-indigo-400/70 rounded-xs" />
+                              <div className="w-full h-1.5 bg-pink-400/70 rounded-xs" />
+                              <div className="w-full h-1.5 bg-emerald-400/70 rounded-xs" />
+                            </div>
+                          ) : (
+                            <div className="w-full flex-1 flex items-center justify-center">
+                              <LayoutTemplate className="w-5 h-5 text-indigo-300/80" />
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[11px] font-bold text-white/90 group-hover:text-white mt-1.5 truncate w-full text-center">
+                          {st.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           ) : (
             <div
               className="w-full max-w-4xl rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl p-8 md:p-12 min-h-[480px] flex flex-col justify-between relative transition-all overflow-hidden"
@@ -516,22 +645,23 @@ export default function StandardEdit({
                 fontFamily: themeStyles.containerStyle?.fontFamily
               }}
             >
-              {/* Top Canvas Header Bar (RapidPolls logo on left, Custom theme logo on right) */}
-              <div className="w-full flex items-center justify-between mb-4 z-10">
-                <img
-                  src="/RapidPolls.png"
-                  alt="RapidPolls"
-                  className="h-6 md:h-8 w-auto object-contain filter drop-shadow-md"
-                />
+              {/* Top-left absolute corner logo (Mentimeter style) */}
+              <img
+                src="/RapidPolls.png"
+                alt="RapidPolls"
+                className="absolute top-5 left-6 h-4 md:h-5 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-10"
+              />
 
-                {themeStyles.logoUrl ? (
+              {/* Custom Theme Logo (Top-right) */}
+              {themeStyles.logoUrl ? (
+                <div className="w-full flex justify-end mb-4 z-10">
                   <img
                     src={themeStyles.logoUrl}
                     alt="Custom Logo"
-                    className="h-8 md:h-10 max-w-[140px] object-contain filter drop-shadow-md"
+                    className="h-6 md:h-8 max-w-[120px] object-contain filter drop-shadow-md"
                   />
-                ) : <div />}
-              </div>
+                </div>
+              ) : <div className="h-4" />}
 
               <div className="w-full mb-6 text-left">
                 <div
@@ -642,9 +772,15 @@ export default function StandardEdit({
                   </div>
                 </div>
               ) : (
-                <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">
-                  {activeRightTab === "theme" && "Themes & Styling"}
-                  {activeRightTab === "template" && "Templates"}
+                <h2 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                  {activeRightTab === "audio" && (
+                    <>
+                      <Music className="w-4 h-4 text-indigo-600" />
+                      <span>Audio & Soundtracks</span>
+                    </>
+                  )}
+                  {activeRightTab === "theme" && <span className="uppercase tracking-wider">Themes & Styling</span>}
+                  {activeRightTab === "template" && <span className="uppercase tracking-wider">Templates</span>}
                 </h2>
               )}
               <button
@@ -706,7 +842,6 @@ export default function StandardEdit({
                         <button
                           type="button"
                           onClick={() => {
-                            setShowQuestionImageInput(true);
                             setMediaModalConfig({
                               isOpen: true,
                               type: "image",
@@ -716,7 +851,7 @@ export default function StandardEdit({
                             });
                           }}
                           className={`p-1 transition-colors cursor-pointer ${
-                            showQuestionImageInput || activeQuestion?.imageUrl
+                            activeQuestion?.imageUrl
                               ? "text-indigo-600"
                               : "text-slate-400 hover:text-slate-600"
                           }`}
@@ -724,63 +859,8 @@ export default function StandardEdit({
                         >
                           <ImageIcon className="w-4 h-4" />
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveRightTab("audio")}
-                          className={`p-1 transition-colors cursor-pointer ${
-                            activeRightTab === "audio" || activeQuestion?.audioUrl
-                              ? "text-indigo-600"
-                              : "text-slate-400 hover:text-slate-600"
-                          }`}
-                          title="Audio / Soundtracks Settings"
-                        >
-                          <Music className="w-4 h-4" />
-                        </button>
                       </div>
-
-                      {/* Question Image URL Input */}
-                      {(showQuestionImageInput || activeQuestion?.imageUrl) && (
-                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-semibold text-slate-500">Question Image</span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setMediaModalConfig({
-                                  isOpen: true,
-                                  type: "image",
-                                  target: "questionImage",
-                                  initialUrl: activeQuestion?.imageUrl || "",
-                                  title: "Question Image",
-                                })
-                              }
-                              className="text-[11px] font-bold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
-                            >
-                              <Upload className="w-3 h-3" /> Select / Upload
-                            </button>
-                          </div>
-                          <input
-                            type="text"
-                            value={activeQuestion?.imageUrl || ""}
-                            onChange={(e) => {
-                              const newQuestions = [...questions];
-                              newQuestions[activeQuestionIndex].imageUrl = e.target.value;
-                              setQuestions(newQuestions);
-                            }}
-                            placeholder="Question image URL..."
-                            className="w-full p-2 rounded-md border border-slate-200 text-xs text-slate-800 focus:ring-1 focus:ring-indigo-500 outline-none"
-                          />
-                        </div>
-                      )}
                     </div>
-
-                    <button
-                      type="button"
-                      className="mt-2 text-xs font-semibold text-indigo-600 hover:underline cursor-pointer block"
-                    >
-                      Add a longer description
-                    </button>
                   </div>
 
                   {/* Options List for MultipleChoice and Ranking */}
@@ -796,7 +876,7 @@ export default function StandardEdit({
                         {(activeQuestion?.options || []).map((opt, optIdx) => {
                           const val = typeof opt === "string" ? opt : opt?.text || "";
                           const imgVal = typeof opt === "object" ? opt?.imageUrl || "" : "";
-                          const isImageActive = activeOptionImageInputs[optIdx] || Boolean(imgVal);
+                          const isImageActive = Boolean(imgVal);
 
                           return (
                             <div key={optIdx} className="space-y-1.5">
@@ -815,10 +895,6 @@ export default function StandardEdit({
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    setActiveOptionImageInputs((prev) => ({
-                                      ...prev,
-                                      [optIdx]: true,
-                                    }));
                                     setMediaModalConfig({
                                       isOpen: true,
                                       type: "image",
@@ -848,48 +924,6 @@ export default function StandardEdit({
                                   </button>
                                 )}
                               </div>
-
-                              {/* Expandable Option Image URL Field */}
-                              {isImageActive && (
-                                <div className="pl-9 pr-10 space-y-1">
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-semibold text-slate-400">Option Image URL</span>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setMediaModalConfig({
-                                          isOpen: true,
-                                          type: "image",
-                                          target: "optionImage",
-                                          optionIdx: optIdx,
-                                          initialUrl: imgVal,
-                                          title: `Option ${optIdx + 1} Image`,
-                                        })
-                                      }
-                                      className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
-                                    >
-                                      <Upload className="w-2.5 h-2.5" /> Upload / Select
-                                    </button>
-                                  </div>
-                                  <input
-                                    type="text"
-                                    value={imgVal}
-                                    onChange={(e) => {
-                                      const newQuestions = [...questions];
-                                      const opts = [...(newQuestions[activeQuestionIndex].options || [])];
-                                      if (typeof opts[optIdx] === "string") {
-                                        opts[optIdx] = { text: opts[optIdx], imageUrl: e.target.value };
-                                      } else {
-                                        opts[optIdx] = { ...opts[optIdx], imageUrl: e.target.value };
-                                      }
-                                      newQuestions[activeQuestionIndex].options = opts;
-                                      setQuestions(newQuestions);
-                                    }}
-                                    placeholder="Option image URL..."
-                                    className="w-full p-2 rounded-md border border-slate-200 text-[11px] text-slate-600 bg-white focus:ring-1 focus:ring-indigo-500 outline-none"
-                                  />
-                                </div>
-                              )}
                             </div>
                           );
                         })}
@@ -1055,11 +1089,6 @@ export default function StandardEdit({
               {/* AUDIO DRAWER */}
               {activeRightTab === "audio" && (
                 <div className="space-y-4 text-slate-800">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
-                    <h4 className="font-bold text-sm text-slate-800 flex items-center gap-2">
-                      <Music className="w-4 h-4 text-indigo-600" /> Audio & Soundtracks
-                    </h4>
-                  </div>
 
                   {/* Sub-tabs: Default Audio vs My Audio */}
                   <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
@@ -1274,44 +1303,6 @@ export default function StandardEdit({
               >
                 Cancel
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── New Slide Types Selection Modal ── */}
-      {showNewSlideModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl animate-fade-in relative">
-            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-lg text-slate-900">Interactive questions</h3>
-              <button
-                onClick={() => setShowNewSlideModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 my-4">
-              {slideTypes.map((st) => {
-                const IconComponent = st.icon;
-                return (
-                  <div
-                    key={st.type}
-                    onClick={() => addQuestionWithType(st.type)}
-                    className="p-4 rounded-xl border border-slate-200 hover:border-[#6366F1] hover:bg-indigo-50/40 transition-all cursor-pointer flex items-center gap-3"
-                  >
-                    <div className="p-2.5 rounded-lg bg-[#6366F1]/10 text-[#6366F1]">
-                      <IconComponent className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-800">{st.label}</h4>
-                      <p className="text-[11px] text-slate-400">{st.type}</p>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         </div>

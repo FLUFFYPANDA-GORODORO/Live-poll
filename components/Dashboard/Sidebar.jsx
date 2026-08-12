@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home as HomeIcon,
@@ -28,16 +27,6 @@ export default function Sidebar({ user, logout }) {
 
   return (
     <aside className="w-[72px] bg-slate-950 border-r border-slate-800 flex flex-col items-center h-screen sticky top-0 shrink-0 z-20 py-4 text-white">
-      {/* RapidPolls Logo at the top above Home */}
-      <Link href="/home" className="mb-3 transition-transform hover:scale-105">
-        <Image
-          src="/RapidPolls.png"
-          alt="RapidPolls Logo"
-          width={36}
-          height={36}
-          className="object-contain filter drop-shadow-md"
-        />
-      </Link>
 
       {/* Navigation Icons */}
       <nav className="flex-1 flex flex-col items-center gap-2 w-full px-1 mt-1">

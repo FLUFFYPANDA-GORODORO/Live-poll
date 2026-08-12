@@ -44,9 +44,12 @@ import {
   ArrowLeftRight,
   CheckCircle2,
   X,
-  CloudUpload
+  CloudUpload,
+  Undo2,
+  Redo2
 } from "lucide-react";
 import MediaUploadModal from "@/components/MediaUploadModal";
+import ColorPalettePopover from "@/components/ContentSlide/ColorPalettePopover";
 import { generateContentSlideSnapshot } from "@/lib/canvasSnapshot";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
@@ -72,66 +75,119 @@ export default function ContentCanvas({
   question,
   onChange,
   themeStyles = {},
+  selectedElementId: externalSelectedElementId,
+  onSelectElementId,
 }) {
   const elements = question.elements || [DEFAULT_TEXT_ELEMENT];
 
-  const [selectedId, setSelectedId] = useState(elements[0]?.id || null);
+  // Selection state (Array of element IDs for single & multi-selection)
+  const [selectedIds, setSelectedIds] = useState([externalSelectedElementId || elements[0]?.id].filter(Boolean));
+  const selectedId = selectedIds[0] || null;
   const [editingTextId, setEditingTextId] = useState(null);
+
+  useEffect(() => {
+    if (externalSelectedElementId && !selectedIds.includes(externalSelectedElementId)) {
+      setSelectedIds([externalSelectedElementId]);
+    }
+  }, [externalSelectedElementId]);
+
+  // Undo / Redo History Stack Engine
+  const historyRef = useRef([elements]);
+  const historyIndexRef = useRef(0);
+  const elementsRef = useRef(elements);
+  elementsRef.current = elements;
+
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  useEffect(() => {
+    historyRef.current = [elements];
+    historyIndexRef.current = 0;
+    setCanUndo(false);
+    setCanRedo(false);
+  }, [question.id]);
+
+  const pushHistory = (newElems) => {
+    const trimmed = historyRef.current.slice(0, historyIndexRef.current + 1);
+    trimmed.push(newElems);
+    if (trimmed.length > 40) trimmed.shift();
+    historyRef.current = trimmed;
+    historyIndexRef.current = trimmed.length - 1;
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(false);
+  };
+
+  const handleUndo = () => {
+    if (historyIndexRef.current > 0) {
+      historyIndexRef.current -= 1;
+      const prev = historyRef.current[historyIndexRef.current];
+      onChange({ ...question, elements: prev });
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      historyIndexRef.current += 1;
+      const next = historyRef.current[historyIndexRef.current];
+      onChange({ ...question, elements: next });
+      setCanUndo(true);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+    }
+  };
 
   // Top toolbar popovers toggles
   const [showTextPicker, setShowTextPicker] = useState(false);
   const [showShapePicker, setShowShapePicker] = useState(false);
   const [shapeCategory, setShapeCategory] = useState("Essential"); // Essential, Lines, Sticky notes, Buttons and labels, Process
-  const [showEmbedPicker, setShowEmbedPicker] = useState(false);
-  const [embedProvider, setEmbedProvider] = useState("YouTube"); // YouTube, Vimeo, Loom, Graphy, Any link
-  const [embedUrlInput, setEmbedUrlInput] = useState("");
-
-  const [showChartPicker, setShowChartPicker] = useState(false);
-  const [showTablePicker, setShowTablePicker] = useState(false);
+  const [editingTableCell, setEditingTableCell] = useState(null); // { id, rIdx, cIdx }
   const [showContextMenu, setShowContextMenu] = useState(null); // { x, y, id }
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showBgColorPicker, setShowBgColorPicker] = useState(false);
   const [showSlideStylePicker, setShowSlideStylePicker] = useState(false);
-  const [clipboard, setClipboard] = useState(null);
+  const [clipboard, setClipboard] = useState(null); // Array of copied element objects
   const [isMediaModalOpen, setIsMediaModalOpen] = useState(false);
+  const [mediaModalMode, setMediaModalMode] = useState("element"); // "element" | "background"
 
   // Dragging and Resizing state
   const canvasRef = useRef(null);
   const isDraggingRef = useRef(false);
   const isResizingRef = useRef(false);
-  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const dragStartPositionsRef = useRef([]);
+  const dragStartMouseRef = useRef({ x: 0, y: 0 });
   const resizeStartRef = useRef({ w: 0, h: 0, x: 0, y: 0 });
 
   const selectedElement = elements.find((e) => e.id === selectedId);
 
-  const updateElements = (newElements) => {
+  const updateElements = (newElements, recordHistory = true) => {
     onChange({
       ...question,
       elements: newElements,
     });
+    if (recordHistory) {
+      pushHistory(newElements);
+    }
   };
 
   const addElement = (newElem) => {
     const updated = [...elements, newElem];
-    updateElements(updated);
-    setSelectedId(newElem.id);
+    updateElements(updated, true);
+    setSelectedIds([newElem.id]);
   };
 
   const updateSelectedElement = (partial) => {
-    if (!selectedId) return;
+    if (selectedIds.length === 0) return;
     const updated = elements.map((elem) =>
-      elem.id === selectedId ? { ...elem, ...partial } : elem
+      selectedIds.includes(elem.id) ? { ...elem, ...partial } : elem
     );
-    updateElements(updated);
+    updateElements(updated, true);
   };
 
   // Close all popovers helper
   const closeAllPopovers = () => {
     setShowTextPicker(false);
     setShowShapePicker(false);
-    setShowEmbedPicker(false);
-    setShowChartPicker(false);
-    setShowTablePicker(false);
   };
 
   // ── Element Creators ──
@@ -225,65 +281,100 @@ export default function ContentCanvas({
     setShowShapePicker(false);
   };
 
-  const handleAddChart = (chartType) => {
-    const id = `elem-${Date.now()}`;
-    addElement({
-      id,
-      type: "chart",
-      chartType,
-      x: 180,
-      y: 100,
-      width: 320,
-      height: 220,
-      title: "Sample Chart",
-      data: [
-        { label: "Option A", value: 40 },
-        { label: "Option B", value: 65 },
-        { label: "Option C", value: 25 },
-      ],
-      locked: false,
-    });
-    setShowChartPicker(false);
-  };
-
-  const handleAddTable = (rows = 3, cols = 3) => {
+  const handleAddTable = () => {
     const id = `elem-${Date.now()}`;
     addElement({
       id,
       type: "table",
-      x: 150,
-      y: 120,
-      width: 360,
-      height: 180,
-      rows,
-      cols,
-      data: [
-        ["Header 1", "Header 2", "Header 3"],
+      x: 140,
+      y: 90,
+      width: 520,
+      height: 220,
+      headers: ["Header 1", "Header 2", "Header 3"],
+      rows: [
         ["Item A", "10", "High"],
         ["Item B", "20", "Medium"],
+        ["Item C", "35", "Low"],
       ],
+      showHeader: true,
+      headerBg: "#F8FAFC",
+      headerColor: "#0F172A",
+      borderColor: "#E2E8F0",
       locked: false,
     });
-    setShowTablePicker(false);
   };
 
-  const handleAddEmbed = () => {
-    const id = `elem-${Date.now()}`;
-    const url = embedUrlInput.trim() || "https://www.youtube.com/embed/dQw4w9WgXcQ";
-    addElement({
-      id,
-      type: "embed",
-      provider: embedProvider,
-      url,
-      title: `${embedProvider} Embed`,
-      x: 160,
-      y: 120,
-      width: 380,
-      height: 210,
-      locked: false,
+  const handleUpdateTableCell = (elemId, rIdx, cIdx, value) => {
+    const elem = elements.find((e) => e.id === elemId);
+    if (!elem) return;
+    if (rIdx === -1) {
+      const newHeaders = [...(elem.headers || ["Header 1", "Header 2", "Header 3"])];
+      newHeaders[cIdx] = value;
+      updateSelectedElement({ headers: newHeaders });
+    } else {
+      const newRows = (elem.rows || []).map((row, rowI) => {
+        if (rowI === rIdx) {
+          const newRow = [...row];
+          newRow[cIdx] = value;
+          return newRow;
+        }
+        return row;
+      });
+      updateSelectedElement({ rows: newRows });
+    }
+  };
+
+  const handleAddTableColumn = (elemId) => {
+    const elem = elements.find((e) => e.id === elemId);
+    if (!elem) return;
+    const currentHeaders = elem.headers || ["Header 1", "Header 2", "Header 3"];
+    const colCount = currentHeaders.length;
+    const newHeaders = [...currentHeaders, `Header ${colCount + 1}`];
+    const newRows = (elem.rows || [["", "", ""]]).map((row) => [...row, ""]);
+    updateSelectedElement({
+      headers: newHeaders,
+      rows: newRows,
+      width: Math.min(820, elem.width + 120),
     });
-    setEmbedUrlInput("");
-    setShowEmbedPicker(false);
+  };
+
+  const handleRemoveTableColumn = (elemId) => {
+    const elem = elements.find((e) => e.id === elemId);
+    if (!elem) return;
+    const headers = elem.headers || ["Header 1", "Header 2", "Header 3"];
+    if (headers.length <= 1) return;
+    const newHeaders = headers.slice(0, -1);
+    const newRows = (elem.rows || []).map((row) => row.slice(0, -1));
+    updateSelectedElement({
+      headers: newHeaders,
+      rows: newRows,
+      width: Math.max(260, elem.width - 100),
+    });
+  };
+
+  const handleAddTableRow = (elemId) => {
+    const elem = elements.find((e) => e.id === elemId);
+    if (!elem) return;
+    const colCount = (elem.headers || ["Header 1", "Header 2", "Header 3"]).length;
+    const emptyRow = Array(colCount).fill("");
+    emptyRow[0] = `Item ${(elem.rows || []).length + 1}`;
+    const newRows = [...(elem.rows || []), emptyRow];
+    updateSelectedElement({
+      rows: newRows,
+      height: elem.height + 40,
+    });
+  };
+
+  const handleRemoveTableRow = (elemId) => {
+    const elem = elements.find((e) => e.id === elemId);
+    if (!elem) return;
+    const rows = elem.rows || [];
+    if (rows.length <= 1) return;
+    const newRows = rows.slice(0, -1);
+    updateSelectedElement({
+      rows: newRows,
+      height: Math.max(120, elem.height - 40),
+    });
   };
 
   // ── Cloudinary Direct Upload & Export Handler ──
@@ -333,17 +424,31 @@ export default function ContentCanvas({
   const handleMouseDown = (e, elem) => {
     if (elem.locked) return;
     if (e.target.dataset.resize) return;
+    e.preventDefault();
     e.stopPropagation();
 
-    setSelectedId(elem.id);
+    let newSelectedIds = selectedIds;
+    if (e.shiftKey) {
+      if (selectedIds.includes(elem.id)) {
+        newSelectedIds = selectedIds.filter((id) => id !== elem.id);
+      } else {
+        newSelectedIds = [...selectedIds, elem.id];
+      }
+    } else {
+      if (!selectedIds.includes(elem.id)) {
+        newSelectedIds = [elem.id];
+      }
+    }
+    setSelectedIds(newSelectedIds);
+    onSelectElementId?.(elem.id);
     setShowContextMenu(null);
 
     const canvasBounds = canvasRef.current.getBoundingClientRect();
     isDraggingRef.current = true;
-    dragOffsetRef.current = {
-      x: e.clientX - canvasBounds.left - elem.x,
-      y: e.clientY - canvasBounds.top - elem.y,
-    };
+    dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
+    dragStartPositionsRef.current = elements
+      .filter((el) => newSelectedIds.includes(el.id))
+      .map((el) => ({ id: el.id, x: el.x, y: el.y, width: el.width, height: el.height, locked: el.locked }));
   };
 
   const handleResizeStart = (e, elem) => {
@@ -359,21 +464,29 @@ export default function ContentCanvas({
   };
 
   const handleMouseMove = (e) => {
-    if (!canvasRef.current || !selectedId) return;
+    if (!canvasRef.current || selectedIds.length === 0) return;
     const canvasBounds = canvasRef.current.getBoundingClientRect();
 
     if (isDraggingRef.current) {
-      const elem = elements.find((e) => e.id === selectedId);
-      if (!elem || elem.locked) return;
+      const deltaX = e.clientX - dragStartMouseRef.current.x;
+      const deltaY = e.clientY - dragStartMouseRef.current.y;
 
-      let newX = e.clientX - canvasBounds.left - dragOffsetRef.current.x;
-      let newY = e.clientY - canvasBounds.top - dragOffsetRef.current.y;
+      const updated = elements.map((el) => {
+        const start = dragStartPositionsRef.current.find((p) => p.id === el.id);
+        if (start && !start.locked) {
+          let newX = Math.round(start.x + deltaX);
+          let newY = Math.round(start.y + deltaY);
 
-      newX = Math.max(0, Math.min(newX, canvasBounds.width - elem.width));
-      newY = Math.max(0, Math.min(newY, canvasBounds.height - elem.height));
+          newX = Math.max(0, Math.min(newX, canvasBounds.width - start.width));
+          newY = Math.max(0, Math.min(newY, canvasBounds.height - start.height));
 
-      updateSelectedElement({ x: Math.round(newX), y: Math.round(newY) });
-    } else if (isResizingRef.current) {
+          return { ...el, x: newX, y: newY };
+        }
+        return el;
+      });
+
+      updateElements(updated, false); // Don't push to history while continuously dragging
+    } else if (isResizingRef.current && selectedId) {
       const elem = elements.find((e) => e.id === selectedId);
       if (!elem || elem.locked) return;
 
@@ -391,15 +504,20 @@ export default function ContentCanvas({
   };
 
   const handleMouseUp = () => {
+    if (isDraggingRef.current || isResizingRef.current) {
+      pushHistory(elementsRef.current);
+    }
     isDraggingRef.current = false;
     isResizingRef.current = false;
   };
 
-  // ── Context Menu Actions ──
+  // ── Group Context Menu & Action Methods ──
   const handleContextMenu = (e, elem) => {
     e.preventDefault();
     e.stopPropagation();
-    setSelectedId(elem.id);
+    if (!selectedIds.includes(elem.id)) {
+      setSelectedIds([elem.id]);
+    }
     const canvasBounds = canvasRef.current.getBoundingClientRect();
     setShowContextMenu({
       x: e.clientX - canvasBounds.left,
@@ -409,46 +527,56 @@ export default function ContentCanvas({
   };
 
   const handleDuplicate = () => {
-    if (!selectedElement) return;
-    const dup = {
-      ...selectedElement,
-      id: `elem-${Date.now()}`,
-      x: selectedElement.x + 20,
-      y: selectedElement.y + 20,
-    };
-    addElement(dup);
+    if (selectedIds.length === 0) return;
+    const toDup = elements.filter((e) => selectedIds.includes(e.id));
+    const now = Date.now();
+    const dups = toDup.map((el, i) => ({
+      ...el,
+      id: `elem-${now}-${i}`,
+      x: el.x + 20,
+      y: el.y + 20,
+    }));
+    const updated = [...elements, ...dups];
+    updateElements(updated, true);
+    setSelectedIds(dups.map((d) => d.id));
     setShowContextMenu(null);
   };
 
   const handleDelete = () => {
-    if (!selectedId) return;
-    const updated = elements.filter((e) => e.id !== selectedId);
-    updateElements(updated);
-    setSelectedId(updated[0]?.id || null);
+    if (selectedIds.length === 0) return;
+    const updated = elements.filter((e) => !selectedIds.includes(e.id));
+    updateElements(updated, true);
+    setSelectedIds(updated[0]?.id ? [updated[0].id] : []);
+    setShowContextMenu(null);
+  };
+
+  const handleCopy = () => {
+    if (selectedIds.length === 0) return;
+    const toCopy = elements.filter((e) => selectedIds.includes(e.id));
+    setClipboard(toCopy);
+    toast.success(`${toCopy.length} element(s) copied`);
     setShowContextMenu(null);
   };
 
   const handleCut = () => {
-    if (!selectedElement) return;
-    setClipboard({ ...selectedElement });
+    if (selectedIds.length === 0) return;
+    handleCopy();
     handleDelete();
   };
 
-  const handleCopy = () => {
-    if (!selectedElement) return;
-    setClipboard({ ...selectedElement });
-    setShowContextMenu(null);
-  };
-
   const handlePaste = () => {
-    if (!clipboard) return;
-    const pasted = {
-      ...clipboard,
-      id: `elem-${Date.now()}`,
-      x: clipboard.x + 30,
-      y: clipboard.y + 30,
-    };
-    addElement(pasted);
+    if (!clipboard || clipboard.length === 0) return;
+    const now = Date.now();
+    const pasted = clipboard.map((el, i) => ({
+      ...el,
+      id: `elem-${now}-${i}`,
+      x: el.x + 30,
+      y: el.y + 30,
+    }));
+    const updated = [...elements, ...pasted];
+    updateElements(updated, true);
+    setSelectedIds(pasted.map((p) => p.id));
+    toast.success(`${pasted.length} element(s) pasted`);
     setShowContextMenu(null);
   };
 
@@ -460,7 +588,7 @@ export default function ContentCanvas({
       const temp = newElems[idx];
       newElems[idx] = newElems[idx + 1];
       newElems[idx + 1] = temp;
-      updateElements(newElems);
+      updateElements(newElems, true);
     }
     setShowContextMenu(null);
   };
@@ -473,16 +601,168 @@ export default function ContentCanvas({
       const temp = newElems[idx];
       newElems[idx] = newElems[idx - 1];
       newElems[idx - 1] = temp;
-      updateElements(newElems);
+      updateElements(newElems, true);
     }
     setShowContextMenu(null);
   };
 
   const handleToggleLock = () => {
-    if (!selectedElement) return;
-    updateSelectedElement({ locked: !selectedElement.locked });
+    if (selectedIds.length === 0) return;
+    const anyUnlocked = elements.some((e) => selectedIds.includes(e.id) && !e.locked);
+    const updated = elements.map((e) =>
+      selectedIds.includes(e.id) ? { ...e, locked: anyUnlocked } : e
+    );
+    updateElements(updated, true);
     setShowContextMenu(null);
   };
+
+  // ── Global Keyboard Shortcuts Listener ──
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      const isInput =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.isContentEditable);
+
+      const isCtrlOrCmd = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      // Undo: Ctrl+Z / Cmd+Z (when not holding shift)
+      if (isCtrlOrCmd && key === "z" && !e.shiftKey) {
+        if (!isInput) {
+          e.preventDefault();
+          handleUndo();
+        }
+        return;
+      }
+
+      // Redo: Ctrl+Y or Ctrl+Shift+Z / Cmd+Shift+Z
+      if (isCtrlOrCmd && (key === "y" || (key === "z" && e.shiftKey))) {
+        if (!isInput) {
+          e.preventDefault();
+          handleRedo();
+        }
+        return;
+      }
+
+      if (isInput) return; // Do not trigger keyboard shortcuts while typing inside text fields
+
+      // Copy: Ctrl+C
+      if (isCtrlOrCmd && key === "c") {
+        e.preventDefault();
+        handleCopy();
+      }
+      // Cut: Ctrl+X
+      else if (isCtrlOrCmd && key === "x") {
+        e.preventDefault();
+        handleCut();
+      }
+      // Paste: Ctrl+V
+      else if (isCtrlOrCmd && key === "v") {
+        e.preventDefault();
+        handlePaste();
+      }
+      // Duplicate: Ctrl+D
+      else if (isCtrlOrCmd && key === "d") {
+        e.preventDefault();
+        handleDuplicate();
+      }
+      // Delete / Backspace
+      else if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        handleDelete();
+      }
+      // Arrow Nudges
+      else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        let dx = 0, dy = 0;
+        if (e.key === "ArrowLeft") dx = -step;
+        if (e.key === "ArrowRight") dx = step;
+        if (e.key === "ArrowUp") dy = -step;
+        if (e.key === "ArrowDown") dy = step;
+
+        const updated = elementsRef.current.map((el) => {
+          if (selectedIds.includes(el.id) && !el.locked) {
+            return { ...el, x: Math.max(0, el.x + dx), y: Math.max(0, el.y + dy) };
+          }
+          return el;
+        });
+        updateElements(updated, true);
+      }
+      // Escape: Deselect all
+      else if (e.key === "Escape") {
+        setSelectedIds([]);
+        closeAllPopovers();
+        setShowContextMenu(null);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedIds, clipboard, canUndo, canRedo]);
+
+  // ── Global Pointer Event Listeners for Fail-Safe Drag & Resize (Excalidraw Pattern) ──
+  useEffect(() => {
+    const handleGlobalPointerMove = (e) => {
+      if (!canvasRef.current || selectedIds.length === 0) return;
+      if (!isDraggingRef.current && !isResizingRef.current) return;
+
+      const canvasBounds = canvasRef.current.getBoundingClientRect();
+
+      if (isDraggingRef.current) {
+        const deltaX = e.clientX - dragStartMouseRef.current.x;
+        const deltaY = e.clientY - dragStartMouseRef.current.y;
+
+        const updated = elementsRef.current.map((el) => {
+          const start = dragStartPositionsRef.current.find((p) => p.id === el.id);
+          if (start && !start.locked) {
+            let newX = Math.round(start.x + deltaX);
+            let newY = Math.round(start.y + deltaY);
+
+            newX = Math.max(0, Math.min(newX, canvasBounds.width - start.width));
+            newY = Math.max(0, Math.min(newY, canvasBounds.height - start.height));
+
+            return { ...el, x: newX, y: newY };
+          }
+          return el;
+        });
+
+        updateElements(updated, false);
+      } else if (isResizingRef.current && selectedId) {
+        const elem = elementsRef.current.find((el) => el.id === selectedId);
+        if (!elem || elem.locked) return;
+
+        const deltaX = e.clientX - resizeStartRef.current.x;
+        const deltaY = e.clientY - resizeStartRef.current.y;
+
+        const newW = Math.max(50, resizeStartRef.current.w + deltaX);
+        const newH = Math.max(30, resizeStartRef.current.h + deltaY);
+
+        const updated = elementsRef.current.map((el) =>
+          el.id === selectedId ? { ...el, width: Math.round(newW), height: Math.round(newH) } : el
+        );
+        updateElements(updated, false);
+      }
+    };
+
+    const handleGlobalPointerUp = () => {
+      if (isDraggingRef.current || isResizingRef.current) {
+        pushHistory(elementsRef.current);
+      }
+      isDraggingRef.current = false;
+      isResizingRef.current = false;
+    };
+
+    window.addEventListener("pointermove", handleGlobalPointerMove);
+    window.addEventListener("pointerup", handleGlobalPointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handleGlobalPointerMove);
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
+    };
+  }, [selectedIds, selectedId]);
 
   return (
     <div className="w-full flex flex-col items-center select-none font-sans">
@@ -587,6 +867,7 @@ export default function ContentCanvas({
           type="button"
           onClick={() => {
             closeAllPopovers();
+            setMediaModalMode("element");
             setIsMediaModalOpen(true);
           }}
           className="flex flex-col items-center gap-1 text-slate-700 hover:text-indigo-600 transition-colors p-1.5 rounded-lg hover:bg-slate-100/80 cursor-pointer"
@@ -807,42 +1088,6 @@ export default function ContentCanvas({
           )}
         </div>
 
-        {/* CHART BUTTON */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              const next = !showChartPicker;
-              closeAllPopovers();
-              setShowChartPicker(next);
-            }}
-            className={`flex flex-col items-center gap-1 transition-colors p-1.5 rounded-lg cursor-pointer ${
-              showChartPicker ? "bg-slate-100 text-indigo-600" : "text-slate-700 hover:text-indigo-600 hover:bg-slate-100/80"
-            }`}
-          >
-            <BarChart2 className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">Chart</span>
-          </button>
-          {showChartPicker && (
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-50 flex flex-col gap-1 w-36 animate-fade-in">
-              <button
-                type="button"
-                onClick={() => handleAddChart("bar")}
-                className="px-3 py-1.5 text-xs font-semibold hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-lg flex items-center gap-2"
-              >
-                <BarChart2 className="w-4 h-4" /> Bar Chart
-              </button>
-              <button
-                type="button"
-                onClick={() => handleAddChart("donut")}
-                className="px-3 py-1.5 text-xs font-semibold hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 rounded-lg flex items-center gap-2"
-              >
-                <PieChart className="w-4 h-4" /> Donut Chart
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* TABLE BUTTON */}
         <button
           type="button"
@@ -851,96 +1096,11 @@ export default function ContentCanvas({
             handleAddTable();
           }}
           className="flex flex-col items-center gap-1 text-slate-700 hover:text-indigo-600 transition-colors p-1.5 rounded-lg hover:bg-slate-100/80 cursor-pointer"
+          title="Add Custom Table"
         >
           <TableIcon className="w-5 h-5" />
           <span className="text-[11px] font-semibold">Table</span>
         </button>
-
-        {/* EMBED BUTTON + POPOVER (Matches Screenshot 3!) */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              const next = !showEmbedPicker;
-              closeAllPopovers();
-              setShowEmbedPicker(next);
-            }}
-            className={`flex flex-col items-center gap-1 transition-colors p-1.5 rounded-lg cursor-pointer ${
-              showEmbedPicker ? "bg-slate-100 text-indigo-600" : "text-slate-700 hover:text-indigo-600 hover:bg-slate-100/80"
-            }`}
-          >
-            <Code className="w-5 h-5" />
-            <span className="text-[11px] font-semibold">Embed</span>
-          </button>
-
-          {/* Screenshot 3 Embed Modal */}
-          {showEmbedPicker && (
-            <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white border border-slate-200/90 rounded-2xl shadow-2xl p-0 z-50 w-[540px] animate-fade-in flex overflow-hidden text-left">
-              {/* Left Tabs */}
-              <div className="w-40 bg-slate-50/80 border-r border-slate-200/80 p-3 space-y-1 shrink-0">
-                {[
-                  { id: "YouTube", icon: Video, color: "text-red-500" },
-                  { id: "Vimeo", icon: Video, color: "text-blue-400" },
-                  { id: "Loom", icon: Video, color: "text-indigo-500" },
-                  { id: "Graphy", icon: Activity, color: "text-emerald-500" },
-                  { id: "Any link", icon: Globe, color: "text-slate-600" },
-                ].map((prov) => {
-                  const IconComp = prov.icon;
-                  return (
-                    <button
-                      key={prov.id}
-                      type="button"
-                      onClick={() => setEmbedProvider(prov.id)}
-                      className={`w-full text-left px-3 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 cursor-pointer ${
-                        embedProvider === prov.id
-                          ? "bg-white text-indigo-600 shadow-sm border border-slate-200/60"
-                          : "text-slate-600 hover:bg-slate-100/60"
-                      }`}
-                    >
-                      <IconComp className={`w-4 h-4 ${prov.color}`} />
-                      <span>{prov.id}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Right Content Panel */}
-              <div className="flex-1 p-5 flex flex-col justify-between">
-                <div>
-                  <h4 className="font-bold text-base text-slate-900 mb-1">{embedProvider}</h4>
-                  <p className="text-xs text-slate-500 mb-4">
-                    Embed any public {embedProvider} link into your presentation.
-                  </p>
-
-                  {/* Card Illustration Banner matching screenshot 3 */}
-                  <div className="w-full h-32 rounded-xl bg-gradient-to-br from-red-500 via-purple-600 to-indigo-600 p-3 flex items-center justify-center relative overflow-hidden shadow-inner mb-4">
-                    <div className="w-20 h-14 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center border border-white/30 shadow-lg">
-                      <Video className="w-8 h-8 text-white fill-white" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom URL input + Add button */}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={embedUrlInput}
-                    onChange={(e) => setEmbedUrlInput(e.target.value)}
-                    placeholder={`Paste any ${embedProvider} link`}
-                    className="flex-1 px-3 py-2 border-2 border-indigo-400/80 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddEmbed}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* ── MAIN CANVAS WORKSPACE ── */}
@@ -949,28 +1109,29 @@ export default function ContentCanvas({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onClick={() => {
-          setSelectedId(null);
+          setSelectedIds([]);
           setEditingTextId(null);
           setShowContextMenu(null);
           closeAllPopovers();
           setShowColorPicker(false);
         }}
-        className="w-full max-w-4xl h-[480px] rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl relative overflow-hidden transition-all bg-white"
+        className="w-full max-w-4xl h-[480px] rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl relative overflow-visible transition-all bg-white"
       >
         {/* Background color / background image layer at lowest z-0 */}
         <div
-          className="absolute inset-0 z-0 pointer-events-none transition-all"
+          className="absolute inset-0 z-0 rounded-[20px] overflow-hidden pointer-events-none transition-all"
           style={{
             backgroundColor: question.backgroundColor || "#FFFFFF",
             backgroundImage: question.backgroundImage ? `url(${question.backgroundImage})` : "none",
             backgroundSize: "cover",
             backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
           }}
         />
 
         {/* Render Elements at z-10 and above */}
         {elements.map((elem) => {
-          const isSelected = elem.id === selectedId;
+          const isSelected = selectedIds.includes(elem.id);
 
           return (
             <div
@@ -988,14 +1149,17 @@ export default function ContentCanvas({
                 top: `${elem.y}px`,
                 width: `${elem.width}px`,
                 height: `${elem.height}px`,
+                opacity: elem.opacity !== undefined ? elem.opacity : 1,
               }}
             >
-              {/* FLOATING TOOLBAR ABOVE SELECTED ELEMENT */}
+              {/* FLOATING TOOLBAR ABOVE OR BELOW SELECTED ELEMENT */}
               {isSelected && (
                 <div
                   onClick={(e) => e.stopPropagation()}
                   onMouseDown={(e) => e.stopPropagation()}
-                  className="absolute -top-12 left-0 bg-white border border-slate-200/90 shadow-lg rounded-xl px-2 py-1 flex items-center gap-2 z-40 animate-fade-in shrink-0 whitespace-nowrap"
+                  className={`absolute left-0 bg-white border border-slate-200/90 shadow-lg rounded-xl px-2 py-1 flex items-center gap-2 z-40 animate-fade-in shrink-0 whitespace-nowrap ${
+                    elem.y < 55 ? "top-full mt-2" : "-top-12"
+                  }`}
                 >
                   {(elem.type === "text" || elem.type === "sticky") && (
                     <>
@@ -1168,6 +1332,62 @@ export default function ContentCanvas({
                     </>
                   )}
 
+                  {/* TABLE ACTION CONTROLS */}
+                  {elem.type === "table" && (
+                    <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => handleAddTableColumn(elem.id)}
+                        className="px-2 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 text-slate-700 rounded text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Add Column"
+                      >
+                        <Plus className="w-3 h-3 text-indigo-600" />
+                        <span>Col</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTableColumn(elem.id)}
+                        disabled={(elem.headers || []).length <= 1}
+                        className="px-1.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-600 border border-slate-200 text-slate-700 disabled:opacity-40 rounded text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Remove Column"
+                      >
+                        <Minus className="w-3 h-3 text-rose-500" />
+                        <span>Col</span>
+                      </button>
+                      <div className="w-[1px] h-4 bg-slate-200 mx-0.5" />
+                      <button
+                        type="button"
+                        onClick={() => handleAddTableRow(elem.id)}
+                        className="px-2 py-1 bg-white hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 text-slate-700 rounded text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Add Row"
+                      >
+                        <Plus className="w-3 h-3 text-indigo-600" />
+                        <span>Row</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTableRow(elem.id)}
+                        disabled={(elem.rows || []).length <= 1}
+                        className="px-1.5 py-1 bg-white hover:bg-rose-50 hover:text-rose-600 border border-slate-200 text-slate-700 disabled:opacity-40 rounded text-xs font-bold flex items-center gap-1 shadow-2xs cursor-pointer"
+                        title="Remove Row"
+                      >
+                        <Minus className="w-3 h-3 text-rose-500" />
+                        <span>Row</span>
+                      </button>
+                      <div className="w-[1px] h-4 bg-slate-200 mx-0.5" />
+                      <button
+                        type="button"
+                        onClick={() => updateSelectedElement({ showHeader: elem.showHeader === false ? true : false })}
+                        className={`px-2 py-1 rounded text-xs font-bold transition-all cursor-pointer ${
+                          elem.showHeader !== false ? "bg-indigo-100 text-indigo-700" : "bg-white text-slate-600 hover:bg-slate-100"
+                        }`}
+                        title="Toggle Header Row"
+                      >
+                        Header
+                      </button>
+                    </div>
+                  )}
+
                   {/* More options button */}
                   <button
                     type="button"
@@ -1191,7 +1411,7 @@ export default function ContentCanvas({
               {elem.type === "text" && (
                 <div
                   onDoubleClick={() => setEditingTextId(elem.id)}
-                  className="w-full h-full p-2 flex items-center focus:outline-none whitespace-pre-wrap"
+                  className="w-full h-full p-2 flex items-center focus:outline-none whitespace-pre-wrap select-none"
                   style={{
                     justifyContent:
                       elem.align === "center"
@@ -1207,15 +1427,22 @@ export default function ContentCanvas({
                       onChange={(e) =>
                         updateSelectedElement({ text: e.target.value })
                       }
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          setEditingTextId(null);
+                        }
+                      }}
                       onBlur={() => setEditingTextId(null)}
                       autoFocus
-                      className="w-full h-full bg-transparent resize-none focus:outline-none border border-indigo-400 rounded p-1"
+                      className="w-full h-full bg-transparent resize-none border-none outline-none focus:outline-none focus:ring-0 p-0 m-0 overflow-hidden leading-[1.2]"
                       style={{
                         fontSize: `${elem.fontSize || 32}px`,
                         fontWeight: elem.fontWeight || "normal",
                         fontStyle: elem.fontStyle || "normal",
-                        color: elem.color || "#1E293B",
+                        fontFamily: elem.fontFamily === "mono" ? "monospace" : elem.fontFamily === "serif" ? "serif" : elem.fontFamily === "handdrawn" ? "cursive, sans-serif" : "sans-serif",
+                        color: elem.color || elem.stroke || "#1E293B",
                         textAlign: elem.align || "left",
+                        lineHeight: 1.2,
                       }}
                     />
                   ) : (
@@ -1224,7 +1451,8 @@ export default function ContentCanvas({
                         fontSize: `${elem.fontSize || 32}px`,
                         fontWeight: elem.fontWeight || "normal",
                         fontStyle: elem.fontStyle || "normal",
-                        color: elem.color || "#1E293B",
+                        fontFamily: elem.fontFamily === "mono" ? "monospace" : elem.fontFamily === "serif" ? "serif" : elem.fontFamily === "handdrawn" ? "cursive, sans-serif" : "sans-serif",
+                        color: elem.color || elem.stroke || "#1E293B",
                         textAlign: elem.align || "left",
                         lineHeight: 1.2,
                       }}
@@ -1273,41 +1501,67 @@ export default function ContentCanvas({
                 </div>
               )}
 
-              {elem.type === "shape" && (
-                <div className="w-full h-full flex items-center justify-center">
-                  {elem.shapeType === "circle" ? (
-                    <div
-                      className="w-full h-full rounded-full shadow-md"
-                      style={{
-                        backgroundColor: elem.fill || "#6366F1",
-                        border: `${elem.strokeWidth || 0}px solid ${elem.stroke || "transparent"}`,
-                      }}
-                    />
-                  ) : elem.shapeType === "triangle" ? (
-                    <div
-                      className="w-0 h-0 border-l-[60px] border-l-transparent border-r-[60px] border-r-transparent border-b-[100px]"
-                      style={{ borderBottomColor: elem.fill || "#6366F1" }}
-                    />
-                  ) : elem.shapeType === "line" ? (
-                    <div className="w-full h-1" style={{ backgroundColor: elem.fill || "#1E293B" }} />
-                  ) : elem.shapeType === "arrow" ? (
-                    <div className="w-full flex items-center">
-                      <div className="flex-1 h-1" style={{ backgroundColor: elem.fill || "#6366F1" }} />
-                      <div className="w-0 h-0 border-t-6 border-t-transparent border-b-6 border-b-transparent border-l-8" style={{ borderLeftColor: elem.fill || "#6366F1" }} />
-                    </div>
-                  ) : elem.shapeType === "dashed" ? (
-                    <div className="w-full h-1 border-b-2 border-dashed" style={{ borderColor: elem.fill || "#64748B" }} />
-                  ) : (
-                    <div
-                      className="w-full h-full rounded-2xl shadow-md"
-                      style={{
-                        backgroundColor: elem.fill || "#6366F1",
-                        border: `${elem.strokeWidth || 0}px solid ${elem.stroke || "transparent"}`,
-                      }}
-                    />
-                  )}
-                </div>
-              )}
+              {elem.type === "shape" && (() => {
+                const strokeColor = elem.stroke || "#1E293B";
+                const patternColor = (elem.fill && elem.fill !== "transparent") ? elem.fill : strokeColor;
+                const isStripes = elem.fillFormat === "stripes";
+                const isCrossHatch = elem.fillFormat === "crosshatch" || elem.fillFormat === "pattern";
+                const isHollow = elem.isHollow || elem.fillFormat === "hollow" || elem.fill === "transparent";
+                const strokeWidthVal = elem.strokeWidth || (isHollow || isStripes || isCrossHatch ? 2.5 : 0);
+
+                const bgStyle = isStripes
+                  ? {
+                      backgroundImage: `repeating-linear-gradient(45deg, ${patternColor} 0, ${patternColor} 1.5px, transparent 0, transparent 8px)`,
+                      backgroundSize: "12px 12px",
+                      backgroundColor: "transparent",
+                    }
+                  : isCrossHatch
+                  ? {
+                      backgroundImage: `repeating-linear-gradient(45deg, ${patternColor} 0, ${patternColor} 1.5px, transparent 0, transparent 8px), repeating-linear-gradient(-45deg, ${patternColor} 0, ${patternColor} 1.5px, transparent 0, transparent 8px)`,
+                      backgroundSize: "12px 12px",
+                      backgroundColor: "transparent",
+                    }
+                  : {
+                      backgroundColor: isHollow ? "transparent" : (elem.fill || "#6366F1"),
+                    };
+
+                return (
+                  <div className="w-full h-full flex items-center justify-center">
+                    {elem.shapeType === "circle" ? (
+                      <div
+                        className="w-full h-full rounded-full shadow-md"
+                        style={{
+                          ...bgStyle,
+                          border: `${strokeWidthVal}px ${elem.strokeStyle || "solid"} ${strokeColor}`,
+                        }}
+                      />
+                    ) : elem.shapeType === "triangle" ? (
+                      <div
+                        className="w-0 h-0 border-l-[60px] border-l-transparent border-r-[60px] border-r-transparent border-b-[100px]"
+                        style={{ borderBottomColor: strokeColor }}
+                      />
+                    ) : elem.shapeType === "line" ? (
+                      <div className="w-full h-1" style={{ backgroundColor: strokeColor }} />
+                    ) : elem.shapeType === "arrow" ? (
+                      <div className="w-full flex items-center">
+                        <div className="flex-1 h-1" style={{ backgroundColor: strokeColor }} />
+                        <div className="w-0 h-0 border-t-6 border-t-transparent border-b-6 border-b-transparent border-l-8" style={{ borderLeftColor: strokeColor }} />
+                      </div>
+                    ) : elem.shapeType === "dashed" ? (
+                      <div className="w-full h-1 border-b-2 border-dashed" style={{ borderColor: strokeColor }} />
+                    ) : (
+                      <div
+                        className="w-full h-full shadow-md"
+                        style={{
+                          borderRadius: elem.borderRadius !== undefined ? `${elem.borderRadius}px` : "16px",
+                          ...bgStyle,
+                          border: `${strokeWidthVal}px ${elem.strokeStyle || "solid"} ${strokeColor}`,
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
 
               {elem.type === "media" && (
                 <div className="w-full h-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center shadow-md relative">
@@ -1315,7 +1569,9 @@ export default function ContentCanvas({
                     <img
                       src={elem.url}
                       alt="Media"
-                      className="w-full h-full object-cover"
+                      draggable={false}
+                      onDragStart={(e) => e.preventDefault()}
+                      className="w-full h-full object-cover select-none pointer-events-none"
                     />
                   ) : (
                     <button
@@ -1330,58 +1586,128 @@ export default function ContentCanvas({
                 </div>
               )}
 
-              {elem.type === "chart" && (
-                <div className="w-full h-full bg-white/95 backdrop-blur-xs border border-slate-200 rounded-2xl p-3 shadow-md flex flex-col justify-between">
-                  <span className="text-xs font-bold text-slate-800">{elem.title}</span>
-                  <div className="flex items-end justify-between gap-2 h-28 pt-2">
-                    {elem.data?.map((d, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center justify-end h-full">
-                        <div
-                          className="w-full bg-[#6366F1] rounded-t-md transition-all"
-                          style={{ height: `${d.value}%` }}
-                        />
-                        <span className="text-[10px] font-semibold text-slate-500 mt-1 truncate max-w-[50px]">
-                          {d.label}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {elem.type === "table" && (() => {
+                const headers = elem.headers || ["Header 1", "Header 2", "Header 3"];
+                const rows = elem.rows || [
+                  ["Item A", "10", "High"],
+                  ["Item B", "20", "Medium"],
+                  ["Item C", "35", "Low"],
+                ];
+                const showHeader = elem.showHeader !== false;
 
-              {elem.type === "table" && (
-                <div className="w-full h-full bg-white border border-slate-300 rounded-xl overflow-hidden shadow-md p-1">
-                  <table className="w-full h-full border-collapse text-xs">
-                    <tbody>
-                      {elem.data?.map((row, rIdx) => (
-                        <tr key={rIdx}>
-                          {row.map((cell, cIdx) => (
-                            <td
-                              key={cIdx}
-                              className={`border border-slate-200 p-1 text-center font-medium ${
-                                rIdx === 0 ? "bg-slate-100 font-bold text-slate-800" : "text-slate-700"
-                              }`}
-                            >
-                              {cell}
-                            </td>
+                return (
+                  <div className="w-full h-full bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-md flex flex-col justify-between select-none">
+                    <div className="flex-1 overflow-auto">
+                      <table className="w-full border-collapse text-xs">
+                        {showHeader && (
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200 text-slate-800 font-bold">
+                              {headers.map((h, cIdx) => {
+                                const isEditing = editingTableCell?.id === elem.id && editingTableCell?.rIdx === -1 && editingTableCell?.cIdx === cIdx;
+                                return (
+                                  <th
+                                    key={cIdx}
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTableCell({ id: elem.id, rIdx: -1, cIdx });
+                                    }}
+                                    className="p-2 border-r border-slate-200 last:border-r-0 text-left font-bold relative group"
+                                  >
+                                    {isEditing ? (
+                                      <input
+                                        type="text"
+                                        defaultValue={h}
+                                        autoFocus
+                                        onBlur={(e) => {
+                                          handleUpdateTableCell(elem.id, -1, cIdx, e.target.value);
+                                          setEditingTableCell(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" || e.key === "Escape") {
+                                            handleUpdateTableCell(elem.id, -1, cIdx, e.currentTarget.value);
+                                            setEditingTableCell(null);
+                                          }
+                                        }}
+                                        className="w-full bg-white px-1 py-0.5 border border-indigo-500 rounded font-bold text-xs text-slate-800 focus:outline-none"
+                                      />
+                                    ) : (
+                                      <span className="cursor-text block truncate" title="Double-click to edit">{h || `Col ${cIdx + 1}`}</span>
+                                    )}
+                                  </th>
+                                );
+                              })}
+                            </tr>
+                          </thead>
+                        )}
+                        <tbody>
+                          {rows.map((row, rIdx) => (
+                            <tr key={rIdx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors">
+                              {row.map((cell, cIdx) => {
+                                const isEditing = editingTableCell?.id === elem.id && editingTableCell?.rIdx === rIdx && editingTableCell?.cIdx === cIdx;
+                                return (
+                                  <td
+                                    key={cIdx}
+                                    onDoubleClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingTableCell({ id: elem.id, rIdx, cIdx });
+                                    }}
+                                    className="p-2 border-r border-slate-100 last:border-r-0 text-slate-700 font-medium relative group"
+                                  >
+                                    {isEditing ? (
+                                      <input
+                                        type="text"
+                                        defaultValue={cell}
+                                        autoFocus
+                                        onBlur={(e) => {
+                                          handleUpdateTableCell(elem.id, rIdx, cIdx, e.target.value);
+                                          setEditingTableCell(null);
+                                        }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter" || e.key === "Escape") {
+                                            handleUpdateTableCell(elem.id, rIdx, cIdx, e.currentTarget.value);
+                                            setEditingTableCell(null);
+                                          }
+                                        }}
+                                        className="w-full bg-white px-1 py-0.5 border border-indigo-500 rounded text-xs text-slate-800 focus:outline-none"
+                                      />
+                                    ) : (
+                                      <span className="cursor-text block truncate" title="Double-click to edit">
+                                        {cell !== "" ? cell : <span className="text-slate-300 italic font-normal">Empty</span>}
+                                      </span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
                           ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                        </tbody>
+                      </table>
+                    </div>
 
-              {elem.type === "embed" && (
-                <div className="w-full h-full bg-slate-900 text-white rounded-2xl p-3 flex flex-col items-center justify-center gap-2 shadow-lg relative overflow-hidden">
-                  <div className="w-full h-24 rounded-lg bg-red-600/80 flex items-center justify-center">
-                    <Video className="w-8 h-8 text-white fill-white" />
+                    {/* Quick Add Row footer bar when selected */}
+                    {isSelected && !elem.locked && (
+                      <div className="bg-slate-50/90 border-t border-slate-100 px-3 py-1.5 flex items-center justify-between text-[11px] text-slate-500 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleAddTableRow(elem.id)}
+                          className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer hover:underline"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add Row</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleAddTableColumn(elem.id)}
+                          className="font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer hover:underline"
+                        >
+                          <Plus className="w-3 h-3" />
+                          <span>Add Column</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs font-bold text-center truncate max-w-full px-2">
-                    {elem.title || elem.provider}
-                  </span>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Resize handle on bottom-right corner when selected */}
               {isSelected && !elem.locked && (
@@ -1402,7 +1728,7 @@ export default function ContentCanvas({
             className="absolute bg-white border border-slate-200/90 rounded-2xl shadow-2xl py-2 w-52 z-50 animate-fade-in text-xs font-medium text-slate-700"
             style={{
               left: `${Math.min(showContextMenu.x, 600)}px`,
-              top: `${Math.min(showContextMenu.y, 350)}px`,
+              top: `${showContextMenu.y > 240 ? Math.max(10, showContextMenu.y - 220) : showContextMenu.y}px`,
             }}
           >
             <button
@@ -1491,10 +1817,42 @@ export default function ContentCanvas({
             </button>
           </div>
         )}
+
       </div>
 
-      {/* ── BOTTOM CANVAS TOOLBAR (Slide style, Slide color, Background image, ...) ── */}
-      <div className="mt-3 bg-white border border-slate-200/90 rounded-full shadow-sm px-4 py-1.5 flex items-center gap-4 text-xs font-semibold text-slate-700">
+      {/* ── BOTTOM CANVAS TOOLBAR (Undo/Redo, Slide style, Slide color, Background image, ...) ── */}
+      <div className="mt-3 bg-white border border-slate-200/90 rounded-full shadow-sm px-4 py-1.5 flex items-center gap-3 text-xs font-semibold text-slate-700">
+        {/* UNDO & REDO BUTTONS */}
+        <div className="flex items-center gap-1 pr-3 border-r border-slate-200">
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={!canUndo}
+            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
+              canUndo
+                ? "text-slate-700 hover:text-indigo-600 hover:bg-slate-100 active:scale-95 cursor-pointer"
+                : "text-slate-300 cursor-not-allowed opacity-40"
+            }`}
+            title="Undo (Ctrl+Z)"
+          >
+            <Undo2 className="w-4 h-4" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleRedo}
+            disabled={!canRedo}
+            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${
+              canRedo
+                ? "text-slate-700 hover:text-indigo-600 hover:bg-slate-100 active:scale-95 cursor-pointer"
+                : "text-slate-300 cursor-not-allowed opacity-40"
+            }`}
+            title="Redo (Ctrl+Y)"
+          >
+            <Redo2 className="w-4 h-4" />
+          </button>
+        </div>
+
         {/* Slide style */}
         <div className="relative">
           <button
@@ -1540,30 +1898,15 @@ export default function ContentCanvas({
             <span>Slide color</span>
           </button>
           {showBgColorPicker && (
-            <div className="absolute bottom-full mb-2 left-0 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-50 grid grid-cols-5 gap-1.5 w-36">
-              {[
-                "#FFFFFF",
-                "#F8FAFC",
-                "#0F172A",
-                "#EEF2FF",
-                "#FDF2F8",
-                "#ECFDF5",
-                "#FEF3C7",
-                "#F3E8FF",
-                "#18181B",
-                "#475569",
-              ].map((bg) => (
-                <button
-                  key={bg}
-                  type="button"
-                  onClick={() => {
-                    onChange({ ...question, backgroundColor: bg });
-                    setShowBgColorPicker(false);
-                  }}
-                  className="w-5 h-5 rounded-full border border-slate-200 shadow-2xs hover:scale-110 transition-transform"
-                  style={{ backgroundColor: bg }}
-                />
-              ))}
+            <div className="absolute bottom-full mb-2 left-0 z-50">
+              <ColorPalettePopover
+                selectedColor={question.backgroundColor || "#FFFFFF"}
+                showTransparent={false}
+                onSelectColor={(bg) => {
+                  onChange({ ...question, backgroundColor: bg });
+                  setShowBgColorPicker(false);
+                }}
+              />
             </div>
           )}
         </div>
@@ -1571,14 +1914,29 @@ export default function ContentCanvas({
         <span className="text-slate-300">|</span>
 
         {/* Background image */}
-        <button
-          type="button"
-          onClick={() => setIsMediaModalOpen(true)}
-          className="flex items-center gap-1.5 hover:text-indigo-600 cursor-pointer"
-        >
-          <ImageIcon className="w-4 h-4 text-slate-500" />
-          <span>Background image</span>
-        </button>
+        <div className="relative flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setMediaModalMode("background");
+              setIsMediaModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 hover:text-indigo-600 cursor-pointer"
+          >
+            <ImageIcon className="w-4 h-4 text-slate-500" />
+            <span>{question.backgroundImage ? "Change bg image" : "Background image"}</span>
+          </button>
+          {question.backgroundImage && (
+            <button
+              type="button"
+              onClick={() => onChange({ ...question, backgroundImage: "" })}
+              className="text-slate-400 hover:text-red-500 text-xs font-bold px-1"
+              title="Remove background image"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
         <span className="text-slate-300">|</span>
 
@@ -1609,20 +1967,24 @@ export default function ContentCanvas({
         isOpen={isMediaModalOpen}
         onClose={() => setIsMediaModalOpen(false)}
         type="image"
-        title="Upload Image for Canvas"
+        title={mediaModalMode === "background" ? "Upload Canvas Background Image" : "Upload Image for Canvas"}
         onSelectUrl={(url) => {
           if (!url) return;
-          const id = `elem-${Date.now()}`;
-          addElement({
-            id,
-            type: "media",
-            url,
-            x: 150,
-            y: 100,
-            width: 280,
-            height: 180,
-            locked: false,
-          });
+          if (mediaModalMode === "background") {
+            onChange({ ...question, backgroundImage: url });
+          } else {
+            const id = `elem-${Date.now()}`;
+            addElement({
+              id,
+              type: "media",
+              url,
+              x: 150,
+              y: 100,
+              width: 280,
+              height: 180,
+              locked: false,
+            });
+          }
           setIsMediaModalOpen(false);
         }}
       />

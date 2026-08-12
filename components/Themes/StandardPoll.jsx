@@ -712,6 +712,7 @@ export default function StandardPoll({
             )}
           </div>
         </div>
+      </div>
       )}
 
         {/* Emoji Reactions Panel */}
@@ -735,13 +736,11 @@ export default function StandardPoll({
             key={p.id}
             className="emoji-particle"
             style={{
-              left: p.x,
-              top: p.y,
-              width: p.size,
-              height: p.size,
+              left: `${p.x}px`,
+              top: `${p.y}px`,
+              width: `${p.size}px`,
+              height: `${p.size}px`,
               backgroundColor: p.color,
-              "--dx": p.dx,
-              "--dy": p.dy,
               boxShadow: `0 0 8px ${p.color}`,
               position: "fixed",
               zIndex: 9999,
@@ -755,8 +754,8 @@ export default function StandardPoll({
             key={r.id}
             className="emoji-click-ring"
             style={{
-              left: r.x,
-              top: r.y,
+              left: `${r.x}px`,
+              top: `${r.y}px`,
               borderColor: r.color,
               boxShadow: `0 0 10px ${r.color}, inset 0 0 10px ${r.color}`,
               position: "fixed",
@@ -765,47 +764,7 @@ export default function StandardPoll({
           />
         ))}
 
-        <style>{`
-          @keyframes particle-up {
-            0% {
-              transform: translate(-50%, -50%) translate(0, 0) scale(1);
-              opacity: 1;
-            }
-            100% {
-              transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2);
-              opacity: 0;
-            }
-          }
-          @keyframes ring-expand {
-            0% {
-              width: 0px;
-              height: 0px;
-              opacity: 1;
-              border-width: 6px;
-            }
-            100% {
-              width: 80px;
-              height: 80px;
-              opacity: 0;
-              border-width: 2px;
-            }
-          }
-          .emoji-particle {
-            position: fixed;
-            pointer-events: none;
-            border-radius: 50%;
-            animation: particle-up 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
-          }
-          .emoji-click-ring {
-            position: fixed;
-            pointer-events: none;
-            border-style: solid;
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            animation: ring-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
-          }
-        `}</style>
+        <style dangerouslySetInnerHTML={{ __html: '@keyframes particle-up { 0% { transform: translate(-50%, -50%) translate(0, 0) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; } } @keyframes ring-expand { 0% { width: 0px; height: 0px; opacity: 1; border-width: 6px; } 100% { width: 80px; height: 80px; opacity: 0; border-width: 2px; } } .emoji-particle { position: fixed; pointer-events: none; border-radius: 50%; animation: particle-up 0.8s cubic-bezier(0.1, 0.8, 0.2, 1) forwards; } .emoji-click-ring { position: fixed; pointer-events: none; border-style: solid; border-radius: 50%; transform: translate(-50%, -50%); animation: ring-expand 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }' }} />
       </div>
-    </div>
   );
 }

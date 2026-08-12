@@ -29,6 +29,7 @@ import {
   Upload
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePollStore } from "@/lib/store/usePollStore";
@@ -37,6 +38,7 @@ import toast from "react-hot-toast";
 import RightToolbar from "@/components/Themes/RightToolbar";
 import MediaUploadModal from "@/components/MediaUploadModal";
 import ContentCanvas from "@/components/ContentSlide/ContentCanvas";
+import ExcalidrawStylePanel from "@/components/ContentSlide/ExcalidrawStylePanel";
 
 const DEFAULT_PALETTE = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
 
@@ -281,9 +283,12 @@ export default function StandardEdit({
   selectedThemeId,
   isCreateMode = false,
 }) {
+  const params = useParams();
+  const pollId = params?.pollId;
   const { user } = useAuth();
   const { themes } = usePollStore();
   const [activeRightTab, setActiveRightTab] = useState("content"); // 'content', 'theme', 'template', 'audio'
+  const [selectedCanvasElementId, setSelectedCanvasElementId] = useState(null);
   const [showNewSlideModal, setShowNewSlideModal] = useState(false);
   const [showQuestionImageInput, setShowQuestionImageInput] = useState(false);
   const [activeOptionImageInputs, setActiveOptionImageInputs] = useState({});
@@ -447,7 +452,7 @@ export default function StandardEdit({
         {/* Top Right Action Buttons */}
         <div className="flex items-center gap-3">
           <button
-            onClick={isCreateMode ? () => handleCreatePoll?.("dashboard") : handleSavePoll}
+            onClick={isCreateMode ? () => handleCreatePoll?.("dashboard") : () => handleSavePoll?.(false)}
             disabled={isSaving}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 font-semibold hover:bg-slate-50 transition-all text-sm shadow-xs disabled:opacity-50"
           >
@@ -456,7 +461,16 @@ export default function StandardEdit({
           </button>
           
           <button
-            onClick={isCreateMode ? () => handleCreatePoll?.("present") : handleSavePoll}
+            onClick={async () => {
+              if (isCreateMode) {
+                handleCreatePoll?.("present");
+              } else {
+                const ok = await handleSavePoll?.(true);
+                if (ok && pollId) {
+                  router?.push(`/present/${pollId}`);
+                }
+              }
+            }}
             disabled={isSaving}
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#6366F1] hover:bg-[#5558DD] text-white font-semibold transition-all text-sm shadow-sm disabled:opacity-50"
           >
@@ -505,6 +519,8 @@ export default function StandardEdit({
                 setQuestions(newQuestions);
               }}
               themeStyles={themeStyles}
+              selectedElementId={selectedCanvasElementId}
+              onSelectElementId={setSelectedCanvasElementId}
             />
           ) : activeQuestion?.type === "Unselected" ? (
             <div
@@ -751,7 +767,7 @@ export default function StandardEdit({
 
         {/* Right Drawer Panel (Opens when an icon in far right strip is clicked) */}
         {activeRightTab && (
-          <aside className="w-80 my-3 mr-2 bg-white border border-slate-200/90 rounded-2xl shadow-xl flex flex-col shrink-0 z-20 animate-fade-in relative max-h-[calc(100vh-6.5rem)] overflow-hidden">
+          <aside className="w-80 my-3 mr-2 bg-white border border-slate-200/90 rounded-2xl shadow-xl flex flex-col shrink-0 z-30 animate-fade-in relative max-h-[calc(100vh-6.5rem)] overflow-visible">
             <div className="p-4 border-b border-slate-200/80 flex items-center justify-between">
               {activeRightTab === "content" ? (
                 <div className="flex items-center gap-2">
@@ -793,11 +809,22 @@ export default function StandardEdit({
             </div>
 
             {/* Panel Content */}
-            <div className="flex-1 overflow-y-auto p-5">
+            <div className="flex-1 overflow-y-auto overflow-x-visible p-5">
               {/* CONTENT DRAWER */}
               {activeRightTab === "content" && (
-                <div className="space-y-5">
-                  {/* Your Question Section */}
+                activeQuestion?.type === "Content" ? (
+                  <ExcalidrawStylePanel
+                    question={activeQuestion}
+                    selectedElementId={selectedCanvasElementId}
+                    onChange={(updatedQ) => {
+                      const newQuestions = [...questions];
+                      newQuestions[activeQuestionIndex] = updatedQ;
+                      setQuestions(newQuestions);
+                    }}
+                  />
+                ) : (
+                  <div className="space-y-5">
+                    {/* Your Question Section */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
@@ -1054,7 +1081,8 @@ export default function StandardEdit({
                     </div>
                   </div>
                 </div>
-              )}
+              )
+            )}
 
               {/* THEME DRAWER */}
               {activeRightTab === "theme" && (

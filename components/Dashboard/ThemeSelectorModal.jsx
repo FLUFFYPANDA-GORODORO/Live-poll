@@ -51,11 +51,11 @@ function isThemeDark(t) {
 }
 
 
-export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onPreviewTheme }) {
+export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onPreviewTheme, initialTab }) {
   const { user } = useAuth();
   const { themes, palettes, fetchThemes, fetchPalettes, createTheme, updateTheme, deleteTheme } = usePollStore();
 
-  const [activeTab, setActiveTab] = useState("themes"); // "themes" or "customise"
+  const [activeTab, setActiveTab] = useState(initialTab || "themes");
   const [isCreating, setIsCreating] = useState(false);
   const [showBgImageInput, setShowBgImageInput] = useState(false);
   const [savedCustomThemeId, setSavedCustomThemeId] = useState(null);
@@ -73,6 +73,35 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
   const [accentColor, setAccentColor] = useState("#6366F1");
   const [cardBackgroundColor, setCardBackgroundColor] = useState("#FFFFFF");
   const [paletteId, setPaletteId] = useState("palette_indigo_sunset");
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Sync active theme settings when switching to customise tab
+  useEffect(() => {
+    if (activeTab === "customise" && !savedCustomThemeId && selectedThemeId && themes.length > 0) {
+      const current = themes.find((t) => t.id === selectedThemeId);
+      if (current) {
+        setName(current.isPreset ? `${current.name} (Custom)` : current.name || "");
+        setBackgroundType(current.backgroundType || "color");
+        setBackgroundValue(current.backgroundValue || "#F8FAFC");
+        setMobileBackgroundValue(current.mobileBackgroundValue || "");
+        setLogoUrl(current.logoUrl || "");
+        setFontFamily(current.fontFamily || "Inter");
+        setPrimaryTextColor(current.primaryTextColor || current.textColor || "#000000");
+        setSecondaryTextColor(current.secondaryTextColor || "#94A3B8");
+        setAccentColor(current.accentColor || "#6366F1");
+        setCardBackgroundColor(current.cardBackgroundColor || "#FFFFFF");
+        setPaletteId(current.paletteId || "palette_indigo_sunset");
+        if (!current.isPreset) {
+          setSavedCustomThemeId(current.id);
+        }
+      }
+    }
+  }, [activeTab, selectedThemeId, themes, savedCustomThemeId]);
 
   useEffect(() => {
     fetchThemes(user?.uid);
@@ -224,33 +253,19 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
 
   return (
     <div className="w-full flex flex-col space-y-4 text-slate-800">
-      {/* ── Top Header Navigation for Customise View ── */}
-      {activeTab === "customise" && (
-        <div className="flex items-center justify-between border-b border-slate-200 pb-2.5">
-          <button
-            type="button"
-            onClick={() => setActiveTab("themes")}
-            className="flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-indigo-600 transition-colors cursor-pointer"
-          >
-            <ChevronLeft className="w-4 h-4" /> Back to themes
-          </button>
-          <span className="text-xs font-bold text-slate-400">
-            {savedCustomThemeId ? "Edit Theme" : "New Theme"}
-          </span>
-        </div>
-      )}
+
 
       {/* ── TAB 1: THEMES ── */}
       {activeTab === "themes" && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* My Themes Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="font-bold text-sm text-slate-800">My Themes</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">My Themes</h4>
               <button
                 type="button"
                 onClick={handleStartCreateNew}
-                className="px-3 py-1 border border-slate-300 rounded-md font-semibold text-xs text-slate-800 hover:bg-slate-50 transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1 border border-slate-300 bg-white hover:bg-slate-50 text-slate-900 rounded-md font-bold text-xs shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" /> Create
               </button>
@@ -267,61 +282,56 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                     <div
                       key={t.id}
                       onClick={() => handleSelectCustomTheme(t)}
-                      className={`rounded-xl p-2.5 border cursor-pointer relative overflow-hidden transition-all h-24 flex flex-col justify-between shadow-2xs ${
+                      className={`rounded-md p-2.5 border cursor-pointer relative overflow-hidden transition-all h-26 flex flex-col justify-between shadow-2xs ${
                         isSelected
-                          ? "border-2 border-indigo-600 ring-2 ring-indigo-500/20 shadow-md scale-[1.02]"
-                          : "border-slate-200 hover:border-slate-400"
+                          ? "border-2 border-slate-950 ring-2 ring-slate-950/10 shadow-md"
+                          : "border-slate-300 hover:border-slate-400"
                       }`}
                       style={
                         t.backgroundType === "image"
-                          ? { backgroundImage: `url('${t.backgroundValue}')`, backgroundSize: "cover" }
+                          ? { backgroundImage: `url('${t.backgroundValue}')`, backgroundSize: "cover", backgroundPosition: "center" }
                           : { backgroundColor: t.backgroundValue || "#F8FAFC" }
                       }
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-1">
                         <span
-                          className={`text-xs font-bold truncate ${
-                            isDark ? "text-white drop-shadow-xs" : "text-slate-900"
-                          }`}
+                          className="text-xs font-bold truncate flex-1 min-w-0 drop-shadow-xs"
                           style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}
+                          title={t.name}
                         >
                           {t.name}
                         </span>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 shrink-0">
                           {isSelected && (
-                            <div className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                            <div className="w-4 h-4 rounded-full bg-slate-950 text-white flex items-center justify-center shrink-0 shadow-xs">
                               <Check className="w-3 h-3" />
                             </div>
                           )}
                           <button
                             type="button"
                             onClick={(e) => handleEditCustomTheme(t, e)}
-                            className={`p-1 rounded-md transition-colors shrink-0 cursor-pointer ${
-                              isDark ? "text-slate-300 hover:text-white hover:bg-white/10" : "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                            }`}
+                            className="p-1 rounded-md bg-white/80 hover:bg-white text-slate-700 hover:text-slate-950 transition-colors shrink-0 cursor-pointer border border-slate-200/80 shadow-2xs"
                             title="Edit theme"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <Pencil className="w-3 h-3" />
                           </button>
                           <button
                             type="button"
                             onClick={(e) => handleDeleteTheme(t.id, e)}
-                            className={`p-1 rounded-md transition-colors shrink-0 cursor-pointer ${
-                              isDark ? "text-slate-300 hover:text-red-400 hover:bg-white/10" : "text-slate-400 hover:text-red-500 hover:bg-red-50/80"
-                            }`}
+                            className="p-1 rounded-md bg-white/80 hover:bg-red-50 text-slate-500 hover:text-red-600 transition-colors shrink-0 cursor-pointer border border-slate-200/80 shadow-2xs"
                             title="Delete theme"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
 
                       {/* Mini Bar Chart Preview */}
-                      <div className="h-8 flex items-end gap-1 px-1">
-                        <div className="flex-1 rounded-t-sm" style={{ height: "60%", backgroundColor: colors[0] || "#6366F1" }} />
-                        <div className="flex-1 rounded-t-sm" style={{ height: "100%", backgroundColor: colors[1] || "#EC4899" }} />
-                        <div className="flex-1 rounded-t-sm" style={{ height: "75%", backgroundColor: colors[2] || "#10B981" }} />
-                        <div className="flex-1 rounded-t-sm" style={{ height: "40%", backgroundColor: colors[3] || "#F59E0B" }} />
+                      <div className="h-8 flex items-end gap-1 px-0.5">
+                        <div className="flex-1 rounded-t-xs" style={{ height: "60%", backgroundColor: colors[0] || "#6366F1" }} />
+                        <div className="flex-1 rounded-t-xs" style={{ height: "100%", backgroundColor: colors[1] || "#EC4899" }} />
+                        <div className="flex-1 rounded-t-xs" style={{ height: "75%", backgroundColor: colors[2] || "#10B981" }} />
+                        <div className="flex-1 rounded-t-xs" style={{ height: "40%", backgroundColor: colors[3] || "#F59E0B" }} />
                       </div>
                     </div>
                   );
@@ -330,10 +340,10 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
             ) : (
               <div
                 onClick={handleStartCreateNew}
-                className="border-2 border-dashed border-slate-200 rounded-xl p-3 text-center cursor-pointer hover:border-indigo-300 hover:bg-slate-50/50 transition-all"
+                className="border-2 border-dashed border-slate-300 rounded-md p-4 text-center cursor-pointer hover:border-slate-950 hover:bg-slate-50/50 transition-all"
               >
-                <p className="text-xs font-semibold text-slate-500">
-                  No custom themes yet. Click <span className="text-indigo-600 font-bold">+ Create</span> to build one!
+                <p className="text-xs font-semibold text-slate-600">
+                  No custom themes yet. Click <span className="text-slate-950 font-bold">+ Create</span> to build one!
                 </p>
               </div>
             )}
@@ -343,7 +353,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
 
           {/* Default Themes Section */}
           <div>
-            <h4 className="font-bold text-sm text-slate-800 mb-3">Default themes</h4>
+            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600 mb-3">Default themes</h4>
             <div className="grid grid-cols-2 gap-3 w-full">
               {displayPresets.map((pt) => {
                 const isSelected = (selectedThemeId || "11111111-1111-1111-1111-111111111111") === pt.id;
@@ -354,37 +364,38 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                   <div
                     key={pt.id}
                     onClick={() => onSelectTheme(pt.id)}
-                    className={`rounded-xl p-3 border cursor-pointer relative overflow-hidden transition-all h-24 flex flex-col justify-between shadow-2xs ${
+                    className={`rounded-md p-2.5 border cursor-pointer relative overflow-hidden transition-all h-26 flex flex-col justify-between shadow-2xs ${
                       isSelected
-                        ? "border-2 border-indigo-600 ring-2 ring-indigo-500/20 shadow-md scale-[1.02]"
-                        : "border-slate-200/90 hover:border-slate-400"
+                        ? "border-2 border-slate-950 ring-2 ring-slate-950/10 shadow-md"
+                        : "border-slate-300 hover:border-slate-400"
                     }`}
                     style={
                       pt.backgroundType === "image"
-                        ? { backgroundImage: `url('${pt.backgroundValue}')`, backgroundSize: "cover" }
+                        ? { backgroundImage: `url('${pt.backgroundValue}')`, backgroundSize: "cover", backgroundPosition: "center" }
                         : { backgroundColor: pt.backgroundValue || "#0F172A" }
                     }
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-1">
                       <span
-                        className={`text-xs font-bold truncate ${isDark ? "text-white drop-shadow-xs" : "text-slate-900"}`}
+                        className="text-xs font-bold truncate flex-1 min-w-0 drop-shadow-xs"
                         style={{ color: isDark ? "#FFFFFF" : "#0F172A" }}
+                        title={pt.name}
                       >
                         {pt.name}
                       </span>
                       {isSelected && (
-                        <div className="w-4 h-4 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                          <Check className="w-2.5 h-2.5" />
+                        <div className="w-4 h-4 rounded-full bg-slate-950 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Check className="w-3 h-3" />
                         </div>
                       )}
                     </div>
 
                     {/* Mini Bar Chart Preview */}
-                    <div className="h-8 flex items-end gap-1.5 px-0.5">
-                      <div className="flex-1 rounded-t-sm" style={{ height: "60%", backgroundColor: colors[0] || "#6366F1" }} />
-                      <div className="flex-1 rounded-t-sm" style={{ height: "100%", backgroundColor: colors[1] || "#EC4899" }} />
-                      <div className="flex-1 rounded-t-sm" style={{ height: "75%", backgroundColor: colors[2] || "#10B981" }} />
-                      <div className="flex-1 rounded-t-sm" style={{ height: "40%", backgroundColor: colors[3] || "#F59E0B" }} />
+                    <div className="h-8 flex items-end gap-1 px-0.5">
+                      <div className="flex-1 rounded-t-xs" style={{ height: "60%", backgroundColor: colors[0] || "#6366F1" }} />
+                      <div className="flex-1 rounded-t-xs" style={{ height: "100%", backgroundColor: colors[1] || "#EC4899" }} />
+                      <div className="flex-1 rounded-t-xs" style={{ height: "75%", backgroundColor: colors[2] || "#10B981" }} />
+                      <div className="flex-1 rounded-t-xs" style={{ height: "40%", backgroundColor: colors[3] || "#F59E0B" }} />
                     </div>
                   </div>
                 );
@@ -397,37 +408,138 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
       {/* ── TAB 2: CUSTOMISE ── */}
       {activeTab === "customise" && (
         <form onSubmit={handleSaveTheme} className="space-y-4 text-xs font-medium">
-          {/* Theme Name */}
+          {/* Theme Name Row with compact Back Button */}
           <div>
-            <label className="font-bold text-slate-700 text-xs block mb-1">Theme Name</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-900 text-xs">Theme Name</label>
+              <button
+                type="button"
+                onClick={() => setActiveTab("themes")}
+                className="px-2 py-0.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-950 font-bold text-[11px] rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" /> Back to themes
+              </button>
+            </div>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Modern Sunset"
-              className="w-full p-2 border border-slate-300 rounded-md text-xs font-medium outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full p-2 border border-slate-300 rounded-md text-xs font-medium outline-none focus:border-slate-950 text-slate-900 bg-white"
               required
             />
           </div>
 
           {/* Background Type & Value */}
-          <div className="space-y-2 border-b border-slate-100 pb-3">
+          <div className="space-y-3 border-b border-slate-200 pb-4">
+            {/* Background Header Row with Dark/Light style Toggle Switch */}
             <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-700 text-xs">Background</label>
-              <select
-                value={backgroundType}
-                onChange={(e) => setBackgroundType(e.target.value)}
-                className="p-1.5 border border-slate-300 rounded-md text-xs font-semibold bg-white outline-none cursor-pointer"
-              >
-                <option value="color">Solid Hex Color</option>
-                <option value="image">Background Image URL</option>
-              </select>
+              <label className="font-bold text-slate-900 text-xs">Background</label>
+              
+              {/* Dark/Light style Toggle Switch */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold text-slate-500">
+                  {backgroundType === "image" ? "Image" : "Color"}
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={backgroundType === "image"}
+                  onClick={() => {
+                    const nextType = backgroundType === "image" ? "color" : "image";
+                    setBackgroundType(nextType);
+                    if (nextType === "color" && backgroundValue && !backgroundValue.startsWith("#")) {
+                      setBackgroundValue("#F8FAFC");
+                    }
+                  }}
+                  className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    backgroundType === "image" ? "bg-slate-950" : "bg-slate-300"
+                  }`}
+                  title="Toggle between Solid Color and Background Image"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-xs ring-0 transition duration-200 ease-in-out ${
+                      backgroundType === "image" ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
-            {backgroundType === "image" ? (
-              <div className="space-y-2.5">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-semibold text-slate-500">Desktop Image (Presenter)</label>
+
+            {/* Solid Color Row (Clean Inline Layout with Custom Color Picker) */}
+            <div className={`flex items-center justify-between py-1 transition-all ${
+              backgroundType === "color" ? "opacity-100" : "opacity-40 pointer-events-none"
+            }`}>
+              <span className="text-xs font-bold text-slate-800">Solid Color</span>
+              <div className="flex items-center gap-2">
+                {/* Custom Color Picker Circle/Box Button matching text color picker */}
+                <div
+                  className="w-7 h-7 rounded-md border border-slate-300 flex items-center justify-center bg-white shadow-2xs relative transition-all cursor-pointer overflow-hidden hover:border-slate-400"
+                  title="Solid Color Picker"
+                >
+                  <span
+                    className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs"
+                    style={{
+                      background: "conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)"
+                    }}
+                  />
+                  <input
+                    type="color"
+                    disabled={backgroundType !== "color"}
+                    value={backgroundValue && backgroundValue.startsWith("#") ? backgroundValue : "#F8FAFC"}
+                    onChange={(e) => setBackgroundValue(e.target.value)}
+                    className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  />
+                </div>
+
+                <input
+                  type="text"
+                  disabled={backgroundType !== "color"}
+                  value={backgroundValue && backgroundValue.startsWith("#") ? backgroundValue : "#F8FAFC"}
+                  onChange={(e) => setBackgroundValue(e.target.value)}
+                  className="w-20 p-1 border border-slate-300 rounded-md text-xs text-center font-mono text-slate-900 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Background Image Row (Clean Inline Layout matching screenshot) */}
+            <div className={`space-y-2 transition-all ${
+              backgroundType === "image" ? "opacity-100" : "opacity-40 pointer-events-none"
+            }`}>
+              <div className="flex items-center justify-between py-1">
+                <span className="text-xs font-bold text-slate-900">Background image</span>
+
+                <button
+                  type="button"
+                  disabled={backgroundType !== "image"}
+                  onClick={() =>
+                    setMediaModalConfig({
+                      isOpen: true,
+                      target: "desktopBg",
+                      initialUrl: backgroundValue.startsWith("#") ? "" : backgroundValue,
+                      title: "Desktop Background Image",
+                    })
+                  }
+                  className="px-3 py-1 border border-slate-300 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add
+                </button>
+              </div>
+
+              {/* Show attached image info / preview card if image URL exists */}
+              {backgroundType === "image" && backgroundValue && !backgroundValue.startsWith("#") && (
+                <div className="p-2 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 truncate max-w-[190px]">
+                    <img
+                      src={backgroundValue}
+                      alt="Background"
+                      className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
+                    />
+                    <span className="truncate text-[11px] font-semibold text-slate-700" title={backgroundValue}>
+                      {backgroundValue.split("/").pop() || "Background Image"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() =>
@@ -438,72 +550,30 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                           title: "Desktop Background Image",
                         })
                       }
-                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                      className="p-1 text-slate-500 hover:text-slate-900 rounded-md transition-colors cursor-pointer"
+                      title="Edit image"
                     >
-                      <Upload className="w-3 h-3" /> Select / Upload
+                      <Pencil className="w-3.5 h-3.5" />
                     </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={backgroundValue}
-                    onChange={(e) => setBackgroundValue(e.target.value)}
-                    placeholder="Pexels / Unsplash / Direct image link (.jpg, .png, .webp)"
-                    className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[11px] font-semibold text-slate-500">Mobile Image (Participant / Optional)</label>
                     <button
                       type="button"
-                      onClick={() =>
-                        setMediaModalConfig({
-                          isOpen: true,
-                          target: "mobileBg",
-                          initialUrl: mobileBackgroundValue,
-                          title: "Mobile Background Image",
-                        })
-                      }
-                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                      onClick={() => setBackgroundValue("#F8FAFC")}
+                      className="p-1 text-slate-400 hover:text-red-500 rounded-md transition-colors cursor-pointer"
+                      title="Remove image"
                     >
-                      <Upload className="w-3 h-3" /> Select / Upload
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                  <input
-                    type="text"
-                    value={mobileBackgroundValue}
-                    onChange={(e) => setMobileBackgroundValue(e.target.value)}
-                    placeholder="https://example.com/mobile-bg.jpg"
-                    className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
-                  />
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-slate-500">Hex Color</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={backgroundValue.startsWith("#") ? backgroundValue : "#F8FAFC"}
-                    onChange={(e) => setBackgroundValue(e.target.value)}
-                    className="w-7 h-7 rounded-md border border-slate-300 cursor-pointer overflow-hidden p-0"
-                  />
-                  <input
-                    type="text"
-                    value={backgroundValue}
-                    onChange={(e) => setBackgroundValue(e.target.value)}
-                    className="w-20 p-1 border border-slate-300 rounded-md text-xs text-center font-mono"
-                  />
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
-          {/* Theme Logo URL */}
-          <div className="border-b border-slate-100 pb-3">
-            <div className="flex items-center justify-between mb-1">
-              <label className="font-bold text-slate-700 text-xs">Logo URL (Optional)</label>
+          {/* Theme Logo Section */}
+          <div className="space-y-2 border-b border-slate-200 pb-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-900">Theme Logo</span>
+
               <button
                 type="button"
                 onClick={() =>
@@ -514,41 +584,78 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                     title: "Theme Logo Image",
                   })
                 }
-                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1 border border-slate-300 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
               >
-                <Upload className="w-3 h-3" /> Select / Upload
+                <Plus className="w-3.5 h-3.5" /> Add
               </button>
             </div>
-            <input
-              type="text"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://example.com/logo.png"
-              className="w-full p-2 border border-slate-300 rounded-md text-xs outline-none focus:ring-1 focus:ring-indigo-500"
-            />
+
+            {/* Attached Logo Preview Card */}
+            {Boolean(logoUrl?.trim()) && (
+              <div className="p-2 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs mt-2">
+                <div className="flex items-center gap-2 truncate max-w-[190px]">
+                  <img
+                    src={logoUrl}
+                    alt="Logo"
+                    className="w-7 h-7 rounded-md object-contain border border-slate-200 bg-white p-0.5 shrink-0"
+                  />
+                  <span className="truncate text-[11px] font-semibold text-slate-700" title={logoUrl}>
+                    {logoUrl.split("/").pop() || "Logo Image"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setMediaModalConfig({
+                        isOpen: true,
+                        target: "logo",
+                        initialUrl: logoUrl,
+                        title: "Theme Logo Image",
+                      })
+                    }
+                    className="p-1 text-slate-500 hover:text-slate-900 rounded-md transition-colors cursor-pointer"
+                    title="Edit logo"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLogoUrl("")}
+                    className="p-1 text-slate-400 hover:text-red-500 rounded-md transition-colors cursor-pointer"
+                    title="Remove logo"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Text Customization Section */}
-          <div className="space-y-3 border-b border-slate-100 pb-3">
-            <div className="flex items-center justify-between">
-              <label className="font-bold text-slate-700 text-xs flex items-center gap-1">
-                Text
-              </label>
+          {/* Text & Typography Section */}
+          <div className="space-y-3 border-b border-slate-200 pb-4">
+            {/* Font Family Row */}
+            <div className="flex items-center justify-between gap-2">
+              <label className="font-bold text-slate-900 text-xs shrink-0">Font Family</label>
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                className="p-1.5 border border-slate-300 rounded-md text-xs font-semibold bg-white outline-none cursor-pointer min-w-[130px]"
+              >
+                <option value="Inter">Inter</option>
+                <option value="Roboto">Roboto</option>
+                <option value="Outfit">Outfit</option>
+                <option value="Epilogue">Epilogue</option>
+                <option value="Libre Baskerville">Libre Baskerville</option>
+                <option value="Plus Jakarta Sans">Plus Jakarta</option>
+              </select>
+            </div>
 
+            {/* Text Color Row */}
+            <div className="flex items-center justify-between gap-2">
+              <label className="font-bold text-slate-900 text-xs shrink-0">Text Color</label>
+              
               <div className="flex items-center gap-2">
-                <select
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                  className="p-1.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white outline-none cursor-pointer"
-                >
-                  <option value="Inter">Inter</option>
-                  <option value="Roboto">Roboto</option>
-                  <option value="Outfit">Outfit</option>
-                  <option value="Epilogue">Epilogue</option>
-                  <option value="Libre Baskerville">Libre Baskerville</option>
-                  <option value="Plus Jakarta Sans">Plus Jakarta</option>
-                </select>
-
                 {/* White Text Circle Button */}
                 <button
                   type="button"
@@ -556,14 +663,14 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                     setPrimaryTextColor("#FFFFFF");
                     setSecondaryTextColor("#FFFFFF");
                   }}
-                  className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center bg-white shadow-2xs transition-all ${
+                  className={`w-7 h-7 rounded-md border flex items-center justify-center bg-white shadow-2xs transition-all cursor-pointer ${
                     primaryTextColor === "#FFFFFF" || primaryTextColor === "#ffffff"
-                      ? "border-purple-600 ring-2 ring-purple-500/20"
+                      ? "border-slate-950 ring-2 ring-slate-950/10 font-bold"
                       : "border-slate-300 hover:border-slate-400"
                   }`}
                   title="White Text"
                 >
-                  <span className="w-4 h-4 rounded-full bg-white border border-slate-300" />
+                  <span className="w-3.5 h-3.5 rounded-full bg-white border border-slate-300 shadow-xs" />
                 </button>
 
                 {/* Black Text Circle Button */}
@@ -573,27 +680,27 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
                     setPrimaryTextColor("#000000");
                     setSecondaryTextColor("#000000");
                   }}
-                  className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center bg-white shadow-2xs transition-all ${
+                  className={`w-7 h-7 rounded-md border flex items-center justify-center bg-white shadow-2xs transition-all cursor-pointer ${
                     primaryTextColor === "#000000" || primaryTextColor === "#0f172a"
-                      ? "border-purple-600 ring-2 ring-purple-500/20"
+                      ? "border-slate-950 ring-2 ring-slate-950/10 font-bold"
                       : "border-slate-300 hover:border-slate-400"
                   }`}
                   title="Black Text"
                 >
-                  <span className="w-4 h-4 rounded-full bg-slate-900" />
+                  <span className="w-3.5 h-3.5 rounded-full bg-slate-900 shadow-xs" />
                 </button>
 
                 {/* Custom Color Picker Button */}
                 <div
-                  className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center bg-white shadow-2xs relative transition-all cursor-pointer overflow-hidden ${
+                  className={`w-7 h-7 rounded-md border flex items-center justify-center bg-white shadow-2xs relative transition-all cursor-pointer overflow-hidden ${
                     primaryTextColor !== "#FFFFFF" && primaryTextColor !== "#ffffff" && primaryTextColor !== "#000000" && primaryTextColor !== "#0f172a"
-                      ? "border-purple-600 ring-2 ring-purple-500/20"
+                      ? "border-slate-950 ring-2 ring-slate-950/10 font-bold"
                       : "border-slate-300 hover:border-slate-400"
                   }`}
                   title="Custom Text Color Palette"
                 >
                   <span
-                    className="w-4 h-4 rounded-full border border-slate-300 shadow-2xs"
+                    className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-2xs"
                     style={{
                       background: primaryTextColor && primaryTextColor !== "#FFFFFF" && primaryTextColor !== "#000000"
                         ? primaryTextColor
@@ -651,7 +758,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
             <button
               type="submit"
               disabled={isCreating}
-              className="w-full py-2.5 rounded-md bg-[#6366F1] hover:bg-[#5558DD] text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 rounded-md bg-slate-950 hover:bg-slate-900 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isCreating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {savedCustomThemeId ? "Update Custom Theme" : "Save & Apply Custom Theme"}

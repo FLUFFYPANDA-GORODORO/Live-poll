@@ -18,9 +18,12 @@ import {
   Trash2,
   RotateCcw,
   ArrowRight,
-  X
+  X,
+  LayoutGrid,
+  List,
+  Loader2
 } from "lucide-react";
-import { parseTheme } from "@/lib/themeHelper";
+import { parseTheme, getThemeStyles } from "@/lib/themeHelper";
 
 // Share Modal Component
 function ShareModal({ poll, onClose }) {
@@ -37,38 +40,38 @@ function ShareModal({ poll, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl animate-fade-in" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-md p-6 max-w-md w-full shadow-2xl animate-fade-in border border-slate-200" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900">Share Poll</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-slate-500" />
+          <h2 className="text-lg font-bold text-slate-900">Share Poll</h2>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded-md transition-colors cursor-pointer">
+            <X className="w-4 h-4 text-slate-500" />
           </button>
         </div>
 
         {/* QR Code */}
         <div className="flex justify-center mb-6">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div className="bg-white p-4 rounded-md border border-slate-200 shadow-2xs">
             <QRCodeSVG value={pollUrl} size={180} />
           </div>
         </div>
 
         {/* Poll Code */}
         <div className="text-center mb-6">
-          <p className="text-slate-500 text-sm mb-2">Poll Code</p>
-          <p className="text-3xl font-bold text-[#6366F1] font-mono">{poll.id}</p>
+          <p className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Poll Code</p>
+          <p className="text-2xl font-extrabold text-slate-950 font-mono">{poll.id}</p>
         </div>
 
         {/* Link */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-2">
           <input
             type="text"
             value={pollUrl}
             readOnly
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 outline-none focus:ring-2 focus:ring-[#6366F1]/20"
+            className="flex-1 bg-slate-50 border border-slate-300 rounded-md px-3 py-2 text-xs text-slate-800 font-mono outline-none"
           />
           <button 
             onClick={copyLink}
-            className="px-4 py-2 bg-[#6366F1] text-white rounded-lg hover:bg-[#5558DD] flex items-center gap-2 transition-colors cursor-pointer"
+            className="px-4 py-2 bg-slate-950 text-white rounded-md hover:bg-slate-900 font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer"
           >
             {copied ? "Copied" : "Copy"}
           </button>
@@ -89,9 +92,11 @@ export default function MyPresentationsPage() {
     deletePoll,
     restartPoll,
     createPoll,
+    useTemplate,
     fetchPollById
   } = usePollStore();
 
+  const [viewMode, setViewMode] = useState("grid"); // "grid" | "table"
   const [openMenuId, setOpenMenuId] = useState(null);
   const [shareModal, setShareModal] = useState(null);
   const menuRef = useRef(null);
@@ -154,10 +159,7 @@ export default function MyPresentationsPage() {
                 toast.error(`Question ${i + 1} needs at least 2 options`);
                 return;
               }
-              const validOptions = q.options
-                .map(o => typeof o === "string" ? o.trim() : (o.text || "").trim())
-                .filter(opt => opt !== "");
-
+              const validOptions = q.options.map((o) => typeof o === "string" ? o.trim() : (o.text || "").trim()).filter((opt) => opt !== "");
               if (validOptions.length < 2) {
                 toast.error(`Question ${i + 1} needs at least 2 non-empty options`);
                 return;
@@ -195,57 +197,52 @@ export default function MyPresentationsPage() {
   };
 
   const handleDeletePoll = async (pollId) => {
-    if (!confirm("Delete this presentation permanently?")) return;
+    setOpenMenuId(null);
+    if (!confirm("Delete this presentation?")) return;
     try {
       await deletePoll(pollId);
-      toast.success("Presentation deleted");
-    } catch (err) {
-      toast.error("Failed to delete presentation");
+      toast.success("Deleted!");
+    } catch {
+      toast.error("Failed to delete");
     }
   };
 
   const handleClonePoll = async (poll) => {
-    const loadingToast = toast.loading("Cloning presentation...");
     try {
+      const loadingToast = toast.loading("Cloning presentation...");
       const fullPoll = await fetchPollById(poll.id);
-      if (!fullPoll || !fullPoll.questions) {
-        toast.dismiss(loadingToast);
-        toast.error("Failed to load presentation details");
-        return;
-      }
-
-      const { cleanTitle } = parseTheme(fullPoll.title || "");
-      const clonedQuestions = fullPoll.questions.map((q) => ({
+      const clonedQuestions = (fullPoll.questions || []).map((q) => ({
         text: q.text,
         type: q.type,
         options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
       }));
 
-      await createPoll(`${cleanTitle} (Copy)`, clonedQuestions, fullPoll.themeId || "11111111-1111-1111-1111-111111111111");
+      const newPoll = await createPoll(
+        `${fullPoll.title || "Presentation"} (Copy)`,
+        clonedQuestions,
+        fullPoll.theme?.id || fullPoll.theme || "11111111-1111-1111-1111-111111111111"
+      );
+
       await fetchPolls(user.uid);
       toast.dismiss(loadingToast);
-      toast.success("Presentation cloned!");
+      toast.success("Cloned successfully!");
+      if (newPoll?.id) {
+        router.push(`/home/edit/${newPoll.id}`);
+      }
     } catch (err) {
       console.error("Error cloning poll:", err);
-      toast.dismiss(loadingToast);
       toast.error("Failed to clone presentation");
     }
   };
 
   const handleExportPoll = async (poll) => {
-    const loadingToast = toast.loading("Exporting presentation...");
     try {
+      const loadingToast = toast.loading("Preparing JSON export...");
       const fullPoll = await fetchPollById(poll.id);
-      if (!fullPoll || !fullPoll.questions) {
-        toast.dismiss(loadingToast);
-        toast.error("Failed to load details");
-        return;
-      }
-
       const exportData = {
-        title: fullPoll.title,
-        theme: fullPoll.theme || "11111111-1111-1111-1111-111111111111",
-        questions: fullPoll.questions.map((q) => ({
+        title: fullPoll.title || "Presentation",
+        theme: fullPoll.theme?.id || fullPoll.theme || "11111111-1111-1111-1111-111111111111",
+        questions: (fullPoll.questions || []).map((q) => ({
           text: q.text,
           type: q.type,
           options: q.options ? q.options.map((o) => (typeof o === "string" ? o : (o.text || ""))) : [],
@@ -284,116 +281,148 @@ export default function MyPresentationsPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Header Row with Title & Action Buttons */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-slate-900">My presentations</h1>
+      {/* Top Header Row with Title, View Toggle & Action Buttons */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold text-slate-900">My presentations</h1>
+
+          {/* Table / Grid Toggle Switch (Default: Grid) */}
+          <div className="flex items-center bg-slate-100 p-0.5 rounded-md border border-slate-200 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === "grid"
+                  ? "bg-slate-950 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" /> Grid
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
+                viewMode === "table"
+                  ? "bg-slate-950 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              <List className="w-3.5 h-3.5" /> Table
+            </button>
+          </div>
+        </div>
         
         <div className="flex items-center gap-3">
           <button
             onClick={handleCreateNew}
-            className="flex items-center gap-2 bg-[#7B2FF2] hover:bg-[#6a22e0] text-white px-4 py-2 rounded-xl font-semibold text-sm shadow-xs transition-colors cursor-pointer"
+            className="flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-4 py-2 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             New presentation
           </button>
           <button
             onClick={handleImportPoll}
-            className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-semibold text-sm transition-colors cursor-pointer"
+            className="flex items-center gap-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-900 px-4 py-2 rounded-md font-bold text-xs transition-colors cursor-pointer"
           >
-            <Upload className="w-4 h-4 text-slate-500" />
+            <Upload className="w-4 h-4 text-slate-700" />
             Import
           </button>
         </div>
       </div>
 
-      {/* Card Grid Layout for Projects */}
+      {/* Main Content Area: Grid vs Table */}
       {loading ? (
         <div className="grid grid-cols-5 gap-4.5 w-full">
           {[1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="w-full h-[155px] rounded-xl bg-slate-100 animate-pulse"
+              className="w-full h-[155px] rounded-md bg-slate-100 animate-pulse"
             />
           ))}
         </div>
       ) : polls.length === 0 ? (
-        <div className="py-16 border-2 border-dashed border-slate-200 rounded-2xl text-center bg-white">
-          <p className="text-slate-500 text-sm mb-3">
+        <div className="py-16 border-2 border-dashed border-slate-300 rounded-md text-center bg-white">
+          <p className="text-slate-600 text-xs font-medium mb-3">
             No presentations found. Create or import your first presentation!
           </p>
           <button
             onClick={handleCreateNew}
-            className="inline-flex items-center gap-2 bg-[#7B2FF2] hover:bg-[#6a22e0] text-white px-5 py-2.5 rounded-xl font-semibold text-xs shadow-sm transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-5 py-2.5 rounded-md font-bold text-xs shadow-2xs transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Create new presentation
           </button>
         </div>
-      ) : (
+      ) : viewMode === "grid" ? (
+        /* GRID VIEW (With z-50 relative positioning on open menu card to fix z-index overlay bug) */
         <div className="grid grid-cols-5 gap-4.5 w-full">
           {(polls || []).map((poll) => {
-            const themeBg = poll.theme;
-            const cardBgStyle = themeBg?.backgroundType === "image" && themeBg?.backgroundValue
-              ? { backgroundImage: `url("${themeBg.backgroundValue}")`, backgroundSize: "cover", backgroundPosition: "center" }
-              : { backgroundColor: themeBg?.backgroundValue?.startsWith("#") ? themeBg.backgroundValue : "#0F172A" };
+            const themeStyles = getThemeStyles(poll.theme);
+            const isImageTheme = poll.theme?.backgroundType === "image" && Boolean(poll.theme?.backgroundValue);
+            const barColor1 = themeStyles.paletteColors[0] || "#6366F1";
+            const barColor2 = themeStyles.paletteColors[1] || themeStyles.paletteColors[0] || "#818CF8";
+            const isMenuOpen = openMenuId === poll.id;
 
             return (
               <div
                 key={poll.id}
                 onClick={() => router.push(`/home/edit/${poll.id}`)}
-                className="group w-full h-[155px] flex flex-col justify-between rounded-xl bg-white border border-slate-200/80 hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 relative"
+                className={`group w-full h-[155px] flex flex-col justify-between rounded-md bg-white border border-slate-300 cursor-pointer hover:border-slate-400 hover:shadow-md transition-all ${
+                  isMenuOpen ? "z-50 relative" : "z-10 relative"
+                }`}
               >
-                {/* More Menu (Direct child of outer card so overflow-hidden doesn't clip the dropdown) */}
-                <div className="absolute top-1.5 right-1.5 z-30" ref={openMenuId === poll.id ? menuRef : null}>
+                {/* Options Action Menu (High z-index z-50) */}
+                <div className="absolute top-1.5 right-1.5 z-40" ref={isMenuOpen ? menuRef : null}>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      setOpenMenuId(openMenuId === poll.id ? null : poll.id);
+                      setOpenMenuId(isMenuOpen ? null : poll.id);
                     }}
-                    className="p-1 rounded-md bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer"
+                    className="p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer shadow-xs"
                   >
-                    {openMenuId === poll.id ? (
+                    {isMenuOpen ? (
                       <X className="w-3.5 h-3.5" />
                     ) : (
                       <MoreHorizontal className="w-3.5 h-3.5" />
                     )}
                   </button>
-                  {openMenuId === poll.id && (
-                    <div className="absolute right-0 top-7 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-50 min-w-[150px] text-xs font-medium text-slate-700">
+                  {isMenuOpen && (
+                    <div className="absolute right-0 top-7 bg-white rounded-md shadow-2xl border border-slate-300 py-1.5 z-50 min-w-[160px] text-xs font-medium text-slate-800 animate-in fade-in zoom-in-95 duration-100">
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); router.push(`/present/${poll.id}`); }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-emerald-600 font-semibold cursor-pointer"
+                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-emerald-700 font-bold cursor-pointer"
                       >
                         <Play className="w-3.5 h-3.5" /> Present
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setShareModal(poll); }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-slate-700 cursor-pointer"
+                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
                       >
-                        <Share2 className="w-3.5 h-3.5 text-slate-400" /> Share
+                        <Share2 className="w-3.5 h-3.5 text-slate-500" /> Share
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); router.push(`/home/edit/${poll.id}`); }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-slate-700 cursor-pointer"
+                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
                       >
-                        <Edit className="w-3.5 h-3.5 text-slate-400" /> Edit
+                        <Edit className="w-3.5 h-3.5 text-slate-500" /> Edit
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleClonePoll(poll); }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-slate-700 cursor-pointer"
+                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
                       >
-                        <Copy className="w-3.5 h-3.5 text-slate-400" /> Clone
+                        <Copy className="w-3.5 h-3.5 text-slate-500" /> Clone
                       </button>
-                      <div className="border-t border-slate-100 my-1" />
+                      <div className="border-t border-slate-200 my-1" />
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleExportPoll(poll); }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-slate-700 cursor-pointer"
+                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5 text-emerald-600" /> Export JSON
+                        <Download className="w-3.5 h-3.5 text-emerald-700" /> Export JSON
                       </button>
-                      <div className="border-t border-slate-100 my-1" />
+                      <div className="border-t border-slate-200 my-1" />
                       <button
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleDeletePoll(poll.id); }}
-                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-red-50 text-red-600 font-medium cursor-pointer"
+                        className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-red-50 text-red-600 font-bold cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Delete
                       </button>
@@ -401,28 +430,173 @@ export default function MyPresentationsPage() {
                   )}
                 </div>
 
-                {/* Bar chart preview thumbnail */}
+                {/* Thumbnail preview: renders background image or color + bars */}
                 <div
-                  className="h-[105px] flex items-end justify-end gap-3 pl-12 pr-4 relative rounded-t-xl overflow-hidden shrink-0"
-                  style={cardBgStyle}
+                  className="h-[105px] flex items-end justify-end gap-2.5 pl-12 pr-4 relative rounded-t-md overflow-hidden shrink-0"
+                  style={themeStyles.backgroundStyle}
                 >
-                  {/* Two wider bars touching bottom with headroom */}
-                  <div className="w-16 bg-[#6366F1] rounded-t-md" style={{ height: "42px" }} />
-                  <div className="w-16 bg-[#818CF8] rounded-t-md" style={{ height: "70px" }} />
+                  {/* Custom Theme Logo or default RapidPolls mark */}
+                  {themeStyles.logoUrl ? (
+                    <img
+                      src={themeStyles.logoUrl}
+                      alt="Theme Logo"
+                      className="absolute top-2.5 left-3 max-h-4 max-w-[60px] object-contain drop-shadow-sm opacity-90 select-none z-10"
+                    />
+                  ) : (
+                    <img
+                      src="/RapidPolls.png"
+                      alt="RapidPolls"
+                      className="absolute top-2.5 left-3 h-3 w-auto object-contain opacity-50 select-none z-10 filter drop-shadow-sm"
+                    />
+                  )}
+
+                  {/* Bars rendered ONLY if not an image background theme */}
+                  {!isImageTheme && (
+                    <>
+                      <div
+                        className="w-14 rounded-t-xs shadow-2xs transition-colors"
+                        style={{ height: "42px", backgroundColor: barColor1 }}
+                      />
+                      <div
+                        className="w-14 rounded-t-xs shadow-2xs transition-colors"
+                        style={{ height: "70px", backgroundColor: barColor2 }}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Compact Poll title + timestamp footer */}
-                <div className="px-3 py-2 border-t border-slate-100 bg-white shrink-0 rounded-b-xl">
-                  <p className="text-xs font-semibold text-slate-800 truncate leading-tight">
+                <div className="px-3 py-2 border-t border-slate-200 bg-white shrink-0 rounded-b-md">
+                  <p className="text-xs font-bold text-slate-900 truncate leading-tight">
                     {poll.title || "Untitled"}
                   </p>
-                  <p className="text-[10px] text-slate-400 mt-0.5 leading-none">
+                  <p className="text-[10px] text-slate-500 mt-0.5 leading-none font-medium">
                     Edited {formatRelativeDate(poll.updatedAt || poll.createdAt)}
                   </p>
                 </div>
               </div>
             );
           })}
+        </div>
+      ) : (
+        /* TABLE VIEW MODE (overflow-visible container + z-50 relative row positioning to prevent popover clipping) */
+        <div className="bg-white border border-slate-300 rounded-md shadow-2xs relative">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider">
+                <th className="py-3 px-4 rounded-tl-md">Presentation</th>
+                <th className="py-3 px-4 text-center">Slides</th>
+                <th className="py-3 px-4">Last Modified</th>
+                <th className="py-3 px-4 text-right rounded-tr-md">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 text-xs font-medium text-slate-800">
+              {(polls || []).map((poll, idx) => {
+                const isMenuOpen = openMenuId === poll.id;
+                const themeStyles = getThemeStyles(poll.theme);
+                const isNearBottom = idx >= Math.max(0, (polls || []).length - 2) && polls.length > 2;
+
+                return (
+                  <tr
+                    key={poll.id}
+                    onClick={() => router.push(`/home/edit/${poll.id}`)}
+                    className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${
+                      isMenuOpen ? "z-50 relative" : "z-10 relative"
+                    }`}
+                  >
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-8 rounded-md border border-slate-200 overflow-hidden flex items-center justify-center shrink-0"
+                          style={themeStyles.backgroundStyle}
+                        >
+                          <span className="text-[9px] font-bold text-slate-900 truncate px-0.5">
+                            {(poll.title || "P").substring(0, 3)}
+                          </span>
+                        </div>
+                        <span className="font-bold text-slate-900 truncate max-w-xs">
+                          {poll.title || "Untitled Presentation"}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="py-3 px-4 text-center font-bold text-slate-700">
+                      {poll.questions?.length || 1}
+                    </td>
+
+                    <td className="py-3 px-4 text-slate-500 font-medium">
+                      {formatRelativeDate(poll.updatedAt || poll.createdAt)}
+                    </td>
+
+                    <td className="py-3 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2 relative">
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); router.push(`/present/${poll.id}`); }}
+                          className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-md font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Play className="w-3 h-3" /> Present
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); router.push(`/home/edit/${poll.id}`); }}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-300 rounded-md font-bold text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                        >
+                          <Edit className="w-3 h-3" /> Edit
+                        </button>
+
+                        <div className="relative" ref={isMenuOpen ? menuRef : null}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(isMenuOpen ? null : poll.id);
+                            }}
+                            className="p-1 rounded-md border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+
+                          {isMenuOpen && (
+                            <div className={`absolute right-0 bg-white rounded-md shadow-2xl border border-slate-300 py-1.5 z-50 min-w-[160px] text-xs font-medium text-slate-800 text-left animate-in fade-in duration-100 ${
+                              isNearBottom ? "bottom-full mb-2" : "top-8"
+                            }`}>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setShareModal(poll); }}
+                                className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
+                              >
+                                <Share2 className="w-3.5 h-3.5 text-slate-500" /> Share
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleClonePoll(poll); }}
+                                className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
+                              >
+                                <Copy className="w-3.5 h-3.5 text-slate-500" /> Clone
+                              </button>
+                              <div className="border-t border-slate-200 my-1" />
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleExportPoll(poll); }}
+                                className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
+                              >
+                                <Download className="w-3.5 h-3.5 text-emerald-700" /> Export JSON
+                              </button>
+                              <div className="border-t border-slate-200 my-1" />
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleDeletePoll(poll.id); }}
+                                className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-red-50 text-red-600 font-bold cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 

@@ -5,6 +5,7 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
+import { getThemeStyles } from "@/lib/themeHelper";
 import {
   Plus,
   Upload,
@@ -218,9 +219,9 @@ export default function HomeOutlet() {
       className="min-h-screen -m-6 md:-m-8"
       style={{
         background: `
-          radial-gradient(circle at 0% 0%, rgba(139, 92, 246, 0.26), transparent 50%),
-          radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.24), transparent 50%),
-          linear-gradient(to bottom, rgba(245, 243, 255, 0.9), #ffffff 75%)
+          radial-gradient(circle at 0% 0%, rgba(51, 65, 85, 0.22), transparent 50%),
+          radial-gradient(circle at 100% 0%, rgba(71, 85, 105, 0.18), transparent 50%),
+          linear-gradient(to bottom, rgba(241, 245, 249, 0.95), #ffffff 75%)
         `,
       }}
     >
@@ -257,7 +258,7 @@ export default function HomeOutlet() {
           <section className="mt-10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-slate-900">
-                Continue designing
+                Continue editing
               </h2>
               {polls?.length > 0 && (
                 <button
@@ -282,26 +283,28 @@ export default function HomeOutlet() {
             ) : (
               <div className="grid grid-cols-5 gap-4.5 w-full">
                 {(polls || []).slice(0, 5).map((poll) => {
-                  // Get theme background for card
-                  const themeBg = poll.theme;
-                  const cardBgStyle = themeBg?.backgroundType === "image" && themeBg?.backgroundValue
-                    ? { backgroundImage: `url("${themeBg.backgroundValue}")`, backgroundSize: "cover", backgroundPosition: "center" }
-                    : { backgroundColor: themeBg?.backgroundValue?.startsWith("#") ? themeBg.backgroundValue : "#0F172A" };
+                  // Compute exact theme styles for this poll
+                  const themeStyles = getThemeStyles(poll.theme);
+                  const isImageTheme = poll.theme?.backgroundType === "image" && Boolean(poll.theme?.backgroundValue);
+                  const barColor1 = themeStyles.paletteColors[0] || "#6366F1";
+                  const barColor2 = themeStyles.paletteColors[1] || themeStyles.paletteColors[0] || "#818CF8";
 
                   return (
                     <div
                       key={poll.id}
                       onClick={() => router.push(`/home/edit/${poll.id}`)}
-                      className="group w-full h-[155px] flex flex-col justify-between rounded-xl bg-white border border-slate-200/80 hover:shadow-lg transition-all duration-200 cursor-pointer hover:-translate-y-1 relative"
+                      className={`group w-full h-[155px] flex flex-col justify-between rounded-md bg-white border border-slate-300 hover:border-slate-400 hover:shadow-md transition-all cursor-pointer ${
+                        openMenuId === poll.id ? "z-50 relative" : "z-10 relative"
+                      }`}
                     >
-                      {/* More Menu (Direct child of outer card so overflow-hidden doesn't clip the dropdown) */}
-                      <div className="absolute top-1.5 right-1.5 z-30">
+                      {/* More Menu (High z-index z-50 so popover isn't clipped) */}
+                      <div className="absolute top-1.5 right-1.5 z-40">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenMenuId(openMenuId === poll.id ? null : poll.id);
                           }}
-                          className="p-1 rounded-md bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer"
+                          className="p-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white transition-colors cursor-pointer shadow-xs"
                         >
                           {openMenuId === poll.id ? (
                             <X className="w-3.5 h-3.5" />
@@ -310,26 +313,26 @@ export default function HomeOutlet() {
                           )}
                         </button>
                         {openMenuId === poll.id && (
-                          <div className="absolute right-0 top-7 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-50 min-w-[150px] text-xs font-medium text-slate-700">
+                          <div className="absolute right-0 top-7 bg-white rounded-md shadow-2xl border border-slate-300 py-1.5 z-50 min-w-[160px] text-xs font-medium text-slate-800 animate-in fade-in zoom-in-95 duration-100">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setOpenMenuId(null);
                                 router.push(`/present/${poll.id}`);
                               }}
-                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-emerald-600 font-semibold cursor-pointer"
+                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-emerald-700 font-bold cursor-pointer"
                             >
                               <ArrowRight className="w-3.5 h-3.5" /> Present
                             </button>
                             <button
                               onClick={(e) => handleRestartPoll(e, poll.id)}
-                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-50 text-slate-700 cursor-pointer"
+                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
                             >
-                              <RotateCcw className="w-3.5 h-3.5" /> Restart
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-500" /> Restart
                             </button>
                             <button
                               onClick={(e) => handleDeletePoll(e, poll.id)}
-                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-red-50 text-red-600 font-medium cursor-pointer"
+                              className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-red-50 text-red-600 font-bold cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" /> Delete
                             </button>
@@ -337,22 +340,47 @@ export default function HomeOutlet() {
                         )}
                       </div>
 
-                      {/* Bar chart preview thumbnail */}
+                      {/* Thumbnail preview */}
                       <div
-                        className="h-[105px] flex items-end justify-end gap-3 pl-12 pr-4 relative rounded-t-xl overflow-hidden shrink-0"
-                        style={cardBgStyle}
+                        className="h-[105px] flex items-end justify-end gap-2.5 pl-12 pr-4 relative rounded-t-md overflow-hidden shrink-0"
+                        style={themeStyles.backgroundStyle}
                       >
-                        {/* Two wider bars (w-16) touching bottom with empty space above */}
-                        <div className="w-16 bg-[#6366F1] rounded-t-md" style={{ height: "42px" }} />
-                        <div className="w-16 bg-[#818CF8] rounded-t-md" style={{ height: "70px" }} />
+                        {/* Custom Theme Logo or default RapidPolls mark */}
+                        {themeStyles.logoUrl ? (
+                          <img
+                            src={themeStyles.logoUrl}
+                            alt="Theme Logo"
+                            className="absolute top-2.5 left-3 max-h-4 max-w-[60px] object-contain drop-shadow-sm opacity-90 select-none z-10"
+                          />
+                        ) : (
+                          <img
+                            src="/RapidPolls.png"
+                            alt="RapidPolls"
+                            className="absolute top-2.5 left-3 h-3 w-auto object-contain opacity-50 select-none z-10 filter drop-shadow-sm"
+                          />
+                        )}
+
+                        {/* Bars rendered ONLY if not an image background theme */}
+                        {!isImageTheme && (
+                          <>
+                            <div
+                              className="w-14 rounded-t-xs shadow-2xs transition-colors"
+                              style={{ height: "42px", backgroundColor: barColor1 }}
+                            />
+                            <div
+                              className="w-14 rounded-t-xs shadow-2xs transition-colors"
+                              style={{ height: "70px", backgroundColor: barColor2 }}
+                            />
+                          </>
+                        )}
                       </div>
 
                       {/* Compact Poll title + timestamp footer */}
-                      <div className="px-3 py-2 border-t border-slate-100 bg-white shrink-0 rounded-b-xl">
-                        <p className="text-xs font-semibold text-slate-800 truncate leading-tight">
+                      <div className="px-3 py-2 border-t border-slate-200 bg-white shrink-0 rounded-b-md">
+                        <p className="text-xs font-bold text-slate-900 truncate leading-tight">
                           {poll.title || "Untitled"}
                         </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5 leading-none">
+                        <p className="text-[10px] text-slate-500 mt-0.5 leading-none font-medium">
                           Edited{" "}
                           {formatRelativeTime(poll.updatedAt || poll.createdAt)}
                         </p>

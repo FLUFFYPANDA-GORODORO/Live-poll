@@ -5,6 +5,7 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 import { QRCodeSVG } from "qrcode.react";
 import { 
   Plus, 
@@ -99,7 +100,42 @@ export default function MyPresentationsPage() {
   const [viewMode, setViewMode] = useState("grid"); // "grid" | "table"
   const [openMenuId, setOpenMenuId] = useState(null);
   const [shareModal, setShareModal] = useState(null);
+  const [selectedPollIds, setSelectedPollIds] = useState([]);
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const menuRef = useRef(null);
+
+  const toggleSelectPoll = (e, pollId) => {
+    e.stopPropagation();
+    setSelectedPollIds((prev) =>
+      prev.includes(pollId) ? prev.filter((id) => id !== pollId) : [...prev, pollId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (!polls || polls.length === 0) return;
+    if (selectedPollIds.length === polls.length) {
+      setSelectedPollIds([]);
+    } else {
+      setSelectedPollIds(polls.map((p) => p.id));
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedPollIds.length === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      await Promise.all(selectedPollIds.map((id) => deletePoll(id)));
+      toast.success(`Deleted ${selectedPollIds.length} presentation(s)!`);
+      setSelectedPollIds([]);
+    } catch (err) {
+      console.error("Bulk delete error:", err);
+      toast.error("Failed to delete selected presentations");
+    } finally {
+      setIsBulkDeleting(false);
+      setShowBulkDeleteModal(false);
+    }
+  };
 
   useEffect(() => {
     if (user) fetchPolls(user.uid);
@@ -196,14 +232,41 @@ export default function MyPresentationsPage() {
     input.click();
   };
 
-  const handleDeletePoll = async (pollId) => {
+  const [deletePollId, setDeletePollId] = useState(null);
+
+  const handleDeletePoll = (pollId) => {
     setOpenMenuId(null);
-    if (!confirm("Delete this presentation?")) return;
+    setDeletePollId(pollId);
+  };
+
+  const confirmDeletePoll = async () => {
+    if (!deletePollId) return;
     try {
-      await deletePoll(pollId);
+      await deletePoll(deletePollId);
       toast.success("Deleted!");
     } catch {
       toast.error("Failed to delete");
+    } finally {
+      setDeletePollId(null);
+    }
+  };
+
+  const [restartPollId, setRestartPollId] = useState(null);
+
+  const handleRestartPoll = (pollId) => {
+    setOpenMenuId(null);
+    setRestartPollId(pollId);
+  };
+
+  const confirmRestartPoll = async () => {
+    if (!restartPollId) return;
+    try {
+      await restartPoll(restartPollId);
+      toast.success("Presentation restarted!");
+    } catch {
+      toast.error("Failed to restart presentation");
+    } finally {
+      setRestartPollId(null);
     }
   };
 
@@ -314,6 +377,18 @@ export default function MyPresentationsPage() {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Bulk Delete Actions Toolbar (Table View Only) */}
+          {viewMode === "table" && selectedPollIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowBulkDeleteModal(true)}
+              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white px-3.5 py-2 rounded-md font-bold text-xs shadow-2xs transition-all cursor-pointer animate-in fade-in zoom-in-95 duration-100"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete Selected ({selectedPollIds.length})
+            </button>
+          )}
+
           <button
             onClick={handleCreateNew}
             className="flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white px-4 py-2 rounded-md font-bold text-xs shadow-2xs transition-colors cursor-pointer"
@@ -367,7 +442,7 @@ export default function MyPresentationsPage() {
               <div
                 key={poll.id}
                 onClick={() => router.push(`/home/edit/${poll.id}`)}
-                className={`group w-full h-[155px] flex flex-col justify-between rounded-md bg-white border border-slate-300 cursor-pointer hover:border-slate-400 hover:shadow-md transition-all ${
+                className={`group w-full h-[155px] flex flex-col justify-between rounded-md bg-white border border-slate-300 hover:border-slate-400 hover:shadow-md transition-all cursor-pointer ${
                   isMenuOpen ? "z-50 relative" : "z-10 relative"
                 }`}
               >
@@ -484,7 +559,15 @@ export default function MyPresentationsPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-wider">
-                <th className="py-3 px-4 rounded-tl-md">Presentation</th>
+                <th className="py-3 px-4 w-10 text-center rounded-tl-md">
+                  <input
+                    type="checkbox"
+                    checked={selectedPollIds.length > 0 && selectedPollIds.length === (polls || []).length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-800 cursor-pointer accent-slate-900"
+                  />
+                </th>
+                <th className="py-3 px-4">Presentation</th>
                 <th className="py-3 px-4 text-center">Slides</th>
                 <th className="py-3 px-4">Last Modified</th>
                 <th className="py-3 px-4 text-right rounded-tr-md">Actions</th>
@@ -493,6 +576,7 @@ export default function MyPresentationsPage() {
             <tbody className="divide-y divide-slate-200 text-xs font-medium text-slate-800">
               {(polls || []).map((poll, idx) => {
                 const isMenuOpen = openMenuId === poll.id;
+                const isSelected = selectedPollIds.includes(poll.id);
                 const themeStyles = getThemeStyles(poll.theme);
                 const isNearBottom = idx >= Math.max(0, (polls || []).length - 2) && polls.length > 2;
 
@@ -501,9 +585,17 @@ export default function MyPresentationsPage() {
                     key={poll.id}
                     onClick={() => router.push(`/home/edit/${poll.id}`)}
                     className={`hover:bg-slate-50/80 transition-colors cursor-pointer ${
-                      isMenuOpen ? "z-50 relative" : "z-10 relative"
-                    }`}
+                      isSelected ? "bg-slate-100/70" : ""
+                    } ${isMenuOpen ? "z-50 relative" : "z-10 relative"}`}
                   >
+                    <td className="py-3 px-4 text-center" onClick={(e) => toggleSelectPoll(e, poll.id)}>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-800 cursor-pointer accent-slate-900"
+                      />
+                    </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div
@@ -573,6 +665,12 @@ export default function MyPresentationsPage() {
                               >
                                 <Copy className="w-3.5 h-3.5 text-slate-500" /> Clone
                               </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleRestartPoll(poll.id); }}
+                                className="flex items-center gap-2 px-3.5 py-1.5 w-full hover:bg-slate-100 text-slate-800 cursor-pointer"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-slate-500" /> Restart
+                              </button>
                               <div className="border-t border-slate-200 my-1" />
                               <button
                                 onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); handleExportPoll(poll); }}
@@ -604,6 +702,36 @@ export default function MyPresentationsPage() {
       {shareModal && (
         <ShareModal poll={shareModal} onClose={() => setShareModal(null)} />
       )}
+
+      <ConfirmModal
+        isOpen={Boolean(deletePollId)}
+        title="Delete presentation"
+        message="Are you sure you want to delete this presentation? This action cannot be undone."
+        confirmText="Delete"
+        isDanger={true}
+        onConfirm={confirmDeletePoll}
+        onClose={() => setDeletePollId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(restartPollId)}
+        title="Reset Presentation Responses?"
+        message="Restarting will permanently delete all stored responses, votes, and participant submissions for this presentation. Your slides and questions will remain intact."
+        confirmText="Reset & Restart"
+        isDanger={true}
+        onConfirm={confirmRestartPoll}
+        onClose={() => setRestartPollId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={showBulkDeleteModal}
+        title={`Delete ${selectedPollIds.length} Presentation(s)?`}
+        message={`Are you sure you want to delete all ${selectedPollIds.length} selected presentation(s)? This action cannot be undone.`}
+        confirmText="Delete Selected"
+        isDanger={true}
+        onConfirm={confirmBulkDelete}
+        onClose={() => setShowBulkDeleteModal(false)}
+      />
     </div>
   );
 }

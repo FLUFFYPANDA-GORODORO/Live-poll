@@ -9,6 +9,9 @@ import {
   ArrowRight,
   Sparkles,
   Loader2,
+  Eye,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 
 export default function TemplatesPage() {
@@ -17,6 +20,8 @@ export default function TemplatesPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [usingId, setUsingId] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [previewTemplate, setPreviewTemplate] = useState(null);
 
   const {
     templates,
@@ -147,59 +152,91 @@ export default function TemplatesPage() {
           </div>
         ) : (
           /* Templates Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
-            {filteredTemplates.map((template, idx) => {
-              const bgColor = templateColors[idx % templateColors.length];
-              const themeData = template.theme;
-              const hasThemeBg =
-                themeData?.backgroundType === "image" &&
-                themeData?.backgroundValue;
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4.5">
+            {filteredTemplates.map((template) => {
+              const imageUrl = "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786174032/polls/images/aesthetic-wallpaper-1_imvlrb.jpg";
               const isProcessing = usingId === template.id;
+              const slideCount = template.questions?.length || template.slidesCount || Math.floor(Math.random() * 6) + 5;
+              const isMenuOpen = openMenuId === template.id;
 
               return (
                 <div
                   key={template.id}
-                  onClick={() => !isProcessing && handleUseTemplate(template)}
-                  className="w-full h-[165px] rounded-2xl overflow-hidden cursor-pointer group relative transition-all duration-200 hover:-translate-y-1 hover:shadow-xl flex flex-col justify-between"
-                  style={{ backgroundColor: bgColor }}
+                  className={`group w-full h-[155px] flex flex-col justify-between rounded-md bg-white border border-slate-300 hover:border-slate-400 hover:shadow-md transition-all ${
+                    isMenuOpen ? "z-50 relative" : "z-10 relative"
+                  }`}
                 >
-                  {/* Card Header & Content */}
-                  <div className="p-4 flex flex-col h-full relative z-10">
-                    <div className="flex-1">
-                      <p className="text-white font-bold text-sm leading-snug max-w-[170px]">
-                        {template.title || "Untitled Template"}
-                        <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <ArrowRight className="w-3.5 h-3.5 inline" />
-                        </span>
-                      </p>
-                      {template.description && (
-                        <p className="text-white/75 text-[11px] mt-1.5 line-clamp-2 leading-tight font-normal">
-                          {template.description}
-                        </p>
-                      )}
-                    </div>
+                  {/* Top Image Portion */}
+                  <div className="h-[105px] w-full relative overflow-hidden rounded-t-md bg-slate-100 shrink-0">
+                    <img
+                      src={imageUrl}
+                      alt={template.title || "Template Preview"}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
 
-                    <div className="mt-auto flex items-center justify-between">
-                      <span className="px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white text-[9px] font-semibold tracking-wide">
-                        {template.category || "General"}
-                      </span>
+                    {/* Top Left Category Badge */}
+                    <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-white text-[9px] font-semibold uppercase tracking-wider z-10">
+                      {template.category || "General"}
+                    </span>
 
-                      {isProcessing && (
-                        <Loader2 className="w-4 h-4 text-white animate-spin" />
+                    {/* Top Right 3-Dots Action Button */}
+                    <div className="absolute top-2.5 right-2.5 z-20">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(isMenuOpen ? null : template.id);
+                        }}
+                        className="p-1 rounded-md bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer backdrop-blur-xs"
+                      >
+                        <MoreHorizontal className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {isMenuOpen && (
+                        <div className="absolute right-0 top-7 bg-white rounded-md shadow-2xl border border-slate-300 py-1.5 z-50 min-w-[140px] text-xs font-medium text-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                              toast("Template preview", { icon: "👀" });
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 w-full hover:bg-slate-100 text-slate-800 font-semibold cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-500" /> Preview
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(null);
+                              !isProcessing && handleUseTemplate(template);
+                            }}
+                            disabled={isProcessing}
+                            className="flex items-center gap-2 px-3 py-1.5 w-full hover:bg-indigo-50 text-indigo-700 font-bold cursor-pointer"
+                          >
+                            {isProcessing ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                            )}
+                            <span>Get template</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Optional Theme Image Overlay Thumbnail */}
-                  {hasThemeBg && (
-                    <div className="absolute bottom-2 right-2 w-16 h-12 rounded-lg overflow-hidden shadow-lg opacity-80 group-hover:opacity-100 transition-opacity border border-white/20 pointer-events-none">
-                      <img
-                        src={themeData.backgroundValue}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
+                  {/* Bottom Text Portion */}
+                  <div className="px-3 py-2 border-t border-slate-200 bg-white shrink-0 rounded-b-md">
+                    <p className="text-xs font-bold text-slate-900 truncate leading-tight" title={template.title}>
+                      {template.title || "Untitled Template"}
+                    </p>
+                    <p className="text-[10px] text-slate-500 mt-0.5 leading-none font-medium">
+                      {slideCount} slides
+                    </p>
+                  </div>
                 </div>
               );
             })}

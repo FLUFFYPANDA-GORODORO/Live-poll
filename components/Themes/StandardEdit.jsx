@@ -318,6 +318,7 @@ export default function StandardEdit({
   handleSavePoll,
   handleCreatePoll,
   router,
+  onBack,
   themeDropdown,
   selectedThemeId,
   isCreateMode = false,
@@ -548,7 +549,13 @@ export default function StandardEdit({
       <header className="h-16 bg-white border-b border-slate-200 px-5 flex items-center justify-between shrink-0 z-30 text-slate-900">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push("/home")}
+            onClick={() => {
+              if (onBack) {
+                onBack();
+              } else {
+                router.push("/home");
+              }
+            }}
             className="p-2 rounded-md hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
             title="Back to Home"
           >
@@ -709,7 +716,7 @@ export default function StandardEdit({
                   className="text-2xl font-extrabold tracking-tight text-center mb-8"
                   style={{ color: themeStyles.primaryTextColor || "#000000" }}
                 >
-                  Select Slide Layout
+                  Select Slide Type
                 </h2>
 
                 <div className="grid grid-cols-6 gap-3.5 w-full max-w-4xl">
@@ -1358,7 +1365,25 @@ export default function StandardEdit({
                     if (hasUserEdits) {
                       setPendingTemplate(template);
                     } else {
-                      executeApplyTemplate(template);
+                      if (template?.questions?.length > 0) {
+                        setQuestions(
+                          template.questions.map((q) => ({
+                            text: q.text || "",
+                            type: q.type || "MultipleChoice",
+                            visualization: q.visualization || "Bars",
+                            imageUrl: q.imageUrl || "",
+                            elements: q.elements || [],
+                            backgroundColor: q.backgroundColor || "#FFFFFF",
+                            backgroundImage: q.backgroundImage || "",
+                            showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+                            showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+                            allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
+                            options: q.options?.map((o) => (typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" })) || [],
+                          }))
+                        );
+                        if (template.title && setTitle) setTitle(template.title);
+                        toast.success(`Template '${template.title}' applied!`);
+                      }
                     }
                   }}
                   router={router}
@@ -1557,7 +1582,27 @@ export default function StandardEdit({
                     return;
                   }
 
-                  await executeApplyTemplate(pendingTemplate);
+                  const templateToApply = pendingTemplate;
+                  setPendingTemplate(null);
+                  if (templateToApply?.questions?.length > 0) {
+                    setQuestions(
+                      templateToApply.questions.map((q) => ({
+                        text: q.text || "",
+                        type: q.type || "MultipleChoice",
+                        visualization: q.visualization || "Bars",
+                        imageUrl: q.imageUrl || "",
+                        elements: q.elements || [],
+                        backgroundColor: q.backgroundColor || "#FFFFFF",
+                        backgroundImage: q.backgroundImage || "",
+                        showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+                        showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+                        allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
+                        options: q.options?.map((o) => (typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" })) || [],
+                      }))
+                    );
+                    if (templateToApply.title) setTitle(templateToApply.title);
+                    toast.success(`Template '${templateToApply.title}' applied!`);
+                  }
                 }}
                 className="w-full py-2.5 px-4 rounded-md bg-slate-950 hover:bg-slate-900 text-white font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
@@ -1566,8 +1611,28 @@ export default function StandardEdit({
 
               <button
                 type="button"
-                onClick={async () => {
-                  await executeApplyTemplate(pendingTemplate);
+                onClick={() => {
+                  const templateToApply = pendingTemplate;
+                  setPendingTemplate(null);
+                  if (templateToApply?.questions?.length > 0) {
+                    setQuestions(
+                      templateToApply.questions.map((q) => ({
+                        text: q.text || "",
+                        type: q.type || "MultipleChoice",
+                        visualization: q.visualization || "Bars",
+                        imageUrl: q.imageUrl || "",
+                        elements: q.elements || [],
+                        backgroundColor: q.backgroundColor || "#FFFFFF",
+                        backgroundImage: q.backgroundImage || "",
+                        showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
+                        showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
+                        allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
+                        options: q.options?.map((o) => (typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" })) || [],
+                      }))
+                    );
+                    if (templateToApply.title) setTitle(templateToApply.title);
+                    toast.success(`Template '${templateToApply.title}' applied!`);
+                  }
                 }}
                 className="w-full py-2.5 px-4 rounded-md bg-red-50 hover:bg-red-100 text-red-600 font-bold text-sm transition-all flex items-center justify-center gap-2 cursor-pointer border border-red-200"
               >
@@ -1710,61 +1775,43 @@ function TemplateDrawerSection({ user, onApplyTemplate, router }) {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 w-full">
-          {templates.map((t) => (
-            <div
-              key={t.id}
-              className="rounded-md border border-slate-300 bg-white overflow-hidden shadow-2xs hover:border-slate-950 hover:shadow-md transition-all flex flex-col group relative"
-            >
-              {/* Top Thumbnail / Preview Area */}
-              <div className="h-24 bg-slate-100 p-2 flex flex-col justify-between relative overflow-hidden">
-                {t.thumbnailUrl ? (
+          {templates.map((t) => {
+            const imageUrl = "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786174032/polls/images/aesthetic-wallpaper-1_imvlrb.jpg";
+            const slideCount = t.questions?.length || 5;
+
+            return (
+              <div
+                key={t.id}
+                onClick={() => onApplyTemplate(t)}
+                className="group w-full h-[115px] flex flex-col justify-between rounded-md bg-white border border-slate-300 hover:border-slate-400 hover:shadow-md transition-all cursor-pointer relative overflow-hidden"
+              >
+                {/* Top Image Portion */}
+                <div className="h-[75px] w-full relative overflow-hidden rounded-t-md bg-slate-100 shrink-0">
                   <img
-                    src={t.thumbnailUrl}
-                    alt={t.title}
-                    className="w-full h-full object-cover rounded-md"
+                    src={imageUrl}
+                    alt={t.title || "Template Preview"}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-between gap-1 p-0.5">
-                    {/* Sample Question Text */}
-                    <div className="flex-1 min-w-0 pr-1">
-                      <p className="text-[10px] font-semibold text-slate-800 line-clamp-2 leading-tight">
-                        {t.questions?.[0]?.text || "Sales quiz"}
-                      </p>
-                    </div>
-
-                    {/* Sample Mini Vertical Bar Chart */}
-                    <div className="w-12 h-full flex items-end justify-end gap-1 shrink-0 pt-1">
-                      <div className="flex flex-col items-center flex-1 h-full justify-end">
-                        <div className="w-full bg-slate-900 rounded-t-xs h-8" />
-                      </div>
-                      <div className="flex flex-col items-center flex-1 h-full justify-end">
-                        <div className="w-full bg-slate-500 rounded-t-xs h-14" />
-                      </div>
-                    </div>
+                  <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-white text-[8px] font-semibold uppercase tracking-wider z-10">
+                    {t.category || "Template"}
+                  </span>
+                  <div className="absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-indigo-600 text-white rounded-md p-1 shadow-xs z-10">
+                    <Sparkles className="w-2.5 h-2.5" />
                   </div>
-                )}
+                </div>
 
-                {/* Get Button in Top Right Corner */}
-                <button
-                  type="button"
-                  onClick={() => onApplyTemplate(t)}
-                  className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md bg-slate-950 hover:bg-slate-900 text-white font-bold text-[10px] shadow-2xs transition-all flex items-center gap-1 cursor-pointer z-10"
-                >
-                  <Sparkles className="w-3 h-3" /> Get
-                </button>
+                {/* Bottom Text Portion */}
+                <div className="px-2 py-1.5 border-t border-slate-200 bg-white shrink-0 rounded-b-md">
+                  <p className="text-[11px] font-bold text-slate-900 truncate leading-tight" title={t.title}>
+                    {t.title || "Untitled Template"}
+                  </p>
+                  <p className="text-[9px] text-slate-500 mt-0.5 leading-none font-medium">
+                    {slideCount} slides
+                  </p>
+                </div>
               </div>
-
-              {/* Bottom Info Section below Thumbnail */}
-              <div className="p-2.5 bg-white">
-                <h5 className="font-bold text-xs text-slate-900 truncate" title={t.title}>
-                  {t.title}
-                </h5>
-                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
-                  {t.questions?.length || 2} slides
-                </p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

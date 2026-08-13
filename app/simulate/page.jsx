@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Users, X, Copy, Check, ChevronLeft, ChevronRight, Play, Square, Trophy, RotateCcw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 const GLOBAL_STYLE_ID = "bidding-present-styles-simulate";
 
@@ -546,13 +547,17 @@ export default function BiddingSimulatePage() {
     router.push("/home");
   };
 
+  const [showConcludeConfirm, setShowConcludeConfirm] = useState(false);
+
   const handleEndPoll = () => {
-    if (confirm("Conclude cohort bidding run? This concludes the session.")) {
-      setPoll((prev) => ({
-        ...prev,
-        biddingClosed: true
-      }));
-    }
+    setShowConcludeConfirm(true);
+  };
+
+  const confirmEndPoll = () => {
+    setPoll((prev) => ({
+      ...prev,
+      biddingClosed: true
+    }));
   };
 
   const handlePageQuestion = (direction) => {
@@ -1323,6 +1328,16 @@ function QrCodeModal({ theme, pollId, onClose, isSynergy, isMasterclass }) {
           <p className="text-3xl font-bold font-mono mt-1 text-white tracking-widest">{pollId}</p>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showConcludeConfirm}
+        title="Conclude Session"
+        message="Conclude cohort bidding run? This concludes the session."
+        confirmText="Conclude"
+        isDanger={true}
+        onConfirm={confirmEndPoll}
+        onClose={() => setShowConcludeConfirm(false)}
+      />
     </div>
   );
 }

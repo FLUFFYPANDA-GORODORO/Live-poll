@@ -5,6 +5,7 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 import { getThemeStyles } from "@/lib/themeHelper";
 import {
   Plus,
@@ -15,6 +16,8 @@ import {
   Trash2,
   RotateCcw,
   X,
+  Sparkles,
+  Eye,
 } from "lucide-react";
 
 export default function HomeOutlet() {
@@ -175,26 +178,43 @@ export default function HomeOutlet() {
     });
   };
 
-  const handleDeletePoll = async (e, pollId) => {
+  const [deletePollId, setDeletePollId] = useState(null);
+
+  const handleDeletePoll = (e, pollId) => {
     e.stopPropagation();
     setOpenMenuId(null);
-    if (!confirm("Delete this presentation?")) return;
+    setDeletePollId(pollId);
+  };
+
+  const confirmDeletePoll = async () => {
+    if (!deletePollId) return;
     try {
-      await deletePoll(pollId);
+      await deletePoll(deletePollId);
       toast.success("Deleted!");
     } catch {
       toast.error("Failed to delete");
+    } finally {
+      setDeletePollId(null);
     }
   };
 
-  const handleRestartPoll = async (e, pollId) => {
+  const [restartPollId, setRestartPollId] = useState(null);
+
+  const handleRestartPoll = (e, pollId) => {
     e.stopPropagation();
     setOpenMenuId(null);
+    setRestartPollId(pollId);
+  };
+
+  const confirmRestartPoll = async () => {
+    if (!restartPollId) return;
     try {
-      await restartPoll(pollId);
-      toast.success("Restarted!");
+      await restartPoll(restartPollId);
+      toast.success("Presentation restarted!");
     } catch {
-      toast.error("Failed to restart");
+      toast.error("Failed to restart presentation");
+    } finally {
+      setRestartPollId(null);
     }
   };
 
@@ -253,36 +273,48 @@ export default function HomeOutlet() {
       {/* ── Content area (seamless from gradient) ── */}
       <div className="px-8 md:px-10 pb-16">
 
-        {/* ── Continue Designing / My Polls (Only shown if polls exist or loading) ── */}
-        {(loading || (polls && polls.length > 0)) && (
-          <section className="mt-10">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-slate-900">
-                Continue editing
-              </h2>
-              {polls?.length > 0 && (
-                <button
-                  onClick={() => router.push("/home/presentations")}
-                  className="text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1 cursor-pointer"
-                >
-                  See all
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+        {/* ── Continue where you left off / My Polls ── */}
+        <section className="mt-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-slate-900">
+              Continue where you left off
+            </h2>
+            {polls?.length > 0 && (
+              <button
+                onClick={() => router.push("/home/presentations")}
+                className="text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1 cursor-pointer"
+              >
+                See all
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
-            {loading ? (
-              <div className="grid grid-cols-5 gap-4.5 w-full">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div
-                    key={i}
-                    className="w-full h-[155px] rounded-xl bg-slate-100 animate-pulse"
-                  />
-                ))}
+          {loading ? (
+            <div className="grid grid-cols-5 gap-4.5 w-full">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="w-full h-[155px] rounded-xl bg-slate-100 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-5 gap-4.5 w-full">
+              {/* 1st Card: New presentation */}
+              <div
+                onClick={() => router.push("/home/create")}
+                className="w-full h-[155px] rounded-md border-2 border-dashed border-slate-300 hover:border-slate-800 bg-white hover:bg-slate-50/80 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col items-center justify-center group p-4 text-center select-none"
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-100 group-hover:bg-slate-900 text-slate-500 group-hover:text-white flex items-center justify-center transition-colors shadow-2xs mb-2">
+                  <Plus className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <span className="text-xs font-bold text-slate-800 group-hover:text-slate-900 transition-colors">
+                  New presentation
+                </span>
               </div>
-            ) : (
-              <div className="grid grid-cols-5 gap-4.5 w-full">
-                {(polls || []).slice(0, 5).map((poll) => {
+
+              {(polls || []).slice(0, 4).map((poll) => {
                   // Compute exact theme styles for this poll
                   const themeStyles = getThemeStyles(poll.theme);
                   const isImageTheme = poll.theme?.backgroundType === "image" && Boolean(poll.theme?.backgroundValue);
@@ -391,7 +423,6 @@ export default function HomeOutlet() {
               </div>
             )}
           </section>
-        )}
 
         {/* ── Templates Section ── */}
         {templates && templates.length > 0 && (
@@ -401,52 +432,85 @@ export default function HomeOutlet() {
             </h2>
 
             <div className="grid grid-cols-5 gap-4.5 w-full">
-              {templates.slice(0, 5).map((template, idx) => {
-                const bgColor = templateColors[idx % templateColors.length];
-                const themeData = template.theme;
-                const hasThemeBg =
-                  themeData?.backgroundType === "image" &&
-                  themeData?.backgroundValue;
+              {templates.slice(0, 5).map((template) => {
+                const imageUrl = "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786174032/polls/images/aesthetic-wallpaper-1_imvlrb.jpg";
+                const slideCount = template.questions?.length || template.slidesCount || Math.floor(Math.random() * 6) + 5;
+                const menuKey = `template-${template.id}`;
+                const isMenuOpen = openMenuId === menuKey;
 
                 return (
                   <div
                     key={template.id}
-                    onClick={() => handleUseTemplate(template)}
-                    className="w-full h-[155px] rounded-xl overflow-hidden cursor-pointer group relative transition-all hover:-translate-y-1 hover:shadow-xl"
-                    style={{ backgroundColor: bgColor }}
+                    className={`group w-full h-[155px] flex flex-col justify-between rounded-md bg-white border border-slate-300 hover:border-slate-400 hover:shadow-md transition-all ${
+                      isMenuOpen ? "z-50 relative" : "z-10 relative"
+                    }`}
                   >
-                    {/* Card content */}
-                    <div className="p-4 flex flex-col h-full relative z-10">
-                      <div className="flex-1">
-                        <p className="text-white font-bold text-sm leading-snug max-w-[170px]">
-                          {template.title || "Untitled Template"}
-                          <span className="inline-block ml-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ArrowRight className="w-3.5 h-3.5 inline" />
-                          </span>
-                        </p>
-                        {template.description && (
-                          <p className="text-white/70 text-[11px] mt-1 line-clamp-2">
-                            {template.description}
-                          </p>
-                        )}
-                      </div>
+                    {/* Top Image Portion */}
+                    <div className="h-[105px] w-full relative overflow-hidden rounded-t-md bg-slate-100 shrink-0">
+                      <img
+                        src={imageUrl}
+                        alt={template.title || "Template Preview"}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
 
-                      <div className="mt-auto">
-                        <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-semibold">
-                          {template.category || "General"}
-                        </span>
+                      {/* Top Left Category Badge */}
+                      <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-md text-white text-[9px] font-semibold uppercase tracking-wider z-10">
+                        {template.category || "General"}
+                      </span>
+
+                      {/* Top Right 3-Dots Action Button */}
+                      <div className="absolute top-2.5 right-2.5 z-20">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(isMenuOpen ? null : menuKey);
+                          }}
+                          className="p-1 rounded-md bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer backdrop-blur-xs"
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Dropdown Menu */}
+                        {isMenuOpen && (
+                          <div className="absolute right-0 top-7 bg-white rounded-md shadow-2xl border border-slate-300 py-1.5 z-50 min-w-[140px] text-xs font-medium text-slate-800 animate-in fade-in zoom-in-95 duration-100">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(null);
+                                toast("Template preview", { icon: "👀" });
+                              }}
+                              className="flex items-center gap-2 px-3 py-1.5 w-full hover:bg-slate-100 text-slate-800 font-semibold cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5 text-slate-500" /> Preview
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(null);
+                                handleUseTemplate(template);
+                              }}
+                              className="flex items-center gap-2 px-3 py-1.5 w-full hover:bg-indigo-50 text-indigo-700 font-bold cursor-pointer"
+                            >
+                              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>Get template</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {hasThemeBg && (
-                      <div className="absolute bottom-2 right-2 w-16 h-12 rounded-md overflow-hidden shadow-lg opacity-80 group-hover:opacity-100 transition-opacity border border-white/20">
-                        <img
-                          src={themeData.backgroundValue}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
+                    {/* Bottom Text Portion */}
+                    <div className="px-3 py-2 border-t border-slate-200 bg-white shrink-0 rounded-b-md">
+                      <p className="text-xs font-bold text-slate-900 truncate leading-tight" title={template.title}>
+                        {template.title || "Untitled Template"}
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-none font-medium">
+                        {slideCount} slides
+                      </p>
+                    </div>
                   </div>
                 );
               })}
@@ -454,6 +518,26 @@ export default function HomeOutlet() {
           </section>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(deletePollId)}
+        title="Delete presentation"
+        message="Are you sure you want to delete this presentation? This action cannot be undone."
+        confirmText="Delete"
+        isDanger={true}
+        onConfirm={confirmDeletePoll}
+        onClose={() => setDeletePollId(null)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(restartPollId)}
+        title="Reset Presentation Responses?"
+        message="Restarting will permanently delete all stored responses, votes, and participant submissions for this presentation. Your slides and questions will remain intact."
+        confirmText="Reset & Restart"
+        isDanger={true}
+        onConfirm={confirmRestartPoll}
+        onClose={() => setRestartPollId(null)}
+      />
     </div>
   );
 }

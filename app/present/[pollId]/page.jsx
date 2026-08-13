@@ -6,6 +6,7 @@ import { usePollStore } from "@/lib/store/usePollStore";
 import { useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import toast from "react-hot-toast";
+import ConfirmModal from "@/components/ConfirmModal";
 import { Loader2 } from "lucide-react";
 import { parseTheme } from "@/lib/themeHelper";
 import StandardPresent from "@/components/Themes/StandardPresent";
@@ -148,17 +149,19 @@ export default function PresentationMode() {
     }
   };
 
-  const handleEndPoll = async () => {
-    if (
-      confirm("End this poll? Participants will no longer be able to vote.")
-    ) {
-      try {
-        await endPoll(pollId);
-        toastSuccess("Poll ended");
-        router.push("/home");
-      } catch (err) {
-        toastError("Failed to end poll");
-      }
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+
+  const handleEndPoll = () => {
+    setShowEndConfirm(true);
+  };
+
+  const confirmEndPoll = async () => {
+    try {
+      await endPoll(pollId);
+      toastSuccess("Poll ended");
+      router.push("/home");
+    } catch (err) {
+      toastError("Failed to end poll");
     }
   };
 
@@ -273,6 +276,15 @@ export default function PresentationMode() {
             </span>
           ))}
         </div>
+        <ConfirmModal
+          isOpen={showEndConfirm}
+          title="End Poll"
+          message="Are you sure you want to end this poll? Participants will no longer be able to vote."
+          confirmText="End Poll"
+          isDanger={true}
+          onConfirm={confirmEndPoll}
+          onClose={() => setShowEndConfirm(false)}
+        />
       </div>
     </ProtectedRoute>
   );

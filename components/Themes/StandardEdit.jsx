@@ -29,6 +29,7 @@ import {
   Upload,
   AlertTriangle,
   Layout,
+  LayoutGrid,
   Pencil
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
@@ -977,7 +978,15 @@ export default function StandardEdit({
                     >
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const currentType = activeQuestion?.type || "MultipleChoice";
+                          const currentType = activeQuestion?.type;
+                          if (!currentType || currentType === "Unselected") {
+                            return (
+                              <>
+                                <LayoutGrid className="w-4 h-4 text-indigo-600" />
+                                <span>Slide Type</span>
+                              </>
+                            );
+                          }
                           const config = SLIDE_TYPE_CONFIG[currentType] || SLIDE_TYPE_CONFIG.MultipleChoice;
                           const IconComp = config.icon;
                           return (
@@ -1004,7 +1013,7 @@ export default function StandardEdit({
                       <div className="absolute top-full left-0 mt-2 w-56 bg-white border border-slate-200 rounded-md shadow-2xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-150">
                         {Object.entries(SLIDE_TYPE_CONFIG).map(([typeKey, cfg]) => {
                           const IconComp = cfg.icon;
-                          const isSelected = (activeQuestion?.type || "MultipleChoice") === typeKey;
+                          const isSelected = activeQuestion?.type === typeKey;
 
                           return (
                             <button
@@ -1067,7 +1076,17 @@ export default function StandardEdit({
             <div className="flex-1 overflow-y-auto overflow-x-visible p-5">
               {/* CONTENT DRAWER */}
               {activeRightTab === "content" && (
-                activeQuestion?.type === "Content" ? (
+                !activeQuestion?.type || activeQuestion?.type === "Unselected" ? (
+                  <div className="flex flex-col items-center justify-center text-center p-6 space-y-3 bg-slate-50 border border-dashed border-slate-300 rounded-lg my-4">
+                    <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                      <LayoutGrid className="w-5 h-5" />
+                    </div>
+                    <h3 className="text-sm font-bold text-slate-800">Select a Slide Type</h3>
+                    <p className="text-xs text-slate-500 max-w-[200px] leading-relaxed">
+                      Choose a layout type from the screen preview to customize your question & options.
+                    </p>
+                  </div>
+                ) : activeQuestion?.type === "Content" ? (
                   <ExcalidrawStylePanel
                     question={activeQuestion}
                     selectedElementId={selectedCanvasElementId}

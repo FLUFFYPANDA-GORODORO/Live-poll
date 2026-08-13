@@ -37,6 +37,8 @@ export default function CreatePoll() {
   // Local Storage Key
   const STORAGE_KEY = "rapidpolls_create_draft";
 
+  const [isLoaded, setIsLoaded] = useState(false);
+
   // Load initial draft from localStorage if present
   useEffect(() => {
     try {
@@ -49,18 +51,21 @@ export default function CreatePoll() {
       }
     } catch (err) {
       console.warn("Failed to load create draft from localStorage", err);
+    } finally {
+      setIsLoaded(true);
     }
   }, []);
 
-  // Save changes to localStorage on edit
+  // Save changes to localStorage on edit (only after initial load is complete)
   useEffect(() => {
+    if (!isLoaded) return;
     try {
       const draft = { title, questions, selectedThemeId };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
     } catch (err) {
       console.warn("Failed to save create draft to localStorage", err);
     }
-  }, [title, questions, selectedThemeId]);
+  }, [title, questions, selectedThemeId, isLoaded]);
 
   // Unsaved changes tracking
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);

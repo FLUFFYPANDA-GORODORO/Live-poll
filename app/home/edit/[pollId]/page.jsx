@@ -28,6 +28,7 @@ export default function EditPoll() {
 
   const [initialSnapshot, setInitialSnapshot] = useState(null);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const STORAGE_KEY = `rapidpolls_edit_draft_${pollId}`;
 
   useEffect(() => {
@@ -98,6 +99,7 @@ export default function EditPoll() {
         setSelectedThemeId(loadedThemeId);
         setQuestions(loadedQuestions);
         setInitialSnapshot(JSON.stringify({ title: data.title || "", questions: loadedQuestions, selectedThemeId: data.themeId || "11111111-1111-1111-1111-111111111111" }));
+        setIsLoaded(true);
       } catch (err) {
         console.error("Error loading poll:", err);
         toast.error("Failed to load poll");
@@ -109,13 +111,13 @@ export default function EditPoll() {
 
   // Persist edits to localStorage
   useEffect(() => {
-    if (!pollId || !initialSnapshot) return;
+    if (!pollId || !initialSnapshot || !isLoaded) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ title, questions, selectedThemeId }));
     } catch (e) {
       console.warn("Error saving edit draft to localStorage", e);
     }
-  }, [pollId, title, questions, selectedThemeId, initialSnapshot]);
+  }, [pollId, title, questions, selectedThemeId, initialSnapshot, isLoaded]);
 
   // Track if user made actual changes compared to initial state
   const currentSnapshot = JSON.stringify({ title, questions, selectedThemeId });

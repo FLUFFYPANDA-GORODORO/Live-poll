@@ -273,13 +273,13 @@ export default function HomeOutlet() {
       {/* ── Content area (seamless from gradient) ── */}
       <div className="px-8 md:px-10 pb-16">
 
-        {/* ── Continue where you left off / My Polls ── */}
-        <section className="mt-10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900">
-              Continue where you left off
-            </h2>
-            {polls?.length > 0 && (
+        {/* ── Continue where you left off / My Polls (Only shown when at least 1 presentation exists) ── */}
+        {!loading && polls && polls.length > 0 && (
+          <section className="mt-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900">
+                Continue where you left off
+              </h2>
               <button
                 onClick={() => router.push("/home/presentations")}
                 className="text-sm font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1 cursor-pointer"
@@ -287,19 +287,8 @@ export default function HomeOutlet() {
                 See all
                 <ChevronRight className="w-4 h-4" />
               </button>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-5 gap-4.5 w-full">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="w-full h-[155px] rounded-xl bg-slate-100 animate-pulse"
-                />
-              ))}
             </div>
-          ) : (
+
             <div className="grid grid-cols-5 gap-4.5 w-full">
               {/* 1st Card: New presentation */}
               <div
@@ -421,8 +410,8 @@ export default function HomeOutlet() {
                   );
                 })}
               </div>
-            )}
           </section>
+        )}
 
         {/* ── Templates Section ── */}
         {templates && templates.length > 0 && (
@@ -433,7 +422,7 @@ export default function HomeOutlet() {
 
             <div className="grid grid-cols-5 gap-4.5 w-full">
               {templates.slice(0, 5).map((template) => {
-                const imageUrl = "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786174032/polls/images/aesthetic-wallpaper-1_imvlrb.jpg";
+                const imageUrl = template.imageUrl || template.ImageUrl || "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786185975/polls/images/aesthetic-wallpaper-1_cjqchq.jpg";
                 const slideCount = template.questions?.length || template.slidesCount || Math.floor(Math.random() * 6) + 5;
                 const menuKey = `template-${template.id}`;
                 const isMenuOpen = openMenuId === menuKey;

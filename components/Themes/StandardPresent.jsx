@@ -433,20 +433,22 @@ export default function StandardPresent({
           </div>
         ) : (
           <>
-            <div className={`w-full max-w-6xl mx-auto mb-6 mt-2 ${
-              currentQuestion?.alignment === "left"
-                ? "text-left"
-                : currentQuestion?.alignment === "right"
-                ? "text-right"
-                : "text-center"
-            }`}>
-              <h2
-                className={`${getQuestionFontSize(currentQuestion?.text)} font-light leading-tight drop-shadow-lg tracking-wide`}
-                style={{ color: themeStyles.primaryTextColor }}
-              >
-                {currentQuestion?.text || "No question"}
-              </h2>
-            </div>
+            {!isContent && (
+              <div className={`w-full max-w-6xl mx-auto mb-6 mt-2 ${
+                currentQuestion?.alignment === "left"
+                  ? "text-left"
+                  : currentQuestion?.alignment === "right"
+                  ? "text-right"
+                  : "text-center"
+              }`}>
+                <h2
+                  className={`${getQuestionFontSize(currentQuestion?.text)} font-light leading-tight drop-shadow-lg tracking-wide`}
+                  style={{ color: themeStyles.primaryTextColor }}
+                >
+                  {currentQuestion?.text || "No question"}
+                </h2>
+              </div>
+            )}
 
             {isContent ? (
               <ContentPresentView question={currentQuestion} themeStyles={themeStyles} />

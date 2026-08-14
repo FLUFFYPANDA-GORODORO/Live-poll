@@ -523,8 +523,43 @@ export default function StandardPoll({
             </div>
           )}
 
+          {/* Content Slide (Informational) */}
+          {isContent && (
+            <div className="p-4 sm:p-6 space-y-4">
+              {activeQuestion?.imageUrl && (
+                <div className="w-full max-h-56 rounded-xl overflow-hidden shadow-lg border border-slate-200/20 mb-3">
+                  <img
+                    src={activeQuestion.imageUrl}
+                    alt={activeQuestion.text || "Presentation Slide"}
+                    className="w-full h-full object-cover max-h-56"
+                  />
+                </div>
+              )}
+              {(() => {
+                const [titleText, ...bodyParts] = (activeQuestion?.text || "").split("\n\n");
+                const bodyText = bodyParts.join("\n\n");
+                return (
+                  <div className="space-y-3 text-left">
+                    <h3 className="text-lg sm:text-xl font-bold" style={{ color: themeStyles.primaryTextColor }}>
+                      {titleText || activeQuestion?.text}
+                    </h3>
+                    {bodyText && (
+                      <div className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed opacity-90" style={{ color: themeStyles.secondaryTextColor }}>
+                        {bodyText}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              <div className="pt-3 border-t border-slate-200/20 flex items-center justify-center gap-2 text-xs font-semibold" style={{ color: themeStyles.accentColor }}>
+                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Presenter is sharing this slide
+              </div>
+            </div>
+          )}
+
           {/* Answer options (MultipleChoice) */}
-          {!isWordCloud && !isRanking && !isOpenEnded && (
+          {!isWordCloud && !isRanking && !isOpenEnded && !isContent && (
             <div className="p-2.5 sm:p-3.5 space-y-2 sm:space-y-2.5">
               {activeQuestion.options.map((option, idx) => {
                 const isOptionSelected = hasVoted && selectedOption === idx;

@@ -54,6 +54,14 @@ const SLIDE_TYPE_CONFIG = {
   Content: { label: "Content", icon: Layout, color: "text-rose-600", bg: "bg-rose-50" },
 };
 
+export const normalizeQuestionType = (type) => {
+  if (type === 1 || type === "1" || String(type).toLowerCase() === "wordcloud") return "WordCloud";
+  if (type === 2 || type === "2" || String(type).toLowerCase() === "openended") return "OpenEnded";
+  if (type === 3 || type === "3" || String(type).toLowerCase() === "ranking") return "Ranking";
+  if (type === 4 || type === "4" || String(type).toLowerCase() === "content") return "Content";
+  return "MultipleChoice";
+};
+
 function VerticalBarChart({ options, showPercentage = false, paletteColors = DEFAULT_PALETTE, textColor = null, fontFamily = null }) {
   const colors = paletteColors?.length ? paletteColors : DEFAULT_PALETTE;
   const generateSampleVotes = () => {
@@ -263,7 +271,8 @@ function RankingPreview({ options, paletteColors = DEFAULT_PALETTE, textColor = 
 }
 
 function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete }) {
-  const qType = question.type || "MultipleChoice";
+  const normType = normalizeQuestionType(question.type);
+  const typeLabel = SLIDE_TYPE_CONFIG[normType]?.label || normType;
 
   return (
     <div
@@ -295,10 +304,10 @@ function QuestionSlide({ question, index, isActive, onClick, onDelete, canDelete
           </p>
         </div>
 
-        <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium pt-1 border-t border-slate-100">
-          <span className="uppercase">{qType}</span>
-          {qType !== "WordCloud" && qType !== "OpenEnded" && (
-            <span>{question.options?.length || 0} opts</span>
+        <div className="flex items-center justify-between text-[10px] text-slate-500 font-semibold pt-1 border-t border-slate-100">
+          <span className="uppercase tracking-wider text-slate-700 font-bold">{typeLabel}</span>
+          {(normType === "MultipleChoice" || normType === "Ranking") && (
+            <span className="text-slate-400 font-medium">{question.options?.length || 0} opts</span>
           )}
         </div>
       </div>
@@ -671,19 +680,7 @@ export default function StandardEdit({
               </button>
             </div>
           )}
-          {activeQuestion?.type === "Content" ? (
-            <ContentCanvas
-              question={activeQuestion}
-              onChange={(updatedQ) => {
-                const newQuestions = [...questions];
-                newQuestions[activeQuestionIndex] = updatedQ;
-                setQuestions(newQuestions);
-              }}
-              themeStyles={themeStyles}
-              selectedElementId={selectedCanvasElementId}
-              onSelectElementId={setSelectedCanvasElementId}
-            />
-          ) : activeQuestion?.type === "Unselected" || !activeQuestion?.type ? (
+          {activeQuestion?.type === "Unselected" || !activeQuestion?.type ? (
             <div
               className="w-full max-w-4xl rounded-[24px] border-[3.5px] border-slate-900/90 shadow-2xl p-8 md:p-12 min-h-[480px] flex flex-col justify-between relative transition-all overflow-hidden"
               style={{
@@ -862,86 +859,205 @@ export default function StandardEdit({
                 </div>
               ) : <div className="h-4" />}
 
-              <div className="w-full mb-6 text-left">
-                <div
-                  className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-3 shadow-xs transition-all w-full"
-                  style={{
-                    backgroundColor:
-                      themeStyles.primaryTextColor === "#FFFFFF" || themeStyles.primaryTextColor === "#ffffff"
-                        ? "rgba(255, 255, 255, 0.12)"
-                        : "rgba(0, 0, 0, 0.04)",
-                    borderColor: themeStyles.primaryTextColor
-                      ? `${themeStyles.primaryTextColor}33`
-                      : "rgba(255, 255, 255, 0.2)",
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={activeQuestion?.text || ""}
-                    onChange={(e) => updateQuestionText(e.target.value)}
-                    placeholder="Type your question here..."
-                    className={`w-full text-xl md:text-2xl font-bold bg-transparent focus:outline-none placeholder:text-slate-400 ${
-                      activeQuestion?.alignment === "left"
-                        ? "text-left"
-                        : activeQuestion?.alignment === "right"
-                        ? "text-right"
-                        : "text-center"
-                    }`}
-                    style={{
-                      color: themeStyles.primaryTextColor || "#000000",
-                      fontFamily: themeStyles.containerStyle?.fontFamily
-                    }}
-                  />
-                </div>
-              </div>
+              {normalizeQuestionType(activeQuestion?.type) === "Content" ? (
+                <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between p-4 md:p-8 gap-6 my-auto">
+                  {/* Left Side: Title and Formatted Body Text */}
+                  <div className="flex-1 flex flex-col justify-center space-y-4 max-w-xl text-left w-full">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 w-fit">
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-indigo-300">
+                        Presentation Slide
+                      </span>
+                    </div>
 
-              {/* Slide Preview Content */}
-              <div className="flex-1 flex flex-col justify-center my-auto">
-                {activeQuestion?.type === "WordCloud" ? (
-                  <WordCloudPreview />
-                ) : activeQuestion?.type === "OpenEnded" ? (
-                  <OpenEndedPreview />
-                ) : activeQuestion?.type === "Ranking" && activeQuestion?.visualization === "Bars" ? (
-                  <VerticalBarChart
-                    options={activeQuestion?.options || []}
-                    showPercentage={activeQuestion?.showPercentage}
-                    paletteColors={themeStyles.paletteColors}
-                    textColor={themeStyles.primaryTextColor}
-                    fontFamily={themeStyles.containerStyle?.fontFamily}
-                  />
-                ) : activeQuestion?.type === "Ranking" ? (
-                  <RankingPreview
-                    options={activeQuestion?.options || []}
-                    paletteColors={themeStyles.paletteColors}
-                    textColor={themeStyles.primaryTextColor}
-                    fontFamily={themeStyles.containerStyle?.fontFamily}
-                  />
-                ) : activeQuestion?.visualization === "Donut" ? (
-                  <DonutPieChart
-                    options={activeQuestion?.options || []}
-                    isDonut={true}
-                    paletteColors={themeStyles.paletteColors}
-                    textColor={themeStyles.primaryTextColor}
-                    fontFamily={themeStyles.containerStyle?.fontFamily}
-                  />
-                ) : activeQuestion?.visualization === "Pie" ? (
-                  <DonutPieChart
-                    options={activeQuestion?.options || []}
-                    isDonut={false}
-                    paletteColors={themeStyles.paletteColors}
-                    textColor={themeStyles.primaryTextColor}
-                    fontFamily={themeStyles.containerStyle?.fontFamily}
-                  />
-                ) : (
-                  <VerticalBarChart
-                    options={activeQuestion?.options || []}
-                    showPercentage={activeQuestion?.showPercentage}
-                    paletteColors={themeStyles.paletteColors}
-                    textColor={themeStyles.primaryTextColor}
-                    fontFamily={themeStyles.containerStyle?.fontFamily}
-                  />
-                )}
-              </div>
+                    {/* Editable Title Input */}
+                    <div
+                      className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-2 shadow-xs transition-all w-full"
+                      style={{
+                        backgroundColor:
+                          themeStyles.primaryTextColor === "#FFFFFF" || themeStyles.primaryTextColor === "#ffffff"
+                            ? "rgba(255, 255, 255, 0.12)"
+                            : "rgba(0, 0, 0, 0.04)",
+                        borderColor: themeStyles.primaryTextColor
+                          ? `${themeStyles.primaryTextColor}33`
+                          : "rgba(255, 255, 255, 0.2)",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={(activeQuestion?.text || "").split("\n\n")[0] || ""}
+                        onChange={(e) => {
+                          const parts = (activeQuestion?.text || "").split("\n\n");
+                          parts[0] = e.target.value;
+                          updateQuestionText(parts.join("\n\n"));
+                        }}
+                        placeholder="Slide Title..."
+                        className="w-full text-xl md:text-2xl font-black bg-transparent focus:outline-none placeholder:text-slate-400"
+                        style={{
+                          color: themeStyles.primaryTextColor || "#FFFFFF",
+                          fontFamily: themeStyles.containerStyle?.fontFamily,
+                        }}
+                      />
+                    </div>
+
+                    {/* Editable Body / Bullet Points Textarea */}
+                    <div
+                      className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-2.5 shadow-xs transition-all w-full"
+                      style={{
+                        backgroundColor:
+                          themeStyles.primaryTextColor === "#FFFFFF" || themeStyles.primaryTextColor === "#ffffff"
+                            ? "rgba(255, 255, 255, 0.08)"
+                            : "rgba(0, 0, 0, 0.03)",
+                        borderColor: themeStyles.primaryTextColor
+                          ? `${themeStyles.primaryTextColor}33`
+                          : "rgba(255, 255, 255, 0.2)",
+                      }}
+                    >
+                      <textarea
+                        rows={5}
+                        value={(activeQuestion?.text || "").split("\n\n").slice(1).join("\n\n")}
+                        onChange={(e) => {
+                          const title = (activeQuestion?.text || "").split("\n\n")[0] || "";
+                          updateQuestionText(title ? `${title}\n\n${e.target.value}` : e.target.value);
+                        }}
+                        placeholder="Add bullet points or description (e.g. • Point 1 \n• Point 2)..."
+                        className="w-full text-sm md:text-base font-medium bg-transparent focus:outline-none resize-none placeholder:text-slate-400 leading-relaxed"
+                        style={{
+                          color: themeStyles.primaryTextColor || "#FFFFFF",
+                          fontFamily: themeStyles.containerStyle?.fontFamily,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Right Side: Wallpaper Image Preview */}
+                  {activeQuestion?.imageUrl ? (
+                    <div className="w-full md:w-[320px] h-56 md:h-[260px] shrink-0 rounded-xl overflow-hidden shadow-xl border-2 border-white/20 relative group">
+                      <img
+                        src={activeQuestion.imageUrl}
+                        alt="Content Slide Wallpaper"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMediaModalConfig({
+                            isOpen: true,
+                            type: "image",
+                            target: "questionImage",
+                            initialUrl: activeQuestion?.imageUrl || "",
+                            title: "Select Slide Wallpaper Image",
+                            optionIdx: null,
+                          })
+                        }
+                        className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[10px] font-bold transition-all shadow-md cursor-pointer flex items-center gap-1 opacity-0 group-hover:opacity-100"
+                      >
+                        <ImageIcon className="w-3 h-3" /> Change Image
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMediaModalConfig({
+                          isOpen: true,
+                          type: "image",
+                          target: "questionImage",
+                          initialUrl: activeQuestion?.imageUrl || "",
+                          title: "Select Slide Wallpaper Image",
+                          optionIdx: null,
+                        })
+                      }
+                      className="w-full md:w-[260px] h-44 shrink-0 rounded-xl border-2 border-dashed border-white/30 hover:border-white/60 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-2 text-white/70 hover:text-white cursor-pointer"
+                    >
+                      <Upload className="w-6 h-6" />
+                      <span className="text-xs font-semibold">Add Image to Slide</span>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="w-full mb-6 text-left">
+                    <div
+                      className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-3 shadow-xs transition-all w-full"
+                      style={{
+                        backgroundColor:
+                          themeStyles.primaryTextColor === "#FFFFFF" || themeStyles.primaryTextColor === "#ffffff"
+                            ? "rgba(255, 255, 255, 0.12)"
+                            : "rgba(0, 0, 0, 0.04)",
+                        borderColor: themeStyles.primaryTextColor
+                          ? `${themeStyles.primaryTextColor}33`
+                          : "rgba(255, 255, 255, 0.2)",
+                      }}
+                    >
+                      <input
+                        type="text"
+                        value={activeQuestion?.text || ""}
+                        onChange={(e) => updateQuestionText(e.target.value)}
+                        placeholder="Type your question here..."
+                        className={`w-full text-xl md:text-2xl font-bold bg-transparent focus:outline-none placeholder:text-slate-400 ${
+                          activeQuestion?.alignment === "left"
+                            ? "text-left"
+                            : activeQuestion?.alignment === "right"
+                            ? "text-right"
+                            : "text-center"
+                        }`}
+                        style={{
+                          color: themeStyles.primaryTextColor || "#000000",
+                          fontFamily: themeStyles.containerStyle?.fontFamily
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Slide Preview Content */}
+                  <div className="flex-1 flex flex-col justify-center my-auto">
+                    {activeQuestion?.type === "WordCloud" ? (
+                      <WordCloudPreview />
+                    ) : activeQuestion?.type === "OpenEnded" ? (
+                      <OpenEndedPreview />
+                    ) : activeQuestion?.type === "Ranking" && activeQuestion?.visualization === "Bars" ? (
+                      <VerticalBarChart
+                        options={activeQuestion?.options || []}
+                        showPercentage={activeQuestion?.showPercentage}
+                        paletteColors={themeStyles.paletteColors}
+                        textColor={themeStyles.primaryTextColor}
+                        fontFamily={themeStyles.containerStyle?.fontFamily}
+                      />
+                    ) : activeQuestion?.type === "Ranking" ? (
+                      <RankingPreview
+                        options={activeQuestion?.options || []}
+                        paletteColors={themeStyles.paletteColors}
+                        textColor={themeStyles.primaryTextColor}
+                        fontFamily={themeStyles.containerStyle?.fontFamily}
+                      />
+                    ) : activeQuestion?.visualization === "Donut" ? (
+                      <DonutPieChart
+                        options={activeQuestion?.options || []}
+                        isDonut={true}
+                        paletteColors={themeStyles.paletteColors}
+                        textColor={themeStyles.primaryTextColor}
+                        fontFamily={themeStyles.containerStyle?.fontFamily}
+                      />
+                    ) : activeQuestion?.visualization === "Pie" ? (
+                      <DonutPieChart
+                        options={activeQuestion?.options || []}
+                        isDonut={false}
+                        paletteColors={themeStyles.paletteColors}
+                        textColor={themeStyles.primaryTextColor}
+                        fontFamily={themeStyles.containerStyle?.fontFamily}
+                      />
+                    ) : (
+                      <VerticalBarChart
+                        options={activeQuestion?.options || []}
+                        showPercentage={activeQuestion?.showPercentage}
+                        paletteColors={themeStyles.paletteColors}
+                        textColor={themeStyles.primaryTextColor}
+                        fontFamily={themeStyles.containerStyle?.fontFamily}
+                      />
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </main>
@@ -978,8 +1094,8 @@ export default function StandardEdit({
                     >
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const currentType = activeQuestion?.type;
-                          if (!currentType || currentType === "Unselected") {
+                          const currentType = normalizeQuestionType(activeQuestion?.type);
+                          if (!currentType || activeQuestion?.type === "Unselected") {
                             return (
                               <>
                                 <LayoutGrid className="w-4 h-4 text-indigo-600" />
@@ -1086,16 +1202,122 @@ export default function StandardEdit({
                       Choose a layout type from the screen preview to customize your question & options.
                     </p>
                   </div>
-                ) : activeQuestion?.type === "Content" ? (
-                  <ExcalidrawStylePanel
-                    question={activeQuestion}
-                    selectedElementId={selectedCanvasElementId}
-                    onChange={(updatedQ) => {
-                      const newQuestions = [...questions];
-                      newQuestions[activeQuestionIndex] = updatedQ;
-                      setQuestions(newQuestions);
-                    }}
-                  />
+                ) : normalizeQuestionType(activeQuestion?.type) === "Content" ? (
+                  activeQuestion?.elements?.length > 0 ? (
+                    <ExcalidrawStylePanel
+                      question={activeQuestion}
+                      selectedElementId={selectedCanvasElementId}
+                      onChange={(updatedQ) => {
+                        const newQuestions = [...questions];
+                        newQuestions[activeQuestionIndex] = updatedQ;
+                        setQuestions(newQuestions);
+                      }}
+                    />
+                  ) : (
+                    <div className="space-y-5">
+                      {/* Slide Title */}
+                      <div>
+                        <label className="text-xs font-bold text-slate-800 block mb-1.5">
+                          Slide Title
+                        </label>
+                        <input
+                          type="text"
+                          value={(activeQuestion?.text || "").split("\n\n")[0] || ""}
+                          onChange={(e) => {
+                            const parts = (activeQuestion?.text || "").split("\n\n");
+                            parts[0] = e.target.value;
+                            updateQuestionText(parts.join("\n\n"));
+                          }}
+                          placeholder="e.g. Welcome to Today's Lesson"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
+                        />
+                      </div>
+
+                      {/* Slide Body / Bullet Points */}
+                      <div>
+                        <label className="text-xs font-bold text-slate-800 block mb-1.5">
+                          Slide Content / Bullet Points
+                        </label>
+                        <textarea
+                          rows={6}
+                          value={(activeQuestion?.text || "").split("\n\n").slice(1).join("\n\n")}
+                          onChange={(e) => {
+                            const title = (activeQuestion?.text || "").split("\n\n")[0] || "";
+                            updateQuestionText(title ? `${title}\n\n${e.target.value}` : e.target.value);
+                          }}
+                          placeholder="• Understand core concepts&#10;• Explore examples&#10;• Key takeaways"
+                          className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 resize-none shadow-2xs leading-relaxed"
+                        />
+                      </div>
+
+                      {/* Slide Image */}
+                      <div>
+                        <label className="text-xs font-bold text-slate-800 block mb-1.5">
+                          Slide Image / Background
+                        </label>
+                        {activeQuestion?.imageUrl ? (
+                          <div className="space-y-2">
+                            <div className="w-full h-32 rounded-lg overflow-hidden border border-slate-200 shadow-xs relative group">
+                              <img
+                                src={activeQuestion.imageUrl}
+                                alt="Slide Preview"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setMediaModalConfig({
+                                    isOpen: true,
+                                    type: "image",
+                                    target: "questionImage",
+                                    initialUrl: activeQuestion?.imageUrl || "",
+                                    title: "Select Slide Wallpaper Image",
+                                    optionIdx: null,
+                                  })
+                                }
+                                className="flex-1 py-1.5 px-3 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Upload className="w-3.5 h-3.5" /> Replace Image
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newQuestions = [...questions];
+                                  newQuestions[activeQuestionIndex].imageUrl = "";
+                                  setQuestions(newQuestions);
+                                }}
+                                className="p-1.5 rounded-md text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
+                                title="Remove Image"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMediaModalConfig({
+                                isOpen: true,
+                                type: "image",
+                                target: "questionImage",
+                                initialUrl: activeQuestion?.imageUrl || "",
+                                title: "Select Slide Wallpaper Image",
+                                optionIdx: null,
+                              })
+                            }
+                            className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex flex-col items-center justify-center gap-1.5 text-slate-600 cursor-pointer"
+                          >
+                            <ImageIcon className="w-5 h-5 text-slate-400" />
+                            <span className="text-xs font-bold text-slate-700">Add Wallpaper Image</span>
+                            <span className="text-[10px] text-slate-400">Upload or choose from library</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
                 ) : (
                   <div className="space-y-5">
                     {/* Your Question Section */}
@@ -1388,7 +1610,7 @@ export default function StandardEdit({
                         setQuestions(
                           template.questions.map((q) => ({
                             text: q.text || "",
-                            type: q.type || "MultipleChoice",
+                            type: normalizeQuestionType(q.type),
                             visualization: q.visualization || "Bars",
                             imageUrl: q.imageUrl || "",
                             elements: q.elements || [],
@@ -1607,7 +1829,7 @@ export default function StandardEdit({
                     setQuestions(
                       templateToApply.questions.map((q) => ({
                         text: q.text || "",
-                        type: q.type || "MultipleChoice",
+                        type: normalizeQuestionType(q.type),
                         visualization: q.visualization || "Bars",
                         imageUrl: q.imageUrl || "",
                         elements: q.elements || [],
@@ -1637,7 +1859,7 @@ export default function StandardEdit({
                     setQuestions(
                       templateToApply.questions.map((q) => ({
                         text: q.text || "",
-                        type: q.type || "MultipleChoice",
+                        type: normalizeQuestionType(q.type),
                         visualization: q.visualization || "Bars",
                         imageUrl: q.imageUrl || "",
                         elements: q.elements || [],
@@ -1676,7 +1898,8 @@ export default function StandardEdit({
 function TemplateDrawerSection({ user, onApplyTemplate, router }) {
   const [templates, setTemplates] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [usingId, setUsingId] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     const fetchTemplates = async () => {
@@ -1721,81 +1944,79 @@ function TemplateDrawerSection({ user, onApplyTemplate, router }) {
     fetchTemplates();
   }, [user]);
 
-  const executeApplyTemplate = async (template) => {
-    if (!template) return;
-    const toastId = toast.loading(`Loading '${template.title}' template...`);
-    try {
-      let questionsToApply = template.questions || [];
-      if (user?.uid) {
-        const createdPoll = await api.useTemplate(
-          template.id,
-          user.uid,
-          user.email || "user@livepoll.com",
-          user.displayName || "User"
-        );
-        if (createdPoll?.questions?.length > 0) {
-          questionsToApply = createdPoll.questions;
-        }
-      }
+  // Extract unique categories from fetched templates
+  const categories = [
+    "All",
+    ...Array.from(new Set((templates || []).map((t) => t.category).filter(Boolean))),
+  ];
 
-      const cleanedQuestions = questionsToApply.map((q) => {
-        const typeStr = String(q.type || "").toLowerCase();
-        let qType = "MultipleChoice";
-        if (q.type === 1 || q.type === "1" || typeStr === "wordcloud") qType = "WordCloud";
-        else if (q.type === 2 || q.type === "2" || typeStr === "openended") qType = "OpenEnded";
-        else if (q.type === 3 || q.type === "3" || typeStr === "ranking") qType = "Ranking";
+  // Filter templates based on category & search query
+  const filteredTemplates = (templates || []).filter((t) => {
+    const matchesCategory =
+      selectedCategory === "All" ||
+      selectedCategory === "All Categories" ||
+      t.category?.toLowerCase() === selectedCategory.toLowerCase();
 
-        return {
-          text: q.text || "",
-          type: qType,
-          visualization: q.visualization || "Bars",
-          imageUrl: q.imageUrl || "",
-          options: q.options?.map((o) => (typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: o.imageUrl || "" })) || [],
-        };
-      });
+    const matchesSearch =
+      !searchQuery.trim() ||
+      t.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      toast.dismiss(toastId);
-      toast.success(`Template '${template.title}' applied!`);
-      setQuestions(cleanedQuestions);
-      if (setTitle && template.title) {
-        setTitle(template.title);
-      }
-      setActiveQuestionIndex(0);
-    } catch (err) {
-      console.error("Error using template endpoint:", err);
-      toast.dismiss(toastId);
-      const fallbackQuestions = (template.questions || []).map((q) => ({
-        text: q.text || "",
-        type: q.type || "MultipleChoice",
-        visualization: q.visualization || "Bars",
-        imageUrl: "",
-        options: q.options?.map((o) => (typeof o === "string" ? { text: o, imageUrl: "" } : { text: o.text || "", imageUrl: "" })) || [],
-      }));
-      toast.success(`Template '${template.title}' applied!`);
-      setQuestions(fallbackQuestions);
-      if (setTitle && template.title) {
-        setTitle(template.title);
-      }
-      setActiveQuestionIndex(0);
-    } finally {
-      setPendingTemplate(null);
-    }
-  };
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <div className="space-y-4">
-      <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block mb-2">
-        Presentation Templates
-      </label>
+    <div className="space-y-3.5">
+      {/* Header & Filter Controls */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
+          Presentation Templates
+        </label>
+
+        {/* Category Dropdown */}
+        <div className="relative">
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            disabled={loading || templates.length === 0}
+            className="w-full appearance-none px-3 py-2 pr-8 bg-slate-50 hover:bg-slate-100 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {categories.map((cat) => {
+              const count =
+                cat === "All"
+                  ? templates.length
+                  : templates.filter((t) => t.category?.toLowerCase() === cat.toLowerCase()).length;
+              return (
+                <option key={cat} value={cat}>
+                  {cat === "All" ? "All Categories" : cat} ({count})
+                </option>
+              );
+            })}
+          </select>
+          <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+      </div>
 
       {loading ? (
         <div className="flex items-center justify-center py-8 text-slate-400">
           <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading templates...
         </div>
+      ) : filteredTemplates.length === 0 ? (
+        <div className="text-center py-8 px-3 bg-slate-50 rounded-lg border border-dashed border-slate-200">
+          <p className="text-xs font-semibold text-slate-600 mb-1">No templates found</p>
+          <p className="text-[10px] text-slate-400 mb-3">Try selecting another category</p>
+          <button
+            type="button"
+            onClick={() => setSelectedCategory("All")}
+            className="px-2.5 py-1 text-[10px] font-semibold bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-md shadow-xs transition-colors cursor-pointer"
+          >
+            Show All ({templates.length})
+          </button>
+        </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 w-full">
-          {templates.map((t) => {
-            const imageUrl = "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786174032/polls/images/aesthetic-wallpaper-1_imvlrb.jpg";
+        <div className="grid grid-cols-2 gap-2.5 w-full">
+          {filteredTemplates.map((t) => {
+            const imageUrl = t.imageUrl || t.ImageUrl || "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786185975/polls/images/aesthetic-wallpaper-1_cjqchq.jpg";
             const slideCount = t.questions?.length || 5;
 
             return (

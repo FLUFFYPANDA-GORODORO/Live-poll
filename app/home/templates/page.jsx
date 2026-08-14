@@ -154,7 +154,7 @@ export default function TemplatesPage() {
           /* Templates Grid */
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4.5">
             {filteredTemplates.map((template) => {
-              const imageUrl = "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786174032/polls/images/aesthetic-wallpaper-1_imvlrb.jpg";
+              const imageUrl = template.imageUrl || template.ImageUrl || "https://res.cloudinary.com/dkhxnyat4/image/upload/v1786185975/polls/images/aesthetic-wallpaper-1_cjqchq.jpg";
               const isProcessing = usingId === template.id;
               const slideCount = template.questions?.length || template.slidesCount || Math.floor(Math.random() * 6) + 5;
               const isMenuOpen = openMenuId === template.id;

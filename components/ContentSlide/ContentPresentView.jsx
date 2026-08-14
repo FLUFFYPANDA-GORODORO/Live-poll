@@ -5,19 +5,63 @@ import { Code, Video } from "lucide-react";
 
 export default function ContentPresentView({ question, themeStyles = {} }) {
   const elements = question?.elements || [];
-  const bgColor = question?.backgroundColor || themeStyles.backgroundStyle?.backgroundColor || "#FFFFFF";
+  const bgColor = question?.backgroundColor || themeStyles.backgroundStyle?.backgroundColor || "#0F172A";
   const bgImg = question?.backgroundImage;
+  const imageUrl = question?.imageUrl;
 
-  return (
-    <div
-      className="w-full max-w-6xl h-[540px] md:h-[600px] mx-auto rounded-[28px] border-[3px] border-white/20 shadow-2xl relative overflow-hidden my-auto"
-      style={{
-        backgroundColor: bgColor,
-        backgroundImage: bgImg ? `url(${bgImg})` : "none",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}
-    >
+  // Split text into Title and Body if formatted with double newlines
+  const rawText = question?.text || "";
+  const [titleText, ...bodyParts] = rawText.split("\n\n");
+  const bodyText = bodyParts.join("\n\n");
+
+  if (!elements || elements.length === 0) {
+    return (
+      <div
+        className="w-full max-w-6xl min-h-[460px] md:h-[560px] mx-auto rounded-[28px] border-[2px] border-white/20 shadow-2xl relative overflow-hidden my-auto flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8 backdrop-blur-md"
+        style={{
+          backgroundColor: bgColor,
+          backgroundImage: bgImg ? `url(${bgImg})` : "none",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          color: themeStyles.primaryTextColor || "#FFFFFF",
+        }}
+      >
+        {/* Left Side: Title and Formatted Body Text */}
+        <div className="flex-1 flex flex-col justify-center space-y-5 z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15 w-fit">
+            <span className="text-xs uppercase tracking-widest font-bold text-indigo-300">
+              Presentation Slide
+            </span>
+          </div>
+
+          <h1
+            className="text-3xl md:text-5xl font-extrabold tracking-tight leading-tight drop-shadow-md"
+            style={{ color: themeStyles.primaryTextColor || "#FFFFFF" }}
+          >
+            {titleText || "Presentation Title"}
+          </h1>
+
+          {bodyText && (
+            <div className="text-base md:text-xl font-medium opacity-90 leading-relaxed whitespace-pre-wrap space-y-2 text-slate-200">
+              {bodyText}
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Image / Media Preview if available */}
+        {imageUrl && (
+          <div className="w-full md:w-[460px] h-64 md:h-[400px] shrink-0 rounded-2xl overflow-hidden shadow-2xl border-2 border-white/20 relative group">
+            <img
+              src={imageUrl}
+              alt={titleText || "Content preview"}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+          </div>
+        )}
+      </div>
+    );
+  }
       {elements.map((elem) => {
         // Scale elements proportionally to fit presentation container (800x450 reference size)
         const scaleX = 1152 / 800; // max-w-6xl is 1152px wide

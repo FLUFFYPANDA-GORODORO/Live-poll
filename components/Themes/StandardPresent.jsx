@@ -11,6 +11,9 @@ import {
   Zap,
   Copy,
   Check,
+  Music,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { getThemeStyles } from "@/lib/themeHelper";
@@ -27,6 +30,15 @@ function injectGlobalStyles() {
     @import url('https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap');
     .font-baskerville { font-family: 'Libre Baskerville', serif; }
     .font-epilogue    { font-family: 'Epilogue', sans-serif; }
+
+    @keyframes musicWave1 { 0%, 100% { height: 4px; } 50% { height: 16px; } }
+    @keyframes musicWave2 { 0%, 100% { height: 14px; } 50% { height: 6px; } }
+    @keyframes musicWave3 { 0%, 100% { height: 6px; } 50% { height: 18px; } }
+    @keyframes musicWave4 { 0%, 100% { height: 16px; } 50% { height: 8px; } }
+    .animate-wave-1 { animation: musicWave1 0.8s ease-in-out infinite; }
+    .animate-wave-2 { animation: musicWave2 0.7s ease-in-out infinite; }
+    .animate-wave-3 { animation: musicWave3 0.9s ease-in-out infinite; }
+    .animate-wave-4 { animation: musicWave4 0.6s ease-in-out infinite; }
 
     /* ── Three drift paths, matching the classic hearts animation ── */
     @keyframes mc-flowOne {
@@ -249,6 +261,49 @@ export default function StandardPresent({
   const isIU = theme === "iu";
   const [confettiActive, setConfettiActive] = useState(false);
   const [floatingEmojis, setFloatingEmojis] = useState([]);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const audioRef = useRef(null);
+
+  const hasAudio = Boolean(
+    poll?.enableAudio ||
+      poll?.questions?.some((q) => q.enableAudio) ||
+      currentQuestion?.enableAudio
+  );
+  const audioTrackUrl =
+    poll?.audioUrl ||
+    poll?.questions?.find((q) => q.audioUrl)?.audioUrl ||
+    currentQuestion?.audioUrl ||
+    (hasAudio
+      ? "https://res.cloudinary.com/dkhxnyat4/video/upload/v1786698983/polls/audio/fpkrhs5gx4tnbpoimwnf.mp3"
+      : null);
+
+  useEffect(() => {
+    if (hasAudio && audioTrackUrl && audioRef.current) {
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.6;
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setIsPlayingAudio(true))
+          .catch(() => {
+            setIsPlayingAudio(false);
+          });
+      }
+    }
+  }, [hasAudio, audioTrackUrl]);
+
+  const toggleAudio = () => {
+    if (!audioRef.current) return;
+    if (isPlayingAudio) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+    } else {
+      audioRef.current
+        .play()
+        .then(() => setIsPlayingAudio(true))
+        .catch(console.error);
+    }
+  };
 
   useEffect(() => { injectGlobalStyles(); }, []);
 
@@ -692,19 +747,48 @@ export default function StandardPresent({
       <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
         {/* Left: Poll controls */}
         <div className="bg-black/60 border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
-          {isVotingActive ? (
-            <button onClick={handleStopVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed">Stop</button>
-          ) : (
-            <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed" style={{ backgroundColor: themeStyles.accentColor }}>Start</button>
+          {/* Music Wave Equalizer Toggle */}
+          {hasAudio && audioTrackUrl && (
+            <>
+              <button
+                type="button"
+                onClick={toggleAudio}
+                className={`px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-2 cursor-pointer ${
+                  isPlayingAudio
+                    ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/40 shadow-xs"
+                    : "bg-white/5 hover:bg-white/15 text-slate-400 border-white/10"
+                }`}
+                title={isPlayingAudio ? "Pause Background Music" : "Play Background Music"}
+              >
+                <div className="flex items-end gap-[3px] h-4 w-3.5 pb-0.5">
+                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-1" : "h-1"}`} />
+                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-2" : "h-1"}`} />
+                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-3" : "h-1"}`} />
+                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-4" : "h-1"}`} />
+                </div>
+                {isPlayingAudio ? (
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                )}
+              </button>
+              <div className="w-px h-4 bg-white/20" />
+            </>
           )}
-          <button onClick={handlePrevQuestion} disabled={isTransitioning || currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Previous Question">
+
+          {isVotingActive ? (
+            <button onClick={handleStopVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">Stop</button>
+          ) : (
+            <button onClick={handleStartVoting} disabled={isTransitioning} className="px-3 py-1.5 rounded-lg text-white font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer" style={{ backgroundColor: themeStyles.accentColor }}>Start</button>
+          )}
+          <button onClick={handlePrevQuestion} disabled={isTransitioning || currentQuestionIndex <= 0} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer" title="Previous Question">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="bg-white/10 border border-white/10 text-white px-3 py-0.5 rounded font-mono text-sm font-bold min-w-[2rem] text-center">{currentQuestionIndex + 1}</div>
-          <button onClick={handleNextQuestion} disabled={isTransitioning || currentQuestionIndex >= totalQuestions} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all" title="Next Question">
+          <button onClick={handleNextQuestion} disabled={isTransitioning || currentQuestionIndex >= totalQuestions} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-200 disabled:opacity-20 disabled:cursor-not-allowed transition-all cursor-pointer" title="Next Question">
             <ChevronRight className="w-4 h-4" />
           </button>
-          <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all">End</button>
+          <button onClick={handleEndPoll} className="px-3 py-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-900/30 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer">End</button>
         </div>
 
         {/* Right: Stats + QR + fullscreen */}
@@ -720,12 +804,16 @@ export default function StandardPresent({
             </>
           )}
 
-          <button onClick={() => setShowQR(!showQR)} className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border ${showQR ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"}`} title="Toggle QR Code">QR</button>
-          <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5" title="Toggle Fullscreen">
+          <button onClick={() => setShowQR(!showQR)} className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${showQR ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500/20" : "bg-white/5 hover:bg-white/15 text-slate-300 border-white/5"}`} title="Toggle QR Code">QR</button>
+          <button onClick={toggleFullscreen} className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-slate-300 hover:text-white transition-all border border-white/5 cursor-pointer" title="Toggle Fullscreen">
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
         </div>
       </div>
+
+      {hasAudio && audioTrackUrl && (
+        <audio ref={audioRef} src={audioTrackUrl} loop preload="auto" />
+      )}
 
       <ConfettiBurst active={confettiActive} onComplete={() => setConfettiActive(false)} />
     </div>

@@ -167,51 +167,54 @@ export default function MediaUploadModal({
         {/* Tab Content */}
         <div className="flex-1 overflow-y-auto space-y-4">
           {activeTab === "upload" && (
-            <div
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 min-h-[160px] ${
-                dragActive
-                  ? "border-slate-950 bg-slate-100"
-                  : "border-slate-300 hover:border-slate-950 hover:bg-slate-50"
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={isAudio ? "audio/*" : "image/*"}
-                className="hidden"
-                onChange={(e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    handleFileSelect(e.target.files[0]);
-                  }
-                }}
-              />
+            <div className="space-y-3">
+              <div
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 min-h-[160px] ${
+                  dragActive
+                    ? "border-slate-950 bg-slate-100"
+                    : "border-slate-300 hover:border-slate-950 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={isAudio ? "audio/*" : "image/*"}
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileSelect(e.target.files[0]);
+                    }
+                  }}
+                />
 
-              {isUploading ? (
-                <div className="flex flex-col items-center gap-2">
-                  <Loader2 className="w-8 h-8 text-slate-950 animate-spin" />
-                  <p className="text-xs font-bold text-slate-800">Uploading to Cloudinary...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="w-10 h-10 rounded-md bg-slate-100 text-slate-950 flex items-center justify-center border border-slate-200">
-                    <Upload className="w-5 h-5" />
+                {isUploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="w-8 h-8 text-slate-950 animate-spin" />
+                    <p className="text-xs font-bold text-slate-800">Uploading to Cloudinary...</p>
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900">
-                      Click to upload or drag and drop
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      {isAudio
-                        ? "MP3, WAV, OGG, AAC, M4A, FLAC (Max 50MB)"
-                        : "PNG, JPG, JPEG, GIF, WEBP, SVG (Max 10MB)"}
-                    </p>
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-md bg-slate-100 text-slate-950 flex items-center justify-center border border-slate-200">
+                      <Upload className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">
+                        Click to upload or drag and drop
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {isAudio
+                          ? "MP3, WAV, OGG, AAC, M4A, FLAC (Max 50MB)"
+                          : "PNG, JPG, JPEG, GIF, WEBP, SVG (Max 10MB)"}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
             </div>
           )}
 

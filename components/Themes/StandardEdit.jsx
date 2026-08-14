@@ -1377,61 +1377,59 @@ export default function StandardEdit({
 
               {/* AUDIO DRAWER */}
               {activeRightTab === "audio" && (
-                <div className="space-y-4 text-slate-900">
-                  {/* Sub-tabs: Default Audio vs My Audio */}
-                  <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-md text-xs font-bold">
+                <div className="space-y-5 text-slate-900">
+                  {/* Top Master Toggle Switch */}
+                  <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between shadow-2xs">
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <Music className="w-4 h-4 text-slate-900" />
+                        <p className="text-xs font-bold text-slate-900">Background Audio</p>
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        Loop soundtrack during presentation
+                      </p>
+                    </div>
+
                     <button
                       type="button"
-                      onClick={() => setAudioSubTab("defaultAudio")}
-                      className={`flex-1 py-1.5 rounded-md transition-all cursor-pointer ${
-                        audioSubTab === "defaultAudio"
-                          ? "bg-slate-950 text-white shadow-xs"
-                          : "text-slate-600 hover:text-slate-950"
+                      role="switch"
+                      aria-checked={Boolean(activeQuestion?.enableAudio || questions.some((q) => q.enableAudio))}
+                      onClick={() => {
+                        const isCurrentlyEnabled = Boolean(activeQuestion?.enableAudio || questions.some((q) => q.enableAudio));
+                        const nextState = !isCurrentlyEnabled;
+                        const currentTrack = activeQuestion?.audioUrl || questions.find((q) => q.audioUrl)?.audioUrl || "https://res.cloudinary.com/dkhxnyat4/video/upload/v1786698983/polls/audio/fpkrhs5gx4tnbpoimwnf.mp3";
+                        const newQuestions = questions.map((q) => ({
+                          ...q,
+                          enableAudio: nextState,
+                          audioUrl: nextState ? (q.audioUrl || currentTrack) : q.audioUrl,
+                        }));
+                        setQuestions(newQuestions);
+                        if (nextState) {
+                          toast.success("Background audio enabled for this presentation!");
+                        } else {
+                          toast.success("Background audio disabled");
+                        }
+                      }}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out cursor-pointer ${
+                        Boolean(activeQuestion?.enableAudio || questions.some((q) => q.enableAudio))
+                          ? "bg-emerald-600"
+                          : "bg-slate-300"
                       }`}
                     >
-                      Default Audio
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAudioSubTab("myAudio")}
-                      className={`flex-1 py-1.5 rounded-md transition-all cursor-pointer ${
-                        audioSubTab === "myAudio"
-                          ? "bg-slate-950 text-white shadow-xs"
-                          : "text-slate-600 hover:text-slate-950"
-                      }`}
-                    >
-                      My Audio
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${
+                          Boolean(activeQuestion?.enableAudio || questions.some((q) => q.enableAudio))
+                            ? "translate-x-5"
+                            : "translate-x-0"
+                        }`}
+                      />
                     </button>
                   </div>
 
-                  {audioSubTab === "defaultAudio" ? (
-                    <div className="border-2 border-dashed border-slate-200 rounded-md p-5 text-center space-y-1">
-                      <p className="text-xs font-bold text-slate-800">No default audio seeded yet</p>
-                      <p className="text-[11px] text-slate-500">
-                        Default background music tracks will appear here once seeded. Switch to <strong>My Audio</strong> to upload custom tracks.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Audio Enable Switch */}
-                      <div className="p-3 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-bold text-slate-900">Enable Question Audio</p>
-                          <p className="text-[10px] text-slate-500">Play soundtrack when slide is live</p>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={activeQuestion?.enableAudio || false}
-                          onChange={(e) => {
-                            const newQuestions = [...questions];
-                            newQuestions[activeQuestionIndex].enableAudio = e.target.checked;
-                            setQuestions(newQuestions);
-                          }}
-                          className="w-4 h-4 rounded-md border-slate-300 text-slate-950 accent-slate-950 focus:ring-slate-950 cursor-pointer"
-                        />
-                      </div>
-
-                      {/* Add Audio Button */}
+                  {/* MY AUDIO SECTION */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <h4 className="text-[11px] font-bold text-slate-500 tracking-wider uppercase">My Audio</h4>
                       <button
                         type="button"
                         onClick={() =>
@@ -1440,43 +1438,132 @@ export default function StandardEdit({
                             type: "audio",
                             target: "questionAudio",
                             initialUrl: activeQuestion?.audioUrl || "",
-                            title: "Question Audio / Soundtrack",
+                            title: "Upload Custom Audio Track",
                           })
                         }
-                        className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 text-white rounded-md font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors cursor-pointer border border-slate-200 shadow-2xs"
                       >
-                        <Upload className="w-4 h-4" /> Select / Upload Audio File
+                        <Plus className="w-3 h-3" /> Upload
                       </button>
+                    </div>
 
-                      {/* Audio Track Preview */}
-                      {activeQuestion?.audioUrl ? (
-                        <div className="p-3 bg-slate-50 border border-slate-300 rounded-md space-y-2">
-                          <div className="flex items-center justify-between text-xs font-bold text-slate-900">
-                            <span className="truncate max-w-[200px]" title={activeQuestion.audioUrl}>
-                              🎵 {activeQuestion.audioUrl.split("/").pop() || "Audio Track"}
-                            </span>
+                    {/* Custom Uploaded Track Preview (if custom URL set) */}
+                    {activeQuestion?.audioUrl &&
+                    activeQuestion.audioUrl !== "https://res.cloudinary.com/dkhxnyat4/video/upload/v1786698983/polls/audio/fpkrhs5gx4tnbpoimwnf.mp3" ? (
+                      <div className="p-3 bg-white border border-emerald-400 rounded-lg shadow-2xs space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                              <Music className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="max-w-[170px]">
+                              <p className="text-xs font-bold text-slate-900 truncate" title={activeQuestion.audioUrl}>
+                                {activeQuestion.audioUrl.split("/").pop() || "Custom Soundtrack"}
+                              </p>
+                              <p className="text-[10px] text-slate-500">Custom Track</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {Boolean(activeQuestion?.enableAudio) && (
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                <Check className="w-3 h-3" />
+                              </span>
+                            )}
                             <button
                               type="button"
                               onClick={() => {
-                                const newQuestions = [...questions];
-                                newQuestions[activeQuestionIndex].audioUrl = "";
-                                newQuestions[activeQuestionIndex].enableAudio = false;
+                                const newQuestions = questions.map((q) => ({
+                                  ...q,
+                                  audioUrl: "",
+                                  enableAudio: false,
+                                }));
                                 setQuestions(newQuestions);
+                                toast.success("Custom audio removed");
                               }}
-                              className="text-red-500 hover:underline text-[11px] font-semibold cursor-pointer"
+                              className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+                              title="Remove custom audio"
                             >
-                              Remove
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <audio controls src={activeQuestion.audioUrl} className="w-full h-8 rounded-md" />
                         </div>
-                      ) : (
-                        <div className="border border-slate-200 rounded-md p-3 text-center text-xs text-slate-400">
-                          No audio track attached to this question yet.
+
+                        <div className="pt-1 border-t border-slate-100">
+                          <audio controls src={activeQuestion.audioUrl} className="w-full h-7 rounded-md" />
                         </div>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    ) : (
+                      <div className="border border-dashed border-slate-200 rounded-lg p-3.5 text-center bg-slate-50/50">
+                        <p className="text-xs font-medium text-slate-600">No custom audio uploaded yet</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Click + Upload to upload MP3 soundtracks</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* DEFAULT SOUNDTRACKS SECTION */}
+                  <div>
+                    <h4 className="text-[11px] font-bold text-slate-500 tracking-wider uppercase mb-2.5">Default Themes</h4>
+
+                    {/* RapidPoll Ambient Theme Card */}
+                    {(() => {
+                      const defaultTrackUrl = "https://res.cloudinary.com/dkhxnyat4/video/upload/v1786698983/polls/audio/fpkrhs5gx4tnbpoimwnf.mp3";
+                      const currentAudioUrl = activeQuestion?.audioUrl || questions.find((q) => q.audioUrl)?.audioUrl;
+                      const isDefaultSelected = currentAudioUrl === defaultTrackUrl;
+                      const isEnabled = Boolean(activeQuestion?.enableAudio || questions.some((q) => q.enableAudio));
+
+                      return (
+                        <div
+                          onClick={() => {
+                            const newQuestions = questions.map((q) => ({
+                              ...q,
+                              audioUrl: defaultTrackUrl,
+                              enableAudio: true,
+                            }));
+                            setQuestions(newQuestions);
+                            toast.success("RapidPoll Ambient Theme applied!");
+                          }}
+                          className={`p-3.5 rounded-lg border transition-all cursor-pointer ${
+                            isDefaultSelected
+                              ? "border-emerald-500 bg-emerald-50/40 shadow-xs ring-1 ring-emerald-500/20"
+                              : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold ${
+                                  isDefaultSelected ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"
+                                }`}
+                              >
+                                <Music className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <p className="text-xs font-bold text-slate-900">RapidPoll Ambient Theme</p>
+                              </div>
+                            </div>
+
+                            {isDefaultSelected && isEnabled && (
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                <Check className="w-3 h-3" />
+                              </span>
+                            )}
+                          </div>
+
+                          <div
+                            className="mt-2.5 pt-2 border-t border-slate-100"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <audio
+                              controls
+                              src={defaultTrackUrl}
+                              className="w-full h-7 rounded-md"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               )}
             </div>

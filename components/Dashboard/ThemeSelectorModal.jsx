@@ -59,6 +59,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
   const [isCreating, setIsCreating] = useState(false);
   const [showBgImageInput, setShowBgImageInput] = useState(false);
   const [savedCustomThemeId, setSavedCustomThemeId] = useState(null);
+  const [paletteDropdownOpen, setPaletteDropdownOpen] = useState(false);
   const [mediaModalConfig, setMediaModalConfig] = useState({ isOpen: false, target: null, initialUrl: "", title: "" });
 
   // New Custom Theme Form State
@@ -79,29 +80,6 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
       setActiveTab(initialTab);
     }
   }, [initialTab]);
-
-  // Sync active theme settings when switching to customise tab
-  useEffect(() => {
-    if (activeTab === "customise" && !savedCustomThemeId && selectedThemeId && themes.length > 0) {
-      const current = themes.find((t) => t.id === selectedThemeId);
-      if (current) {
-        setName(current.isPreset ? `${current.name} (Custom)` : current.name || "");
-        setBackgroundType(current.backgroundType || "color");
-        setBackgroundValue(current.backgroundValue || "#F8FAFC");
-        setMobileBackgroundValue(current.mobileBackgroundValue || "");
-        setLogoUrl(current.logoUrl || "");
-        setFontFamily(current.fontFamily || "Inter");
-        setPrimaryTextColor(current.primaryTextColor || current.textColor || "#000000");
-        setSecondaryTextColor(current.secondaryTextColor || "#94A3B8");
-        setAccentColor(current.accentColor || "#6366F1");
-        setCardBackgroundColor(current.cardBackgroundColor || "#FFFFFF");
-        setPaletteId(current.paletteId || "palette_indigo_sunset");
-        if (!current.isPreset) {
-          setSavedCustomThemeId(current.id);
-        }
-      }
-    }
-  }, [activeTab, selectedThemeId, themes, savedCustomThemeId]);
 
   useEffect(() => {
     fetchThemes(user?.uid);
@@ -169,6 +147,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
     setAccentColor("#6366F1");
     setCardBackgroundColor("#FFFFFF");
     setPaletteId("palette_indigo_sunset");
+    setPaletteDropdownOpen(false);
     setActiveTab("customise");
   };
 
@@ -191,6 +170,7 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
     setAccentColor(t.accentColor || "#6366F1");
     setCardBackgroundColor(t.cardBackgroundColor || "#FFFFFF");
     setPaletteId(t.paletteId || "palette_indigo_sunset");
+    setPaletteDropdownOpen(false);
     setActiveTab("customise");
   };
 
@@ -253,11 +233,35 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
 
   return (
     <div className="w-full flex flex-col space-y-4 text-slate-800">
-
+      {/* ── TOP TABS: Themes & Customise (50-50 Full Width) ── */}
+      <div className="w-full grid grid-cols-2 border-b border-slate-200">
+        <button
+          type="button"
+          onClick={() => setActiveTab("themes")}
+          className={`pb-2.5 text-center text-xs font-bold transition-all relative cursor-pointer ${
+            activeTab === "themes"
+              ? "text-slate-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-slate-950 after:rounded-t-full"
+              : "text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          Themes
+        </button>
+        <button
+          type="button"
+          onClick={handleStartCreateNew}
+          className={`pb-2.5 text-center text-xs font-bold transition-all relative cursor-pointer ${
+            activeTab === "customise"
+              ? "text-slate-950 after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-slate-950 after:rounded-t-full"
+              : "text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          Customise
+        </button>
+      </div>
 
       {/* ── TAB 1: THEMES ── */}
       {activeTab === "themes" && (
-        <div className="space-y-6">
+        <div className="space-y-6 pt-1">
           {/* My Themes Section */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -408,18 +412,9 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
       {/* ── TAB 2: CUSTOMISE ── */}
       {activeTab === "customise" && (
         <form onSubmit={handleSaveTheme} className="space-y-4 text-xs font-medium">
-          {/* Theme Name Row with compact Back Button */}
+          {/* Theme Name Row */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="font-bold text-slate-900 text-xs">Theme Name</label>
-              <button
-                type="button"
-                onClick={() => setActiveTab("themes")}
-                className="px-2 py-0.5 border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-950 font-bold text-[11px] rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" /> Back to themes
-              </button>
-            </div>
+            <label className="font-bold text-slate-900 text-xs block mb-1.5">Theme Name</label>
             <input
               type="text"
               value={name}
@@ -503,69 +498,142 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
             </div>
 
             {/* Background Image Row (Clean Inline Layout matching screenshot) */}
-            <div className={`space-y-2 transition-all ${
+            <div className={`space-y-3 transition-all ${
               backgroundType === "image" ? "opacity-100" : "opacity-40 pointer-events-none"
             }`}>
-              <div className="flex items-center justify-between py-1">
-                <span className="text-xs font-bold text-slate-900">Background image</span>
+              {/* Desktop Background */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between py-1">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Desktop background</span>
+                    <span className="text-[10px] text-slate-500">16:9 / Landscape presentation view</span>
+                  </div>
 
-                <button
-                  type="button"
-                  disabled={backgroundType !== "image"}
-                  onClick={() =>
-                    setMediaModalConfig({
-                      isOpen: true,
-                      target: "desktopBg",
-                      initialUrl: backgroundValue.startsWith("#") ? "" : backgroundValue,
-                      title: "Desktop Background Image",
-                    })
-                  }
-                  className="px-3 py-1 border border-slate-300 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
+                  <button
+                    type="button"
+                    disabled={backgroundType !== "image"}
+                    onClick={() =>
+                      setMediaModalConfig({
+                        isOpen: true,
+                        target: "desktopBg",
+                        initialUrl: backgroundValue.startsWith("#") ? "" : backgroundValue,
+                        title: "Desktop Background Image",
+                      })
+                    }
+                    className="px-3 py-1 border border-slate-300 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
+                </div>
+
+                {/* Show attached desktop image info / preview card if image URL exists */}
+                {backgroundType === "image" && backgroundValue && !backgroundValue.startsWith("#") && (
+                  <div className="p-2 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 truncate max-w-[190px]">
+                      <img
+                        src={backgroundValue}
+                        alt="Desktop Background"
+                        className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
+                      />
+                      <span className="truncate text-[11px] font-semibold text-slate-700" title={backgroundValue}>
+                        {backgroundValue.split("/").pop() || "Desktop Background"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMediaModalConfig({
+                            isOpen: true,
+                            target: "desktopBg",
+                            initialUrl: backgroundValue,
+                            title: "Desktop Background Image",
+                          })
+                        }
+                        className="p-1 text-slate-500 hover:text-slate-900 rounded-md transition-colors cursor-pointer"
+                        title="Edit desktop image"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBackgroundValue("#F8FAFC")}
+                        className="p-1 text-slate-400 hover:text-red-500 rounded-md transition-colors cursor-pointer"
+                        title="Remove desktop image"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Show attached image info / preview card if image URL exists */}
-              {backgroundType === "image" && backgroundValue && !backgroundValue.startsWith("#") && (
-                <div className="p-2 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 truncate max-w-[190px]">
-                    <img
-                      src={backgroundValue}
-                      alt="Background"
-                      className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
-                    />
-                    <span className="truncate text-[11px] font-semibold text-slate-700" title={backgroundValue}>
-                      {backgroundValue.split("/").pop() || "Background Image"}
-                    </span>
+              {/* Mobile Background */}
+              <div className="space-y-1.5 pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between py-1">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 block">Mobile background</span>
+                    <span className="text-[10px] text-slate-500">Portrait wallpaper for participant phones</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setMediaModalConfig({
-                          isOpen: true,
-                          target: "desktopBg",
-                          initialUrl: backgroundValue,
-                          title: "Desktop Background Image",
-                        })
-                      }
-                      className="p-1 text-slate-500 hover:text-slate-900 rounded-md transition-colors cursor-pointer"
-                      title="Edit image"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBackgroundValue("#F8FAFC")}
-                      className="p-1 text-slate-400 hover:text-red-500 rounded-md transition-colors cursor-pointer"
-                      title="Remove image"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+
+                  <button
+                    type="button"
+                    disabled={backgroundType !== "image"}
+                    onClick={() =>
+                      setMediaModalConfig({
+                        isOpen: true,
+                        target: "mobileBg",
+                        initialUrl: mobileBackgroundValue || "",
+                        title: "Mobile Background Image",
+                      })
+                    }
+                    className="px-3 py-1 border border-slate-300 bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs rounded-md shadow-2xs flex items-center gap-1 transition-all cursor-pointer shrink-0"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add
+                  </button>
                 </div>
-              )}
+
+                {/* Show attached mobile image info / preview card if image URL exists */}
+                {backgroundType === "image" && Boolean(mobileBackgroundValue?.trim()) && (
+                  <div className="p-2 bg-slate-50 border border-slate-200 rounded-md flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 truncate max-w-[190px]">
+                      <img
+                        src={mobileBackgroundValue}
+                        alt="Mobile Background"
+                        className="w-7 h-7 rounded-md object-cover border border-slate-200 shrink-0"
+                      />
+                      <span className="truncate text-[11px] font-semibold text-slate-700" title={mobileBackgroundValue}>
+                        {mobileBackgroundValue.split("/").pop() || "Mobile Background"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setMediaModalConfig({
+                            isOpen: true,
+                            target: "mobileBg",
+                            initialUrl: mobileBackgroundValue,
+                            title: "Mobile Background Image",
+                          })
+                        }
+                        className="p-1 text-slate-500 hover:text-slate-900 rounded-md transition-colors cursor-pointer"
+                        title="Edit mobile image"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMobileBackgroundValue("")}
+                        className="p-1 text-slate-400 hover:text-red-500 rounded-md transition-colors cursor-pointer"
+                        title="Remove mobile image"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -733,24 +801,89 @@ export default function ThemeSelectorModal({ selectedThemeId, onSelectTheme, onP
             )}
           </div>
 
-          {/* Visualization Palette */}
-          <div className="space-y-2 border-b border-slate-100 pb-3">
+          {/* Visualization Palette Custom Dropdown */}
+          <div className="space-y-2 border-b border-slate-100 pb-3 relative">
             <div className="flex items-center justify-between">
               <label className="font-bold text-slate-700 text-xs flex items-center gap-1">
-                Visualisation Palette <HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-pointer" />
+                Visualisation colours <HelpCircle className="w-3.5 h-3.5 text-slate-400 cursor-pointer" />
               </label>
             </div>
-            <select
-              value={paletteId}
-              onChange={(e) => setPaletteId(e.target.value)}
-              className="w-full p-2 border border-slate-300 rounded-md text-xs font-semibold bg-white outline-none cursor-pointer"
-            >
-              {palettes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+
+            {/* Custom Dropdown Trigger */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setPaletteDropdownOpen(!paletteDropdownOpen)}
+                className="w-full p-2.5 border border-slate-300 rounded-lg text-xs font-semibold bg-white hover:border-slate-400 flex items-center justify-between gap-2 shadow-2xs transition-all cursor-pointer text-left"
+              >
+                {(() => {
+                  const selectedPalette = palettes.find((p) => p.id === paletteId) || palettes[0];
+                  const colors = selectedPalette?.colors || ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
+                  return (
+                    <>
+                      <span className="text-slate-900 truncate font-medium flex-1">
+                        {selectedPalette?.name || "Select palette"}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {colors.slice(0, 5).map((c, i) => (
+                          <span
+                            key={i}
+                            className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: c }}
+                          />
+                        ))}
+                        <ChevronDown className="w-4 h-4 text-slate-400 ml-1 shrink-0" />
+                      </div>
+                    </>
+                  );
+                })()}
+              </button>
+
+              {/* Dropdown Menu */}
+              {paletteDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setPaletteDropdownOpen(false)}
+                  />
+                  <div className="absolute top-full left-0 right-0 mt-1 max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-xl z-50 p-1 space-y-1">
+                    {palettes.map((p) => {
+                      const isSelected = p.id === paletteId;
+                      const colors = p.colors || ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
+
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setPaletteId(p.id);
+                            setPaletteDropdownOpen(false);
+                          }}
+                          className={`w-full px-2.5 py-2 rounded-md text-xs font-medium flex items-center justify-between gap-2 transition-all cursor-pointer ${
+                            isSelected
+                              ? "bg-slate-100 text-slate-950 font-bold"
+                              : "hover:bg-slate-50 text-slate-700 hover:text-slate-950"
+                          }`}
+                        >
+                          <span className="truncate flex-1 text-left">
+                            {p.name}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {colors.slice(0, 5).map((c, i) => (
+                              <span
+                                key={i}
+                                className="w-3.5 h-3.5 rounded-full shrink-0 border border-black/10 shadow-2xs"
+                                style={{ backgroundColor: c }}
+                              />
+                            ))}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Action Buttons */}

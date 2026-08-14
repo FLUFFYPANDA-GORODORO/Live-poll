@@ -41,8 +41,6 @@ import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
 import RightToolbar from "@/components/Themes/RightToolbar";
 import MediaUploadModal from "@/components/MediaUploadModal";
-import ContentCanvas from "@/components/ContentSlide/ContentCanvas";
-import ExcalidrawStylePanel from "@/components/ContentSlide/ExcalidrawStylePanel";
 
 const DEFAULT_PALETTE = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"];
 
@@ -51,14 +49,12 @@ const SLIDE_TYPE_CONFIG = {
   WordCloud: { label: "Word Cloud", icon: Cloud, color: "text-emerald-600", bg: "bg-emerald-50" },
   OpenEnded: { label: "Open Ended", icon: MessageSquare, color: "text-amber-600", bg: "bg-amber-50" },
   Ranking: { label: "Ranking", icon: ListOrdered, color: "text-violet-600", bg: "bg-violet-50" },
-  Content: { label: "Content", icon: Layout, color: "text-rose-600", bg: "bg-rose-50" },
 };
 
 export const normalizeQuestionType = (type) => {
   if (type === 1 || type === "1" || String(type).toLowerCase() === "wordcloud") return "WordCloud";
   if (type === 2 || type === "2" || String(type).toLowerCase() === "openended") return "OpenEnded";
   if (type === 3 || type === "3" || String(type).toLowerCase() === "ranking") return "Ranking";
-  if (type === 4 || type === "4" || String(type).toLowerCase() === "content") return "Content";
   return "MultipleChoice";
 };
 
@@ -338,7 +334,6 @@ export default function StandardEdit({
   const { user } = useAuth();
   const { themes } = usePollStore();
   const [activeRightTab, setActiveRightTab] = useState("content"); // 'content', 'theme', 'template', 'audio'
-  const [selectedCanvasElementId, setSelectedCanvasElementId] = useState(null);
   const [showSlideTypeDropdown, setShowSlideTypeDropdown] = useState(false);
   const [showNewSlideModal, setShowNewSlideModal] = useState(false);
   const [showQuestionImageInput, setShowQuestionImageInput] = useState(false);
@@ -506,29 +501,11 @@ export default function StandardEdit({
   const addQuestionWithType = (type = "MultipleChoice", isNewBlank = false) => {
     const newQuestions = [...questions];
     newQuestions.push({
-      text: type === "Content" ? "Content Slide" : "",
+      text: "",
       type: isNewBlank ? "Unselected" : type,
       visualization: type === "Ranking" ? "List" : "Bars",
       imageUrl: "",
-      elements: type === "Content" ? [
-        {
-          id: "elem-title",
-          type: "text",
-          text: "Add title",
-          preset: "Title",
-          x: 80,
-          y: 60,
-          width: 400,
-          height: 80,
-          fontSize: 48,
-          fontWeight: "bold",
-          fontStyle: "normal",
-          color: "#1E293B",
-          align: "left",
-          locked: false,
-        }
-      ] : [],
-      options: type === "WordCloud" || type === "OpenEnded" || type === "Content" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }],
+      options: type === "WordCloud" || type === "OpenEnded" ? [] : [{ text: "", imageUrl: "" }, { text: "", imageUrl: "" }],
     });
     setQuestions(newQuestions);
     setActiveQuestionIndex(newQuestions.length - 1);
@@ -550,7 +527,6 @@ export default function StandardEdit({
     { type: "WordCloud", label: "Word Cloud", icon: Cloud, description: "Live word cloud visualization from audience" },
     { type: "OpenEnded", label: "Open Ended", icon: MessageSquare, description: "Freeform text responses from participants" },
     { type: "Ranking", label: "Ranking", icon: ListOrdered, description: "Rank options in order of preference" },
-    { type: "Content", label: "Content", icon: LayoutTemplate, description: "Freestyle canvas slide from scratch (Text, Shapes, Media)" },
   ];
 
   return (
@@ -859,123 +835,7 @@ export default function StandardEdit({
                 </div>
               ) : <div className="h-4" />}
 
-              {normalizeQuestionType(activeQuestion?.type) === "Content" ? (
-                <div className="w-full flex-1 flex flex-col md:flex-row items-center justify-between p-4 md:p-8 gap-6 my-auto">
-                  {/* Left Side: Title and Formatted Body Text */}
-                  <div className="flex-1 flex flex-col justify-center space-y-4 max-w-xl text-left w-full">
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 w-fit">
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-indigo-300">
-                        Presentation Slide
-                      </span>
-                    </div>
-
-                    {/* Editable Title Input */}
-                    <div
-                      className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-2 shadow-xs transition-all w-full"
-                      style={{
-                        backgroundColor:
-                          themeStyles.primaryTextColor === "#FFFFFF" || themeStyles.primaryTextColor === "#ffffff"
-                            ? "rgba(255, 255, 255, 0.12)"
-                            : "rgba(0, 0, 0, 0.04)",
-                        borderColor: themeStyles.primaryTextColor
-                          ? `${themeStyles.primaryTextColor}33`
-                          : "rgba(255, 255, 255, 0.2)",
-                      }}
-                    >
-                      <input
-                        type="text"
-                        value={(activeQuestion?.text || "").split("\n\n")[0] || ""}
-                        onChange={(e) => {
-                          const parts = (activeQuestion?.text || "").split("\n\n");
-                          parts[0] = e.target.value;
-                          updateQuestionText(parts.join("\n\n"));
-                        }}
-                        placeholder="Slide Title..."
-                        className="w-full text-xl md:text-2xl font-black bg-transparent focus:outline-none placeholder:text-slate-400"
-                        style={{
-                          color: themeStyles.primaryTextColor || "#FFFFFF",
-                          fontFamily: themeStyles.containerStyle?.fontFamily,
-                        }}
-                      />
-                    </div>
-
-                    {/* Editable Body / Bullet Points Textarea */}
-                    <div
-                      className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-2.5 shadow-xs transition-all w-full"
-                      style={{
-                        backgroundColor:
-                          themeStyles.primaryTextColor === "#FFFFFF" || themeStyles.primaryTextColor === "#ffffff"
-                            ? "rgba(255, 255, 255, 0.08)"
-                            : "rgba(0, 0, 0, 0.03)",
-                        borderColor: themeStyles.primaryTextColor
-                          ? `${themeStyles.primaryTextColor}33`
-                          : "rgba(255, 255, 255, 0.2)",
-                      }}
-                    >
-                      <textarea
-                        rows={5}
-                        value={(activeQuestion?.text || "").split("\n\n").slice(1).join("\n\n")}
-                        onChange={(e) => {
-                          const title = (activeQuestion?.text || "").split("\n\n")[0] || "";
-                          updateQuestionText(title ? `${title}\n\n${e.target.value}` : e.target.value);
-                        }}
-                        placeholder="Add bullet points or description (e.g. • Point 1 \n• Point 2)..."
-                        className="w-full text-sm md:text-base font-medium bg-transparent focus:outline-none resize-none placeholder:text-slate-400 leading-relaxed"
-                        style={{
-                          color: themeStyles.primaryTextColor || "#FFFFFF",
-                          fontFamily: themeStyles.containerStyle?.fontFamily,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Right Side: Wallpaper Image Preview */}
-                  {activeQuestion?.imageUrl ? (
-                    <div className="w-full md:w-[320px] h-56 md:h-[260px] shrink-0 rounded-xl overflow-hidden shadow-xl border-2 border-white/20 relative group">
-                      <img
-                        src={activeQuestion.imageUrl}
-                        alt="Content Slide Wallpaper"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setMediaModalConfig({
-                            isOpen: true,
-                            type: "image",
-                            target: "questionImage",
-                            initialUrl: activeQuestion?.imageUrl || "",
-                            title: "Select Slide Wallpaper Image",
-                            optionIdx: null,
-                          })
-                        }
-                        className="absolute bottom-2 right-2 px-2 py-1 rounded-md bg-black/60 hover:bg-black/80 backdrop-blur-md text-white text-[10px] font-bold transition-all shadow-md cursor-pointer flex items-center gap-1 opacity-0 group-hover:opacity-100"
-                      >
-                        <ImageIcon className="w-3 h-3" /> Change Image
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setMediaModalConfig({
-                          isOpen: true,
-                          type: "image",
-                          target: "questionImage",
-                          initialUrl: activeQuestion?.imageUrl || "",
-                          title: "Select Slide Wallpaper Image",
-                          optionIdx: null,
-                        })
-                      }
-                      className="w-full md:w-[260px] h-44 shrink-0 rounded-xl border-2 border-dashed border-white/30 hover:border-white/60 bg-white/5 hover:bg-white/10 transition-all flex flex-col items-center justify-center gap-2 text-white/70 hover:text-white cursor-pointer"
-                    >
-                      <Upload className="w-6 h-6" />
-                      <span className="text-xs font-semibold">Add Image to Slide</span>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <>
+              <>
                   <div className="w-full mb-6 text-left">
                     <div
                       className="border focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-900/10 rounded-md p-3 shadow-xs transition-all w-full"
@@ -1057,9 +917,10 @@ export default function StandardEdit({
                     )}
                   </div>
                 </>
-              )}
-            </div>
+              </div>
           )}
+
+          
         </main>
 
         {/* Right Drawer Panel (Opens when an icon in far right strip is clicked) */}
@@ -1187,7 +1048,6 @@ export default function StandardEdit({
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             {/* Panel Content */}
             <div className="flex-1 overflow-y-auto overflow-x-visible p-5">
               {/* CONTENT DRAWER */}
@@ -1202,122 +1062,6 @@ export default function StandardEdit({
                       Choose a layout type from the screen preview to customize your question & options.
                     </p>
                   </div>
-                ) : normalizeQuestionType(activeQuestion?.type) === "Content" ? (
-                  activeQuestion?.elements?.length > 0 ? (
-                    <ExcalidrawStylePanel
-                      question={activeQuestion}
-                      selectedElementId={selectedCanvasElementId}
-                      onChange={(updatedQ) => {
-                        const newQuestions = [...questions];
-                        newQuestions[activeQuestionIndex] = updatedQ;
-                        setQuestions(newQuestions);
-                      }}
-                    />
-                  ) : (
-                    <div className="space-y-5">
-                      {/* Slide Title */}
-                      <div>
-                        <label className="text-xs font-bold text-slate-800 block mb-1.5">
-                          Slide Title
-                        </label>
-                        <input
-                          type="text"
-                          value={(activeQuestion?.text || "").split("\n\n")[0] || ""}
-                          onChange={(e) => {
-                            const parts = (activeQuestion?.text || "").split("\n\n");
-                            parts[0] = e.target.value;
-                            updateQuestionText(parts.join("\n\n"));
-                          }}
-                          placeholder="e.g. Welcome to Today's Lesson"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs font-semibold text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
-                        />
-                      </div>
-
-                      {/* Slide Body / Bullet Points */}
-                      <div>
-                        <label className="text-xs font-bold text-slate-800 block mb-1.5">
-                          Slide Content / Bullet Points
-                        </label>
-                        <textarea
-                          rows={6}
-                          value={(activeQuestion?.text || "").split("\n\n").slice(1).join("\n\n")}
-                          onChange={(e) => {
-                            const title = (activeQuestion?.text || "").split("\n\n")[0] || "";
-                            updateQuestionText(title ? `${title}\n\n${e.target.value}` : e.target.value);
-                          }}
-                          placeholder="• Understand core concepts&#10;• Explore examples&#10;• Key takeaways"
-                          className="w-full px-3 py-2 border border-slate-300 rounded-md text-xs font-medium text-slate-800 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 resize-none shadow-2xs leading-relaxed"
-                        />
-                      </div>
-
-                      {/* Slide Image */}
-                      <div>
-                        <label className="text-xs font-bold text-slate-800 block mb-1.5">
-                          Slide Image / Background
-                        </label>
-                        {activeQuestion?.imageUrl ? (
-                          <div className="space-y-2">
-                            <div className="w-full h-32 rounded-lg overflow-hidden border border-slate-200 shadow-xs relative group">
-                              <img
-                                src={activeQuestion.imageUrl}
-                                alt="Slide Preview"
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setMediaModalConfig({
-                                    isOpen: true,
-                                    type: "image",
-                                    target: "questionImage",
-                                    initialUrl: activeQuestion?.imageUrl || "",
-                                    title: "Select Slide Wallpaper Image",
-                                    optionIdx: null,
-                                  })
-                                }
-                                className="flex-1 py-1.5 px-3 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                              >
-                                <Upload className="w-3.5 h-3.5" /> Replace Image
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const newQuestions = [...questions];
-                                  newQuestions[activeQuestionIndex].imageUrl = "";
-                                  setQuestions(newQuestions);
-                                }}
-                                className="p-1.5 rounded-md text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
-                                title="Remove Image"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setMediaModalConfig({
-                                isOpen: true,
-                                type: "image",
-                                target: "questionImage",
-                                initialUrl: activeQuestion?.imageUrl || "",
-                                title: "Select Slide Wallpaper Image",
-                                optionIdx: null,
-                              })
-                            }
-                            className="w-full py-6 border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors flex flex-col items-center justify-center gap-1.5 text-slate-600 cursor-pointer"
-                          >
-                            <ImageIcon className="w-5 h-5 text-slate-400" />
-                            <span className="text-xs font-bold text-slate-700">Add Wallpaper Image</span>
-                            <span className="text-[10px] text-slate-400">Upload or choose from library</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
                 ) : (
                   <div className="space-y-5">
                     {/* Your Question Section */}

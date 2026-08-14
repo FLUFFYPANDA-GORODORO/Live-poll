@@ -15,7 +15,6 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
-import ContentPresentView from "@/components/ContentSlide/ContentPresentView";
 
 // ── Inject global styles once into <head> ──────────────────────────────────────
 const GLOBAL_STYLE_ID = "standard-present-styles";
@@ -256,11 +255,9 @@ export default function StandardPresent({
   const qTypeStr = String(currentQuestion?.type || "").toLowerCase();
   const isRanking = qTypeStr === "ranking" || currentQuestion?.type === 3;
   const isOpenEnded = qTypeStr === "openended" || currentQuestion?.type === 2;
-  const isContent = qTypeStr === "content" || currentQuestion?.type === 4;
   const isWordCloud =
     !isRanking &&
     !isOpenEnded &&
-    !isContent &&
     (currentQuestion?.type === "WordCloud" ||
       currentQuestion?.type === 1 ||
       qTypeStr === "wordcloud" ||
@@ -433,26 +430,22 @@ export default function StandardPresent({
           </div>
         ) : (
           <>
-            {!isContent && (
-              <div className={`w-full max-w-6xl mx-auto mb-6 mt-2 ${
-                currentQuestion?.alignment === "left"
-                  ? "text-left"
-                  : currentQuestion?.alignment === "right"
-                  ? "text-right"
-                  : "text-center"
-              }`}>
-                <h2
-                  className={`${getQuestionFontSize(currentQuestion?.text)} font-light leading-tight drop-shadow-lg tracking-wide`}
-                  style={{ color: themeStyles.primaryTextColor }}
-                >
-                  {currentQuestion?.text || "No question"}
-                </h2>
-              </div>
-            )}
+            <div className={`w-full max-w-6xl mx-auto mb-6 mt-2 ${
+              currentQuestion?.alignment === "left"
+                ? "text-left"
+                : currentQuestion?.alignment === "right"
+                ? "text-right"
+                : "text-center"
+            }`}>
+              <h2
+                className={`${getQuestionFontSize(currentQuestion?.text)} font-light leading-tight drop-shadow-lg tracking-wide`}
+                style={{ color: themeStyles.primaryTextColor }}
+              >
+                {currentQuestion?.text || "No question"}
+              </h2>
+            </div>
 
-            {isContent ? (
-              <ContentPresentView question={currentQuestion} themeStyles={themeStyles} />
-            ) : isRanking ? (
+            {isRanking ? (
               <div className="w-full flex-1 flex flex-col justify-center max-w-4xl mx-auto mb-6 px-4 space-y-4">
                 {(() => {
                   const rankingsData = poll?.rankingCounts?.[currentQuestionIndex.toString()] || {};
@@ -509,33 +502,36 @@ export default function StandardPresent({
                       </div>
                     );
                   }
-                  return responses.map((resp, idx) => (
-                    <div
-                      key={resp.id || resp._id || idx}
-                      className="relative group border border-white/25 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-white/40 transition-all"
-                      style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A", color: themeStyles.primaryTextColor }}
-                    >
-                      <p className="text-base md:text-lg font-medium leading-relaxed break-words">{resp.text}</p>
-                      <div className="flex justify-between items-center mt-4 text-xs border-t border-white/10 pt-2" style={{ color: themeStyles.secondaryTextColor }}>
-                        <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        <button
-                          onClick={async () => {
-                            if (deleteResponse) {
-                              try {
-                                await deleteResponse(pollId, currentQuestionIndex, resp.id);
-                              } catch (err) {
-                                console.error("Error deleting response:", err);
+                  return responses.map((resp, idx) => {
+                    const respId = resp.responseId || resp.id || resp._id;
+                    return (
+                      <div
+                        key={respId || idx}
+                        className="relative group border border-white/25 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-white/40 transition-all"
+                        style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A", color: themeStyles.primaryTextColor }}
+                      >
+                        <p className="text-base md:text-lg font-medium leading-relaxed break-words">{resp.text}</p>
+                        <div className="flex justify-between items-center mt-4 text-xs border-t border-white/10 pt-2" style={{ color: themeStyles.secondaryTextColor }}>
+                          <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <button
+                            onClick={async () => {
+                              if (deleteResponse && respId) {
+                                try {
+                                  await deleteResponse(pollId, currentQuestionIndex, respId);
+                                } catch (err) {
+                                  console.error("Error deleting response:", err);
+                                }
                               }
-                            }
-                          }}
-                          className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-600 text-white opacity-80 hover:opacity-100 transition-all cursor-pointer"
-                          title="Delete response"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
+                            }}
+                            className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-600 text-white opacity-80 hover:opacity-100 transition-all cursor-pointer"
+                            title="Delete response"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ));
+                    );
+                  });
                 })()}
               </div>
             ) : isWordCloud ? (

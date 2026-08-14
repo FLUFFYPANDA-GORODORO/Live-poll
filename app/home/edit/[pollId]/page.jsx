@@ -10,7 +10,6 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { Loader2 } from "lucide-react";
 import EditScreen from "@/components/Themes/StandardEdit";
 import ThemeSelectorModal from "@/components/Dashboard/ThemeSelectorModal";
-import { generateContentSlideSnapshot } from "@/lib/canvasSnapshot";
 import { api } from "@/lib/api";
 
 export default function EditPoll() {
@@ -144,7 +143,6 @@ export default function EditPoll() {
       else if (rawType === "1" || rawType === "WordCloud" || typeStr === "wordcloud") qType = "WordCloud";
       else if (rawType === "2" || rawType === "OpenEnded" || typeStr === "openended") qType = "OpenEnded";
       else if (rawType === "3" || rawType === "Ranking" || typeStr === "ranking") qType = "Ranking";
-      else if (rawType === "4" || rawType === "Content" || typeStr === "content") qType = "Content";
 
       let questionText = (q.text || "").trim();
       if (!questionText) {
@@ -152,9 +150,7 @@ export default function EditPoll() {
       }
 
       let visType = q.visualization || null;
-      if (qType === "Content") {
-        visType = null;
-      } else if (qType === "MultipleChoice" && !["Bars", "Donut", "Pie"].includes(visType)) {
+      if (qType === "MultipleChoice" && !["Bars", "Donut", "Pie"].includes(visType)) {
         visType = "Bars";
       } else if (qType === "WordCloud") {
         visType = "WordCloud";
@@ -164,15 +160,12 @@ export default function EditPoll() {
         visType = "Cards";
       }
 
-      if (qType === "WordCloud" || qType === "OpenEnded" || qType === "Content") {
+      if (qType === "WordCloud" || qType === "OpenEnded") {
         cleanedQuestions.push({
           text: questionText,
           type: qType,
           visualization: visType,
-          imageUrl: (q.imageUrl || q.snapshotUrl || "").trim() || null,
-          elements: q.elements || [],
-          backgroundColor: q.backgroundColor || "#FFFFFF",
-          backgroundImage: q.backgroundImage || "",
+          imageUrl: (q.imageUrl || "").trim() || null,
           showResponseCount: q.showResponseCount !== undefined ? q.showResponseCount : true,
           showPercentage: q.showPercentage !== undefined ? q.showPercentage : false,
           allowReactions: q.allowReactions !== undefined ? q.allowReactions : true,
@@ -209,29 +202,6 @@ export default function EditPoll() {
     }
 
     try {
-      // Auto-generate & upload Cloudinary snapshots for Content slides if needed
-      for (let i = 0; i < cleanedQuestions.length; i++) {
-        const q = cleanedQuestions[i];
-        if (q.type === "Content" && (!q.imageUrl || !q.imageUrl.startsWith("http"))) {
-          try {
-            const dataUrl = await generateContentSlideSnapshot(q);
-            if (dataUrl) {
-              const res = await fetch(dataUrl);
-              const blob = await res.blob();
-              const file = new File([blob], `slide-${Date.now()}.png`, { type: "image/png" });
-              const uploadRes = await api.uploadImage(file, "polls/slides");
-              if (uploadRes?.url) {
-                q.imageUrl = uploadRes.url;
-              } else {
-                q.imageUrl = dataUrl;
-              }
-            }
-          } catch (snapErr) {
-            console.warn("Auto snapshot upload warning:", snapErr);
-          }
-        }
-      }
-
       await savePoll(pollId, pollTitle, cleanedQuestions, selectedThemeId);
 
       // Clear localStorage draft on successful save

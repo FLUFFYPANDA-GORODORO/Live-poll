@@ -3,7 +3,6 @@ import { Loader2, Home, Check, Lock, AlertCircle, ArrowRight, Users, Clock, Spar
 import { QRCodeSVG } from "qrcode.react";
 import toast from "react-hot-toast";
 import { getThemeStyles } from "@/lib/themeHelper";
-import ContentPresentView from "@/components/ContentSlide/ContentPresentView";
 
 function VerticalBarChart({ options, votes, totalVotes, paletteColors = ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"] }) {
   const maxVotes = Math.max(...votes, 1);
@@ -302,8 +301,7 @@ export default function StandardPoll({
   const qTypeStr = String(activeQuestion?.type || "").toLowerCase();
   const isRanking = qTypeStr === "ranking" || activeQuestion?.type === 3;
   const isOpenEnded = qTypeStr === "openended" || activeQuestion?.type === 2;
-  const isContent = qTypeStr === "content" || activeQuestion?.type === 4;
-  const isWordCloud = !isRanking && !isOpenEnded && !isContent && (activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || qTypeStr === "wordcloud" || (!activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
+  const isWordCloud = !isRanking && !isOpenEnded && (activeQuestion?.type === "WordCloud" || activeQuestion?.type === 1 || qTypeStr === "wordcloud" || (!activeQuestion?.options || activeQuestion.options.length === 0 || activeQuestion.options.every(opt => {
     const txt = typeof opt === "string" ? opt : (opt.text || "");
     return !txt.trim();
   })));
@@ -484,17 +482,12 @@ export default function StandardPoll({
         </div>
       )}
 
-      {isContent ? (
-        <div className="max-w-5xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
-          <ContentPresentView question={activeQuestion} themeStyles={themeStyles} />
-        </div>
-      ) : (
-        <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
-          <div
-            key={isWordCloud ? 'question-wc' : 'question-mcq'}
-            className="rounded-2xl border border-slate-100/20 shadow-2xl overflow-hidden"
-            style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
-          >
+      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
+        <div
+          key={isWordCloud ? 'question-wc' : 'question-mcq'}
+          className="rounded-2xl border border-slate-100/20 shadow-2xl overflow-hidden"
+          style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
+        >
           {/* Card Header */}
           <div className="p-4 sm:p-6">
             <h2
@@ -523,43 +516,8 @@ export default function StandardPoll({
             </div>
           )}
 
-          {/* Content Slide (Informational) */}
-          {isContent && (
-            <div className="p-4 sm:p-6 space-y-4">
-              {activeQuestion?.imageUrl && (
-                <div className="w-full max-h-56 rounded-xl overflow-hidden shadow-lg border border-slate-200/20 mb-3">
-                  <img
-                    src={activeQuestion.imageUrl}
-                    alt={activeQuestion.text || "Presentation Slide"}
-                    className="w-full h-full object-cover max-h-56"
-                  />
-                </div>
-              )}
-              {(() => {
-                const [titleText, ...bodyParts] = (activeQuestion?.text || "").split("\n\n");
-                const bodyText = bodyParts.join("\n\n");
-                return (
-                  <div className="space-y-3 text-left">
-                    <h3 className="text-lg sm:text-xl font-bold" style={{ color: themeStyles.primaryTextColor }}>
-                      {titleText || activeQuestion?.text}
-                    </h3>
-                    {bodyText && (
-                      <div className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed opacity-90" style={{ color: themeStyles.secondaryTextColor }}>
-                        {bodyText}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-              <div className="pt-3 border-t border-slate-200/20 flex items-center justify-center gap-2 text-xs font-semibold" style={{ color: themeStyles.accentColor }}>
-                <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Presenter is sharing this slide
-              </div>
-            </div>
-          )}
-
           {/* Answer options (MultipleChoice) */}
-          {!isWordCloud && !isRanking && !isOpenEnded && !isContent && (
+          {!isWordCloud && !isRanking && !isOpenEnded && (
             <div className="p-2.5 sm:p-3.5 space-y-2 sm:space-y-2.5">
               {activeQuestion.options.map((option, idx) => {
                 const isOptionSelected = hasVoted && selectedOption === idx;
@@ -748,7 +706,6 @@ export default function StandardPoll({
           </div>
         </div>
       </div>
-      )}
 
         {/* Emoji Reactions Panel */}
         {poll.status === "live" && poll.status !== undefined && activeQuestion?.allowReactions !== false && (

@@ -8,7 +8,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 
 export default function Login() {
-  const { user, loading, login, register } = useAuth();
+  const { user, loading, login, register, demoLogin } = useAuth();
   const router = useRouter();
   const [isRegister, setIsRegister] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
@@ -142,6 +142,17 @@ export default function Login() {
               )}
             </button>
           </form>
+
+          {/* Dev / Demo Fallback */}
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              onClick={() => demoLogin(form.name || "Demo User", form.email || "demo@livepoll.app")}
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-sm transition-all flex items-center justify-center gap-2"
+            >
+              Continue in Demo Mode
+            </button>
+          </div>
 
           {/* Toggle */}
           <div className="text-center">

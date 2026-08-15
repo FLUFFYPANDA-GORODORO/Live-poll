@@ -408,11 +408,11 @@ export default function StandardPoll({
         style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
         {/* Absolute top-left corner logo */}
-        <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
+        <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-12 md:h-16 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
 
         {themeStyles.logoUrl && (
           <div className="w-full flex justify-end z-20 shrink-0 mb-4 pointer-events-none">
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-7 md:h-9 w-auto object-contain filter drop-shadow-md" />
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-16 md:h-20 max-w-[180px] md:max-w-[240px] w-auto object-contain filter drop-shadow-md" />
           </div>
         )}
 
@@ -445,11 +445,11 @@ export default function StandardPoll({
         className="min-h-screen flex flex-col justify-between p-4 md:p-6 relative select-none"
         style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
       >
-        <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
+        <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-12 md:h-16 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
 
         {themeStyles.logoUrl && (
           <div className="w-full flex justify-end z-20 shrink-0 mb-4 pointer-events-none">
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-7 md:h-9 w-auto object-contain filter drop-shadow-md" />
+            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-16 md:h-20 max-w-[180px] md:max-w-[240px] w-auto object-contain filter drop-shadow-md" />
           </div>
         )}
 
@@ -474,19 +474,22 @@ export default function StandardPoll({
       className="h-screen max-h-screen p-4 md:p-6 flex flex-col justify-between overflow-y-auto relative select-none"
       style={{ ...(themeStyles.mobileBackgroundStyle || themeStyles.backgroundStyle), ...themeStyles.containerStyle }}
     >
-      <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
+      <img src="/RapidPolls.png" alt="RapidPolls" className="absolute top-4 left-4 h-12 md:h-16 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none" />
 
       {themeStyles.logoUrl && (
         <div className="w-full flex justify-end z-20 shrink-0 mb-4 pointer-events-none">
-          <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-7 md:h-9 w-auto object-contain filter drop-shadow-md" />
+          <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-16 md:h-20 max-w-[180px] md:max-w-[240px] w-auto object-contain filter drop-shadow-md" />
         </div>
       )}
 
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col justify-center py-2">
         <div
           key={isWordCloud ? 'question-wc' : 'question-mcq'}
-          className="rounded-2xl border border-slate-100/20 shadow-2xl overflow-hidden"
-          style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
+          className="rounded-2xl border shadow-2xl overflow-hidden transition-colors duration-300"
+          style={{
+            backgroundColor: themeStyles.cardBackgroundColor,
+            borderColor: themeStyles.cardBorderColor,
+          }}
         >
           {/* Card Header */}
           <div className="p-4 sm:p-6">
@@ -507,8 +510,8 @@ export default function StandardPoll({
           {/* Results preview */}
           {!!hasVoted && isWordCloud && (
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 border bg-green-100 border-green-200">
-                <Check className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 border bg-emerald-100 dark:bg-emerald-950/40 border-emerald-300">
+                <Check className="w-6 h-6 text-emerald-600" />
               </div>
               <h3 className="text-lg font-bold" style={{ color: themeStyles.primaryTextColor }}>
                 Answer Recorded!
@@ -525,12 +528,20 @@ export default function StandardPoll({
 
                 const buttonStyleClass = `w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${
                   isOptionSelected
-                    ? "bg-emerald-50 border-emerald-500 shadow-md font-bold text-slate-900 cursor-default opacity-100"
+                    ? themeStyles.isDarkText
+                      ? "bg-emerald-100/80 border-emerald-500 shadow-md font-bold text-slate-950 cursor-default opacity-100"
+                      : "bg-emerald-950/50 border-emerald-500 shadow-md font-bold text-white cursor-default opacity-100"
                     : isOptionUnselected
-                      ? "bg-slate-50 border-slate-100 opacity-40 cursor-default text-slate-400"
+                      ? themeStyles.isDarkText
+                        ? "bg-slate-100/70 border-slate-200 opacity-40 cursor-default text-slate-400"
+                        : "bg-slate-900/40 border-white/5 opacity-40 cursor-default text-slate-500"
                       : poll.currentQuestionActive && !voting
-                        ? "bg-slate-50 hover:bg-slate-100/50 border-slate-200 hover:border-slate-300 cursor-pointer active:scale-[0.98] text-slate-800"
-                        : "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
+                        ? themeStyles.isDarkText
+                          ? "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 cursor-pointer active:scale-[0.98] text-slate-800"
+                          : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 cursor-pointer active:scale-[0.98] text-white"
+                        : themeStyles.isDarkText
+                          ? "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
+                          : "bg-white/5 border-white/5 cursor-not-allowed opacity-60 text-slate-500"
                 }`;
 
                 const badgeStyle = { backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] };
@@ -565,8 +576,8 @@ export default function StandardPoll({
                   key={idx}
                   className="flex items-center justify-between p-3 border rounded-lg shadow-sm"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    borderColor: "rgba(255,255,255,0.15)",
+                    backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
+                    borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
                     color: themeStyles.primaryTextColor,
                   }}
                 >
@@ -580,7 +591,7 @@ export default function StandardPoll({
                     <button
                       onClick={() => moveRankingItem(idx, idx - 1)}
                       disabled={idx === 0}
-                      className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 font-bold"
+                      className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 font-bold"
                       style={{ color: themeStyles.primaryTextColor }}
                     >
                       ▲
@@ -588,7 +599,7 @@ export default function StandardPoll({
                     <button
                       onClick={() => moveRankingItem(idx, idx + 1)}
                       disabled={idx === rankingItems.length - 1}
-                      className="p-1.5 rounded hover:bg-white/10 disabled:opacity-30 font-bold"
+                      className="p-1.5 rounded hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-30 font-bold"
                       style={{ color: themeStyles.primaryTextColor }}
                     >
                       ▼
@@ -623,8 +634,8 @@ export default function StandardPoll({
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    borderColor: "rgba(255,255,255,0.15)",
+                    backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
+                    borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)",
                     color: themeStyles.primaryTextColor,
                   }}
                 />
@@ -657,8 +668,8 @@ export default function StandardPoll({
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1"
                   style={{
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    borderColor: "rgba(255,255,255,0.15)",
+                    backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
+                    borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)",
                     color: themeStyles.primaryTextColor,
                   }}
                 />
@@ -678,38 +689,68 @@ export default function StandardPoll({
           {/* Message bar */}
           <div className="px-4 pb-4">
             {voting || localSubmitting ? (
-              <div className="flex items-center justify-center gap-2 p-2 border rounded-md" style={{ backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)", color: themeStyles.secondaryTextColor }}>
+              <div
+                className="flex items-center justify-center gap-2 p-2 border rounded-md"
+                style={{
+                  backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.05)",
+                  borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)",
+                  color: themeStyles.secondaryTextColor,
+                }}
+              >
                 <Loader2 className="w-4 h-4 animate-spin" style={{ color: themeStyles.accentColor }} />
                 <span className="font-medium">Recording response...</span>
               </div>
             ) : hasVoted ? (
               isWordCloud ? null : (
-                <div className="flex items-center justify-center gap-2 p-2 border rounded-md text-emerald-400" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
+                <div
+                  className="flex items-center justify-center gap-2 p-2 border rounded-md text-emerald-600 dark:text-emerald-400 font-semibold text-xs md:text-sm"
+                  style={{
+                    backgroundColor: themeStyles.isDarkText ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)",
+                    borderColor: themeStyles.isDarkText ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)",
+                  }}
+                >
                   <Check className="w-4 h-4" />
-                  <span className="font-medium">Answer recorded!</span>
+                  <span>Answer recorded!</span>
                 </div>
               )
             ) : !poll.currentQuestionActive ? (
-              <div className="flex items-center justify-center gap-2 p-2 border rounded-md text-amber-400" style={{ backgroundColor: "rgba(245,158,11,0.1)", borderColor: "rgba(245,158,11,0.2)" }}>
+              <div
+                className="flex items-center justify-center gap-2 p-2 border rounded-md text-amber-600 dark:text-amber-400 font-semibold text-xs md:text-sm"
+                style={{
+                  backgroundColor: themeStyles.isDarkText ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)",
+                  borderColor: themeStyles.isDarkText ? "rgba(245,158,11,0.3)" : "rgba(245,158,11,0.2)",
+                }}
+              >
                 <Lock className="w-4 h-4" />
-                <span className="font-medium">Voting locked. Wait for host.</span>
+                <span>Voting locked. Wait for host.</span>
               </div>
             ) : isWordCloud ? (
-              <div className="text-center p-2.5 border rounded-md font-semibold text-xs md:text-sm text-emerald-400" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
+              <div
+                className="text-center p-2.5 border rounded-md font-semibold text-xs md:text-sm text-emerald-600 dark:text-emerald-400"
+                style={{
+                  backgroundColor: themeStyles.isDarkText ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)",
+                  borderColor: themeStyles.isDarkText ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)",
+                }}
+              >
                 <span>Enter a word and tap submit to record your response</span>
               </div>
             ) : (
-              <div className="text-center p-2.5 border rounded-md font-semibold text-xs md:text-sm animate-pulse text-emerald-400" style={{ backgroundColor: "rgba(16,185,129,0.1)", borderColor: "rgba(16,185,129,0.2)" }}>
+              <div
+                className="text-center p-2.5 border rounded-md font-semibold text-xs md:text-sm animate-pulse text-emerald-600 dark:text-emerald-400"
+                style={{
+                  backgroundColor: themeStyles.isDarkText ? "rgba(16,185,129,0.15)" : "rgba(16,185,129,0.1)",
+                  borderColor: themeStyles.isDarkText ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)",
+                }}
+              >
                 <span>Tap an option to lock in your answer</span>
               </div>
             )}
           </div>
         </div>
-      </div>
 
         {/* Emoji Reactions Panel */}
         {poll.status === "live" && poll.status !== undefined && activeQuestion?.allowReactions !== false && (
-          <div className="p-2 mt-4 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md">
+          <div className="mt-6 sm:mt-8 flex items-center justify-center gap-2 w-full mx-auto animate-fade-in z-20 relative rounded-md">
             {["❤️", "🔥", "👏", "😂", "🤯"].map((emoji, idx) => (
               <button
                 key={idx}
@@ -721,8 +762,9 @@ export default function StandardPoll({
             ))}
           </div>
         )}
+      </div>
 
-        {/* Floating click particles portal */}
+      {/* Floating click particles portal */}
         {particles.map((p) => (
           <span
             key={p.id}

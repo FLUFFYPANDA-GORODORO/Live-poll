@@ -40,7 +40,7 @@ export function AuthProvider({ children }) {
       router.push("/home");
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.data?.error || "Login failed" };
+      return { success: false, error: error.data?.error || error.message || "Login failed" };
     }
   };
 
@@ -60,9 +60,24 @@ export function AuthProvider({ children }) {
     } catch (error) {
       return {
         success: false,
-        error: error.data?.error || "Registration failed",
+        error: error.data?.error || error.message || "Registration failed",
       };
     }
+  };
+
+  const demoLogin = (name = "Demo User", email = "demo@livepoll.app") => {
+    const fakeToken = "demo-jwt-token-guest";
+    const userData = {
+      uid: "00000000-0000-0000-0000-000000000000",
+      email: email,
+      displayName: name,
+      isDemo: true,
+    };
+    localStorage.setItem("authToken", fakeToken);
+    localStorage.setItem("authUser", JSON.stringify(userData));
+    setUser(userData);
+    router.push("/home");
+    return { success: true };
   };
 
   const logout = () => {
@@ -74,7 +89,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, demoLogin, logout }}>
       {children}
     </AuthContext.Provider>
   );

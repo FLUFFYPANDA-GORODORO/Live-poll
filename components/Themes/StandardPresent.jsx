@@ -19,6 +19,68 @@ import { QRCodeSVG } from "qrcode.react";
 import { getThemeStyles } from "@/lib/themeHelper";
 import toast from "react-hot-toast";
 
+// ── Continuous Closed-Loop Mathematical Sine Wave Canvas ────────────────────────
+function CanvasSineWave({ isPlaying }) {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animId;
+    let phase = 0;
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const w = 32;
+    const h = 16;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    ctx.scale(dpr, dpr);
+
+    const render = () => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.beginPath();
+      ctx.lineWidth = 2.2;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = isPlaying ? "#ffffff" : "rgba(255, 255, 255, 0.4)";
+
+      const amplitude = isPlaying ? 4.8 : 2.0;
+      const centerY = h / 2;
+      const cycles = 1.5; // 1.5 complete wavelengths across width
+
+      for (let x = 0; x <= w; x += 1) {
+        // Continuous harmonic sine function with phase
+        const normalizedX = x / w;
+        const angle = normalizedX * (cycles * 2 * Math.PI) + phase;
+        // Natural end tapering so edges smoothly meet center line
+        const envelope = Math.sin(normalizedX * Math.PI);
+        const y = centerY + Math.sin(angle) * amplitude * envelope;
+
+        if (x === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      if (isPlaying) {
+        // Continuous phase advance: exactly 2*PI radians per cycle
+        phase = (phase + 0.045) % (2 * Math.PI);
+        animId = requestAnimationFrame(render);
+      }
+    };
+
+    render();
+
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+    };
+  }, [isPlaying]);
+
+  return <canvas ref={canvasRef} style={{ width: "32px", height: "16px" }} className="block" />;
+}
+
 // ── Inject global styles once into <head> ──────────────────────────────────────
 const GLOBAL_STYLE_ID = "standard-present-styles";
 function injectGlobalStyles() {
@@ -31,14 +93,13 @@ function injectGlobalStyles() {
     .font-baskerville { font-family: 'Libre Baskerville', serif; }
     .font-epilogue    { font-family: 'Epilogue', sans-serif; }
 
-    @keyframes musicWave1 { 0%, 100% { height: 4px; } 50% { height: 16px; } }
-    @keyframes musicWave2 { 0%, 100% { height: 14px; } 50% { height: 6px; } }
-    @keyframes musicWave3 { 0%, 100% { height: 6px; } 50% { height: 18px; } }
-    @keyframes musicWave4 { 0%, 100% { height: 16px; } 50% { height: 8px; } }
-    .animate-wave-1 { animation: musicWave1 0.8s ease-in-out infinite; }
-    .animate-wave-2 { animation: musicWave2 0.7s ease-in-out infinite; }
-    .animate-wave-3 { animation: musicWave3 0.9s ease-in-out infinite; }
-    .animate-wave-4 { animation: musicWave4 0.6s ease-in-out infinite; }
+    @keyframes sineRibbon {
+      0% { transform: translateX(0px); }
+      100% { transform: translateX(-36px); }
+    }
+    .animate-sine-wave {
+      animation: sineRibbon 1.6s linear infinite;
+    }
 
     /* ── Three drift paths, matching the classic hearts animation ── */
     @keyframes mc-flowOne {
@@ -266,19 +327,24 @@ export default function StandardPresent({
 
   const hasAudio = Boolean(
     poll?.enableAudio ||
-      poll?.questions?.some((q) => q.enableAudio) ||
-      currentQuestion?.enableAudio
+      poll?.questions?.some((q) => q?.enableAudio)
   );
-  const audioTrackUrl =
-    poll?.audioUrl ||
-    poll?.questions?.find((q) => q.audioUrl)?.audioUrl ||
-    currentQuestion?.audioUrl ||
-    (hasAudio
-      ? "https://res.cloudinary.com/dkhxnyat4/video/upload/v1786698983/polls/audio/fpkrhs5gx4tnbpoimwnf.mp3"
-      : null);
+  // Resolve global audio track for the entire poll session
+  const audioTrackUrl = useMemo(() => {
+    return (
+      poll?.audioUrl ||
+      poll?.questions?.find((q) => q?.audioUrl)?.audioUrl ||
+      (hasAudio
+        ? "https://res.cloudinary.com/dkhxnyat4/video/upload/v1786698983/polls/audio/fpkrhs5gx4tnbpoimwnf.mp3"
+        : null)
+    );
+  }, [poll?.audioUrl, poll?.questions, hasAudio]);
 
+  // Initial autoplay when poll loads if audio is enabled (does NOT re-trigger on question changes)
+  const hasAttemptedAutoPlay = useRef(false);
   useEffect(() => {
-    if (hasAudio && audioTrackUrl && audioRef.current) {
+    if (hasAudio && audioTrackUrl && audioRef.current && !hasAttemptedAutoPlay.current) {
+      hasAttemptedAutoPlay.current = true;
       audioRef.current.loop = true;
       audioRef.current.volume = 0.6;
       const playPromise = audioRef.current.play();
@@ -291,6 +357,14 @@ export default function StandardPresent({
       }
     }
   }, [hasAudio, audioTrackUrl]);
+
+  // Pause audio automatically when poll ends
+  useEffect(() => {
+    if (currentQuestionIndex === totalQuestions && audioRef.current) {
+      audioRef.current.pause();
+      setIsPlayingAudio(false);
+    }
+  }, [currentQuestionIndex, totalQuestions]);
 
   const toggleAudio = () => {
     if (!audioRef.current) return;
@@ -429,30 +503,33 @@ export default function StandardPresent({
 
   return (
     <div
-      className="h-screen max-h-screen flex flex-col overflow-hidden relative select-none"
+      className="h-screen max-h-screen w-full flex flex-col justify-between overflow-hidden relative select-none"
       style={{
         ...themeStyles.backgroundStyle,
         ...themeStyles.containerStyle,
       }}
     >
-      {/* Top-left screen corner logo (Mentimeter style) */}
-      <img
-        src="/RapidPolls.png"
-        alt="RapidPolls"
-        className="absolute top-4 left-5 h-5 md:h-6 w-auto object-contain opacity-90 filter drop-shadow-sm select-none z-30 pointer-events-none"
-      />
+      {/* 10vh Top Header / Navbar */}
+      <header className="h-[10vh] w-full flex items-center justify-between z-20 shrink-0 pointer-events-none px-6 md:px-12">
+        <img
+          src="/RapidPolls.png"
+          alt="RapidPolls"
+          className="h-6 md:h-8 w-auto object-contain opacity-90 filter drop-shadow-sm select-none"
+        />
 
-      {/* Top Bar for Custom Theme Logo */}
-      {themeStyles.logoUrl && (
-        <header className="w-full z-20 relative bg-transparent pointer-events-none">
-          <div className="w-full px-6 py-4 flex items-center justify-end">
-            <img src={themeStyles.logoUrl} alt="Theme Logo" className="h-10 2xl:h-14 w-auto object-contain filter drop-shadow-md" />
-          </div>
-        </header>
-      )}
+        {themeStyles.logoUrl ? (
+          <img
+            src={themeStyles.logoUrl}
+            alt="Theme Logo"
+            className="h-8 md:h-11 max-w-[160px] md:max-w-[200px] w-auto object-contain filter drop-shadow-md"
+          />
+        ) : (
+          <div className="w-8" />
+        )}
+      </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col justify-between px-6 md:px-12 pt-6 pb-28 z-10 relative w-full mx-auto bg-transparent rounded-3xl my-4">
+      {/* 80vh Center Main Content Frame */}
+      <main className="h-[80vh] max-h-[80vh] flex flex-col justify-between max-w-6xl 2xl:max-w-7xl mx-auto w-full p-6 md:p-8 z-10 relative bg-transparent overflow-hidden">
         {poll.activeQuestionIndex === -1 || poll.activeQuestionIndex === undefined ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center my-auto">
             <h1
@@ -485,7 +562,7 @@ export default function StandardPresent({
           </div>
         ) : (
           <>
-            <div className={`w-full max-w-6xl mx-auto mb-6 mt-2 ${
+            <div className={`w-full max-w-6xl mx-auto mb-4 mt-1 ${
               currentQuestion?.alignment === "left"
                 ? "text-left"
                 : currentQuestion?.alignment === "right"
@@ -501,7 +578,7 @@ export default function StandardPresent({
             </div>
 
             {isRanking ? (
-              <div className="w-full flex-1 flex flex-col justify-center max-w-4xl mx-auto mb-6 px-4 space-y-4">
+              <div className="w-full flex-1 flex flex-col justify-center max-w-4xl mx-auto mb-4 px-4 space-y-3">
                 {(() => {
                   const rankingsData = poll?.rankingCounts?.[currentQuestionIndex.toString()] || {};
                   const options = currentQuestion?.options || [];
@@ -520,21 +597,27 @@ export default function StandardPresent({
                     return (
                       <div
                         key={item.idx}
-                        className="flex items-center gap-4 p-4 rounded-xl shadow-lg transition-all duration-700 border border-white/20"
-                        style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A" }}
+                        className="flex items-center gap-4 p-3.5 rounded-xl shadow-lg transition-all duration-700 border"
+                        style={{
+                          backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
+                          borderColor: themeStyles.cardBorderColor,
+                        }}
                       >
                         <div
-                          className="w-10 h-10 rounded-full font-black text-xl flex items-center justify-center shadow-md shrink-0"
+                          className="w-9 h-9 rounded-full font-black text-lg flex items-center justify-center shadow-md shrink-0"
                           style={{ backgroundColor: itemColor, color: "#ffffff" }}
                         >
                           #{rankIdx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-center mb-1">
-                            <span className="font-bold text-lg md:text-xl truncate" style={{ color: themeStyles.primaryTextColor }}>{item.text}</span>
-                            <span className="font-extrabold text-lg shrink-0 ml-2" style={{ color: themeStyles.accentColor }}>{item.points} pts</span>
+                            <span className="font-bold text-base md:text-lg truncate" style={{ color: themeStyles.primaryTextColor }}>{item.text}</span>
+                            <span className="font-extrabold text-base shrink-0 ml-2" style={{ color: themeStyles.accentColor }}>{item.points} pts</span>
                           </div>
-                          <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden">
+                          <div
+                            className="w-full h-2.5 rounded-full overflow-hidden"
+                            style={{ backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.2)" }}
+                          >
                             <div
                               className="h-full rounded-full transition-all duration-700 ease-out"
                               style={{ width: `${Math.max(pct, 4)}%`, backgroundColor: itemColor }}
@@ -547,12 +630,12 @@ export default function StandardPresent({
                 })()}
               </div>
             ) : isOpenEnded ? (
-              <div className="w-full flex-1 overflow-y-auto max-h-[55vh] max-w-5xl mx-auto my-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="w-full flex-1 overflow-y-auto max-h-[48vh] max-w-5xl mx-auto my-auto p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 {(() => {
                   const responses = poll?.openEndedResponses?.[currentQuestionIndex.toString()] || [];
                   if (responses.length === 0) {
                     return (
-                      <div className="col-span-full text-center py-16 text-xl" style={{ color: themeStyles.secondaryTextColor }}>
+                      <div className="col-span-full text-center py-12 text-lg" style={{ color: themeStyles.secondaryTextColor }}>
                         Waiting for audience responses...
                       </div>
                     );
@@ -562,11 +645,21 @@ export default function StandardPresent({
                     return (
                       <div
                         key={respId || idx}
-                        className="relative group border border-white/25 rounded-2xl p-5 shadow-xl flex flex-col justify-between hover:border-white/40 transition-all"
-                        style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A", color: themeStyles.primaryTextColor }}
+                        className="relative group border rounded-2xl p-4 shadow-xl flex flex-col justify-between transition-all"
+                        style={{
+                          backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
+                          borderColor: themeStyles.cardBorderColor,
+                          color: themeStyles.primaryTextColor,
+                        }}
                       >
-                        <p className="text-base md:text-lg font-medium leading-relaxed break-words">{resp.text}</p>
-                        <div className="flex justify-between items-center mt-4 text-xs border-t border-white/10 pt-2" style={{ color: themeStyles.secondaryTextColor }}>
+                        <p className="text-sm md:text-base font-medium leading-relaxed break-words">{resp.text}</p>
+                        <div
+                          className="flex justify-between items-center mt-3 text-xs border-t pt-2"
+                          style={{
+                            borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)",
+                            color: themeStyles.secondaryTextColor,
+                          }}
+                        >
                           <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                           <button
                             onClick={async () => {
@@ -578,10 +671,10 @@ export default function StandardPresent({
                                 }
                               }
                             }}
-                            className="p-1.5 rounded-lg bg-red-500/80 hover:bg-red-600 text-white opacity-80 hover:opacity-100 transition-all cursor-pointer"
+                            className="p-1 rounded-lg bg-red-500/80 hover:bg-red-600 text-white opacity-80 hover:opacity-100 transition-all cursor-pointer"
                             title="Delete response"
                           >
-                            <X className="w-4 h-4" />
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
@@ -590,12 +683,12 @@ export default function StandardPresent({
                 })()}
               </div>
             ) : isWordCloud ? (
-              <div className="w-full flex-1 flex flex-col justify-center items-center mx-auto my-auto mb-6 pt-4">
+              <div className="w-full flex-1 flex flex-col justify-center items-center mx-auto my-auto mb-2 pt-2">
                 {wordsList.length > 0 ? (
-                  <div id="chartdiv" style={{ width: "100%", height: "480px", minHeight: "400px" }} className="overflow-visible" />
+                  <div id="chartdiv" style={{ width: "100%", height: "360px", minHeight: "300px" }} className="overflow-visible" />
                 ) : (
-                  <div className="flex items-center justify-center w-full h-[480px] min-h-[400px]">
-                    <svg viewBox="0 0 24 24" className="w-24 h-24" style={{ color: themeStyles.secondaryTextColor }}>
+                  <div className="flex items-center justify-center w-full h-[360px] min-h-[300px]">
+                    <svg viewBox="0 0 24 24" className="w-20 h-20" style={{ color: themeStyles.secondaryTextColor }}>
                       <path
                         d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
                         fill="none"
@@ -636,7 +729,13 @@ export default function StandardPresent({
                   }}
                 >
                   {currentQuestion?.visualization === "Donut" && (
-                    <div className="w-36 h-36 md:w-44 md:h-44 rounded-full shadow-inner flex flex-col items-center justify-center" style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor, color: themeStyles.primaryTextColor }}>
+                    <div
+                      className="w-36 h-36 md:w-44 md:h-44 rounded-full shadow-inner flex flex-col items-center justify-center"
+                      style={{
+                        backgroundColor: themeStyles.cardBackgroundColor,
+                        color: themeStyles.primaryTextColor,
+                      }}
+                    >
                       <span className="text-3xl font-extrabold">{totalVotes}</span>
                       <span className="text-xs uppercase tracking-wider font-semibold" style={{ color: themeStyles.secondaryTextColor }}>Total Votes</span>
                     </div>
@@ -652,8 +751,12 @@ export default function StandardPresent({
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between p-3.5 rounded-xl border border-white/15"
-                        style={{ backgroundColor: themeStyles.backgroundStyle?.backgroundColor || themeStyles.cardBackgroundColor || "#0F172A", color: themeStyles.primaryTextColor }}
+                        className="flex items-center justify-between p-3.5 rounded-xl border"
+                        style={{
+                          backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
+                          borderColor: themeStyles.cardBorderColor,
+                          color: themeStyles.primaryTextColor,
+                        }}
                       >
                         <div className="flex items-center gap-3">
                           <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
@@ -677,7 +780,14 @@ export default function StandardPresent({
             ) : (
               /* Vertical Bars Visualization (Default) */
               <div className="w-full flex-1 flex flex-col justify-end mb-6">
-                <div className="flex items-end justify-center gap-6 md:gap-12 w-full mx-auto border-b border-white/40 pb-0">
+                <div
+                  className="flex items-end justify-center gap-6 md:gap-12 w-full mx-auto pb-0"
+                  style={{
+                    borderBottom: themeStyles.isDarkText
+                      ? "1.5px solid rgba(0, 0, 0, 0.2)"
+                      : "1.5px solid rgba(255, 255, 255, 0.35)",
+                  }}
+                >
                   {currentQuestion?.options?.map((option, idx) => {
                     const votes = getVoteCount(idx);
                     const percentage = totalVotes > 0 ? Math.round((votes / totalVotes) * 100) : 0;
@@ -743,34 +853,27 @@ export default function StandardPresent({
         </div>
       )}
 
-      {/* ── Bottom Controls Bar ── */}
-      <div className="fixed bottom-6 left-0 right-0 w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center">
+      {/* 10vh Bottom Controls Bar */}
+      <footer className="h-[10vh] w-full px-6 md:px-12 z-20 pointer-events-none flex justify-between items-center shrink-0">
         {/* Left: Poll controls */}
         <div className="bg-black/60 border border-white/10 rounded-xl p-2 flex items-center gap-3 shadow-2xl pointer-events-auto">
-          {/* Music Wave Equalizer Toggle */}
+          {/* Smooth Sine Wave Audio Toggle */}
           {hasAudio && audioTrackUrl && (
             <>
               <button
                 type="button"
                 onClick={toggleAudio}
-                className={`px-2.5 py-1.5 rounded-lg border transition-all flex items-center gap-2 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg border transition-all flex items-center justify-center cursor-pointer ${
                   isPlayingAudio
-                    ? "bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border-emerald-500/40 shadow-xs"
-                    : "bg-white/5 hover:bg-white/15 text-slate-400 border-white/10"
+                    ? "bg-white/15 hover:bg-white/25 text-white border-white/30 shadow-xs"
+                    : "bg-white/5 hover:bg-white/10 text-white/40 border-white/10"
                 }`}
                 title={isPlayingAudio ? "Pause Background Music" : "Play Background Music"}
               >
-                <div className="flex items-end gap-[3px] h-4 w-3.5 pb-0.5">
-                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-1" : "h-1"}`} />
-                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-2" : "h-1"}`} />
-                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-3" : "h-1"}`} />
-                  <span className={`w-[2.5px] rounded-full bg-current transition-all ${isPlayingAudio ? "animate-wave-4" : "h-1"}`} />
+                {/* Continuous Closed-Loop Sine Wave Canvas */}
+                <div className="w-8 h-4 overflow-hidden relative flex items-center justify-center pointer-events-none">
+                  <CanvasSineWave isPlaying={isPlayingAudio} />
                 </div>
-                {isPlayingAudio ? (
-                  <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                )}
               </button>
               <div className="w-px h-4 bg-white/20" />
             </>
@@ -809,7 +912,7 @@ export default function StandardPresent({
             {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
           </button>
         </div>
-      </div>
+      </footer>
 
       {hasAudio && audioTrackUrl && (
         <audio ref={audioRef} src={audioTrackUrl} loop preload="auto" />

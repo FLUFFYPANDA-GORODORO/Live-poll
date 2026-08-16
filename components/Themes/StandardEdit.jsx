@@ -236,29 +236,47 @@ function RankingPreview({ options, paletteColors = DEFAULT_PALETTE, textColor = 
   const colors = paletteColors?.length ? paletteColors : DEFAULT_PALETTE;
 
   return (
-    <div className="space-y-3 max-w-md mx-auto w-full">
+    <div className="space-y-4 max-w-lg mx-auto w-full px-2">
       {options.map((opt, idx) => {
         const text = typeof opt === "string" ? opt : opt?.text || `Item ${idx + 1}`;
         const color = colors[idx % colors.length];
+        const sampleProgress = [90, 65, 40, 20][idx % 4];
 
         return (
-          <div
-            key={idx}
-            className="p-3 border rounded-md flex items-center justify-between shadow-xs transition-all"
-            style={{
-              color: textColor || "#FFFFFF",
-              borderColor: textColor ? `${textColor}33` : "rgba(255, 255, 255, 0.2)",
-              backgroundColor: textColor === "#FFFFFF" || textColor === "#ffffff" ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.04)",
-              fontFamily: fontFamily || "inherit"
-            }}
-          >
-            <span className="text-sm font-semibold truncate max-w-[280px]" title={text}>{text}</span>
-            <span
-              className="w-6 h-6 rounded-md text-white text-xs font-bold flex items-center justify-center shadow-xs"
-              style={{ backgroundColor: color }}
+          <div key={idx} className="flex flex-col gap-1.5 w-full">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span
+                  className="px-2 py-0.5 rounded-md text-xs font-bold border"
+                  style={{
+                    backgroundColor: textColor === "#FFFFFF" || textColor === "#ffffff" ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.06)",
+                    borderColor: textColor ? `${textColor}33` : "rgba(255, 255, 255, 0.2)",
+                    color: textColor || "#FFFFFF",
+                  }}
+                >
+                  {idx + 1}
+                </span>
+                <span
+                  className="text-sm font-semibold truncate max-w-[320px]"
+                  style={{ color: textColor || "#FFFFFF", fontFamily: fontFamily || "inherit" }}
+                  title={text}
+                >
+                  {text}
+                </span>
+              </div>
+            </div>
+            <div
+              className="w-full h-3 rounded-full overflow-hidden p-0.5 border"
+              style={{
+                backgroundColor: textColor === "#FFFFFF" || textColor === "#ffffff" ? "rgba(255, 255, 255, 0.12)" : "#E2E8F0",
+                borderColor: textColor ? `${textColor}22` : "rgba(255, 255, 255, 0.1)",
+              }}
             >
-              #{idx + 1}
-            </span>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${sampleProgress}%`, backgroundColor: color }}
+              />
+            </div>
           </div>
         );
       })}
@@ -685,15 +703,15 @@ export default function StandardEdit({
               ) : <div className="h-4" />}
 
               {/* Centered Slide Layout Picker (Clean Single-Border Boxes) */}
-              <div className="flex-1 flex flex-col items-center justify-center my-auto w-full py-6">
+              <div className="flex-1 flex flex-col items-center justify-center my-auto w-full py-4">
                 <h2
-                  className="text-2xl font-extrabold tracking-tight text-center mb-8"
+                  className="text-4xl md:text-5xl font-black tracking-tight text-center mb-8 drop-shadow-sm"
                   style={{ color: themeStyles.primaryTextColor || "#000000" }}
                 >
                   Select Slide Type
                 </h2>
 
-                <div className="grid grid-cols-6 gap-3.5 w-full max-w-4xl">
+                <div className="grid grid-cols-5 gap-4 w-full max-w-4xl px-2">
                   {slideTypes.map((st) => (
                     <button
                       key={st.type}
@@ -708,65 +726,63 @@ export default function StandardEdit({
                       }}
                       className="group flex flex-col items-center cursor-pointer w-full"
                     >
-                      {/* Single Border Frame Box (rounded-md) */}
-                      <div className="w-full aspect-[4/3] rounded-md border border-slate-700/40 bg-slate-950/80 hover:bg-slate-900 hover:border-slate-500 backdrop-blur-md transition-all shadow-md overflow-hidden p-1.5 relative flex items-center justify-center group-hover:-translate-y-0.5">
+                      {/* Single Border Frame Box (rounded-lg with clean subtle surface & border) */}
+                      <div className="w-full aspect-[4/3] rounded-lg border border-slate-700/60 bg-slate-900/90 hover:bg-slate-850 hover:border-indigo-500/50 transition-all shadow-md overflow-hidden p-2.5 relative flex items-center justify-center group-hover:-translate-y-1">
                         {st.type === "MultipleChoice" ? (
-                          <div className="w-full h-full flex items-end justify-between gap-1 pt-2 pb-0.5 px-1">
-                            <div className="flex-1 flex flex-col items-center justify-end h-full">
-                              <span className="text-[7px] font-extrabold text-indigo-300 leading-none mb-0.5">65%</span>
-                              <div className="w-full bg-indigo-500/85 rounded-t-xs" style={{ height: "65%" }} />
-                            </div>
-                            <div className="flex-1 flex flex-col items-center justify-end h-full">
-                              <span className="text-[7px] font-extrabold text-pink-300 leading-none mb-0.5">40%</span>
-                              <div className="w-full bg-pink-500/85 rounded-t-xs" style={{ height: "40%" }} />
-                            </div>
-                            <div className="flex-1 flex flex-col items-center justify-end h-full">
-                              <span className="text-[7px] font-extrabold text-emerald-300 leading-none mb-0.5">85%</span>
-                              <div className="w-full bg-emerald-500/85 rounded-t-xs" style={{ height: "85%" }} />
-                            </div>
-                            <div className="flex-1 flex flex-col items-center justify-end h-full">
-                              <span className="text-[7px] font-extrabold text-amber-300 leading-none mb-0.5">25%</span>
-                              <div className="w-full bg-amber-500/85 rounded-t-xs" style={{ height: "25%" }} />
+                          /* Clean, structured 3-bar chart with subtle rounded top, wider bars, and bottom baseline */
+                          <div className="w-full h-full flex flex-col justify-end items-center px-1">
+                            <div className="w-full flex items-end justify-center gap-2 pb-0.5 border-b border-white/60">
+                              <div className="w-4 flex flex-col items-center justify-end h-10">
+                                <div className="w-full bg-indigo-500 rounded-t-[3px] shadow-xs" style={{ height: "45%" }} />
+                              </div>
+                              <div className="w-4 flex flex-col items-center justify-end h-10">
+                                <div className="w-full bg-indigo-400 rounded-t-[3px] shadow-xs" style={{ height: "85%" }} />
+                              </div>
+                              <div className="w-4 flex flex-col items-center justify-end h-10">
+                                <div className="w-full bg-cyan-400 rounded-t-[3px] shadow-xs" style={{ height: "60%" }} />
+                              </div>
                             </div>
                           </div>
                         ) : st.type === "WordCloud" ? (
-                          <div className="w-full h-full flex flex-wrap items-center justify-center content-center gap-1 p-0.5 select-none">
-                            <span className="text-indigo-400 font-extrabold text-[10px]">Live</span>
-                            <span className="text-pink-400 font-bold text-[8px]">Great</span>
-                            <span className="text-amber-300 font-black text-[11px]">Polls</span>
-                            <span className="text-emerald-400 font-medium text-[7px]">Fast</span>
-                            <span className="text-[#38BDF8] font-bold text-[9px]">Ideas</span>
-                            <span className="text-purple-300 font-semibold text-[7px]">Cloud</span>
+                          /* Modern, unified harmonious cloud tags */
+                          <div className="w-full h-full flex flex-wrap items-center justify-center content-center gap-1.5 p-1 select-none">
+                            <span className="text-indigo-300 font-extrabold text-[10px] tracking-tight">Live</span>
+                            <span className="text-cyan-300 font-bold text-[8px]">Polls</span>
+                            <span className="text-white/80 font-semibold text-[9px]">Ideas</span>
+                            <span className="text-indigo-400/90 font-medium text-[7.5px]">Fast</span>
+                            <span className="text-sky-300 font-bold text-[8px]">Cloud</span>
                           </div>
                         ) : st.type === "OpenEnded" ? (
-                          <div className="w-full h-full flex flex-col gap-1 justify-center p-1">
-                            <div className="w-full bg-white/10 border border-white/15 rounded-sm p-1 flex flex-col gap-0.5">
-                              <div className="w-3/4 h-1 bg-white/70 rounded-full" />
-                              <div className="w-1/2 h-0.5 bg-white/40 rounded-full" />
+                          /* Clean stacked responses one directly below the other */
+                          <div className="w-full h-full flex flex-col gap-1.5 justify-center px-1 py-1">
+                            <div className="w-full bg-white/10 border border-white/10 rounded-md p-1.5 flex flex-col gap-1">
+                              <div className="w-4/5 h-1 bg-white/70 rounded-full" />
+                              <div className="w-1/2 h-0.5 bg-white/30 rounded-full" />
                             </div>
-                            <div className="w-full bg-white/10 border border-white/15 rounded-sm p-1 flex flex-col gap-0.5 ml-1">
-                              <div className="w-4/5 h-1 bg-indigo-300/80 rounded-full" />
-                              <div className="w-2/5 h-0.5 bg-indigo-300/40 rounded-full" />
+                            <div className="w-full bg-white/10 border border-white/10 rounded-md p-1.5 flex flex-col gap-1">
+                              <div className="w-2/3 h-1 bg-indigo-300/80 rounded-full" />
+                              <div className="w-1/3 h-0.5 bg-indigo-300/40 rounded-full" />
                             </div>
                           </div>
                         ) : st.type === "Ranking" ? (
-                          <div className="w-full h-full flex flex-col justify-center gap-1 px-1 py-0.5">
-                            <div className="flex items-center gap-1">
-                              <span className="text-[8px] font-extrabold text-indigo-300 shrink-0 w-3">#1</span>
-                              <div className="flex-1 h-1.5 bg-indigo-500/85 rounded-full" style={{ width: "90%" }} />
+                          /* Stepped progressive ranking bars: #1 most, #2 less, #3 least */
+                          <div className="w-full h-full flex flex-col justify-center gap-1.5 px-1.5 py-1">
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="text-[8px] font-bold text-indigo-300 shrink-0 w-3">#1</span>
+                              <div className="h-1.5 bg-indigo-500 rounded-full shadow-xs" style={{ width: "90%" }} />
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[8px] font-extrabold text-pink-300 shrink-0 w-3">#2</span>
-                              <div className="flex-1 h-1.5 bg-pink-500/85 rounded-full" style={{ width: "65%" }} />
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="text-[8px] font-bold text-indigo-300/80 shrink-0 w-3">#2</span>
+                              <div className="h-1.5 bg-indigo-400 rounded-full shadow-xs" style={{ width: "65%" }} />
                             </div>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[8px] font-extrabold text-emerald-300 shrink-0 w-3">#3</span>
-                              <div className="flex-1 h-1.5 bg-emerald-500/85 rounded-full" style={{ width: "40%" }} />
+                            <div className="flex items-center gap-1.5 w-full">
+                              <span className="text-[8px] font-bold text-indigo-300/60 shrink-0 w-3">#3</span>
+                              <div className="h-1.5 bg-indigo-300/60 rounded-full shadow-xs" style={{ width: "40%" }} />
                             </div>
                           </div>
                         ) : (
                           <div className="w-full h-full flex items-center gap-1.5 p-1">
-                            <div className="w-7 h-7 rounded-sm bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+                            <div className="w-7 h-7 rounded-md bg-white/10 border border-white/15 flex items-center justify-center shrink-0">
                               <ImageIcon className="w-3.5 h-3.5 text-white/70" />
                             </div>
                             <div className="flex-1 flex flex-col gap-1">
@@ -780,7 +796,7 @@ export default function StandardEdit({
 
                       {/* Name Outside the Box */}
                       <span
-                        className="mt-2 text-xs font-bold transition-colors text-center truncate max-w-full select-none"
+                        className="mt-2.5 text-xs font-semibold tracking-tight transition-colors text-center truncate max-w-full select-none opacity-90 group-hover:opacity-100"
                         style={{ color: themeStyles.primaryTextColor || "#000000" }}
                       >
                         {st.label}
@@ -794,11 +810,11 @@ export default function StandardEdit({
                     onClick={() => setActiveRightTab("template")}
                     className="group flex flex-col items-center cursor-pointer w-full"
                   >
-                    <div className="w-full aspect-[4/3] rounded-md border border-slate-700/40 bg-slate-950/80 hover:bg-slate-900 hover:border-slate-500 backdrop-blur-md transition-all shadow-md overflow-hidden relative flex flex-col items-center justify-center group-hover:-translate-y-0.5">
+                    <div className="w-full aspect-[4/3] rounded-lg border border-slate-700/60 bg-slate-900/90 hover:bg-slate-850 hover:border-indigo-500/50 transition-all shadow-md overflow-hidden relative flex flex-col items-center justify-center group-hover:-translate-y-1">
                       <Sparkles className="w-5 h-5 text-indigo-300 group-hover:scale-110 transition-transform" />
                     </div>
                     <span
-                      className="mt-2 text-xs font-bold transition-colors text-center truncate max-w-full select-none"
+                      className="mt-2.5 text-xs font-semibold tracking-tight transition-colors text-center truncate max-w-full select-none opacity-90 group-hover:opacity-100"
                       style={{ color: themeStyles.primaryTextColor || "#000000" }}
                     >
                       Templates
@@ -1266,7 +1282,7 @@ export default function StandardEdit({
                       </div>
                     )}
 
-                    {/* Question & Participant Settings Toggles */}
+                    {/* Question & Participant Settings Toggles (Applied across all slides in presentation) */}
                     <div className="space-y-3">
                       <label className="text-xs font-bold uppercase tracking-wider text-slate-600 block">
                         Question & Participant Settings
@@ -1279,8 +1295,11 @@ export default function StandardEdit({
                             type="checkbox"
                             checked={activeQuestion?.showPercentage || false}
                             onChange={(e) => {
-                              const newQuestions = [...questions];
-                              newQuestions[activeQuestionIndex].showPercentage = e.target.checked;
+                              const checked = e.target.checked;
+                              const newQuestions = questions.map((q) => ({
+                                ...q,
+                                showPercentage: checked,
+                              }));
                               setQuestions(newQuestions);
                             }}
                             className="w-4 h-4 rounded-md border-slate-300 text-slate-950 accent-slate-950 focus:ring-slate-950"
@@ -1295,8 +1314,11 @@ export default function StandardEdit({
                           type="checkbox"
                           checked={activeQuestion?.showResponseCount !== false}
                           onChange={(e) => {
-                            const newQuestions = [...questions];
-                            newQuestions[activeQuestionIndex].showResponseCount = e.target.checked;
+                            const checked = e.target.checked;
+                            const newQuestions = questions.map((q) => ({
+                              ...q,
+                              showResponseCount: checked,
+                            }));
                             setQuestions(newQuestions);
                           }}
                           className="w-4 h-4 rounded-md border-slate-300 text-slate-950 accent-slate-950 focus:ring-slate-950"
@@ -1310,8 +1332,11 @@ export default function StandardEdit({
                           type="checkbox"
                           checked={activeQuestion?.allowReactions !== false}
                           onChange={(e) => {
-                            const newQuestions = [...questions];
-                            newQuestions[activeQuestionIndex].allowReactions = e.target.checked;
+                            const checked = e.target.checked;
+                            const newQuestions = questions.map((q) => ({
+                              ...q,
+                              allowReactions: checked,
+                            }));
                             setQuestions(newQuestions);
                           }}
                           className="w-4 h-4 rounded-md border-slate-300 text-slate-950 accent-slate-950 focus:ring-slate-950"

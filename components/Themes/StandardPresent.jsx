@@ -8,6 +8,7 @@ import {
   Minimize,
   Users,
   X,
+  Trash2,
   Zap,
   Copy,
   Check,
@@ -79,6 +80,138 @@ function CanvasSineWave({ isPlaying }) {
   }, [isPlaying]);
 
   return <canvas ref={canvasRef} style={{ width: "32px", height: "16px" }} className="block" />;
+}
+
+// ── Isolated Word Cloud Component ───────────────────────────────────────────────
+function WordCloudView({ wordsList, themeStyles, currentQuestionIndex }) {
+  const containerRef = useRef(null);
+  const chartInstance = useRef(null);
+  const wordsListRef = useRef(wordsList);
+
+  const getWordColor = (word) => {
+    if (!word) return themeStyles.paletteColors?.[0] || "#60a5fa";
+    let hash = 0;
+    for (let i = 0; i < word.length; i++) { hash = (hash << 5) - hash + word.charCodeAt(i); hash |= 0; }
+    const colors = themeStyles.paletteColors?.length ? themeStyles.paletteColors : ["#60a5fa", "#34d399", "#f472b6", "#fbbf24"];
+    return colors[Math.abs(hash) % colors.length];
+  };
+
+  useEffect(() => {
+    let disposed = false;
+
+    const loadScript = (src) => new Promise((resolve, reject) => {
+      if (typeof window === "undefined") return resolve();
+      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+      const s = document.createElement("script");
+      s.src = src; s.async = false;
+      s.onload = () => resolve(); s.onerror = () => reject();
+      document.body.appendChild(s);
+    });
+
+    const initChart = async () => {
+      try {
+        await loadScript("https://cdn.amcharts.com/lib/4/core.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/charts.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/plugins/wordCloud.js");
+        await loadScript("https://cdn.amcharts.com/lib/4/themes/animated.js");
+        if (disposed || !window.am4core || !window.am4plugins_wordCloud) return;
+        if (window.am4themes_animated) window.am4core.useTheme(window.am4themes_animated.default || window.am4themes_animated);
+
+        if (!containerRef.current || disposed) return;
+
+        if (!chartInstance.current) {
+          const chart = window.am4core.create(containerRef.current, window.am4plugins_wordCloud.WordCloud);
+          if (chart.logo) chart.logo.dispose();
+          const series = chart.series.push(new window.am4plugins_wordCloud.WordCloudSeries());
+          series.accuracy = 4;
+          series.step = 15;
+          series.rotationThreshold = 0.7;
+          series.maxCount = 100;
+          series.minWordLength = 2;
+          series.randomness = 0;
+          series.interpolationDuration = 400;
+          series.labels.template.tooltipText = "{word}: {value}";
+          series.fontFamily = themeStyles.containerStyle?.fontFamily || "Inter";
+          series.maxFontSize = window.am4core.percent(30);
+          series.minFontSize = window.am4core.percent(6);
+          series.dataFields.word = "word";
+          series.dataFields.value = "count";
+          series.labels.template.adapter.add("fill", (fill, target) => {
+            if (target.dataItem?.word) return window.am4core.color(getWordColor(target.dataItem.word));
+            return fill;
+          });
+          series.data = wordsListRef.current.map((w) => ({ word: w.text, count: w.count }));
+          chartInstance.current = chart;
+        }
+      } catch (err) {
+        console.error("Failed to load amCharts wordCloud", err);
+      }
+    };
+
+    initChart();
+
+    return () => {
+      disposed = true;
+      if (chartInstance.current) {
+        try {
+          chartInstance.current.dispose();
+        } catch (_) {}
+        chartInstance.current = null;
+      }
+    };
+  }, [currentQuestionIndex]);
+
+  useEffect(() => {
+    wordsListRef.current = wordsList;
+    if (chartInstance.current) {
+      try {
+        const series = chartInstance.current.series.getIndex(0);
+        if (series) {
+          const newData = wordsList.map((w) => ({ word: w.text, count: w.count }));
+          // Only update if data actually changed to avoid double-animation jitter
+          if (JSON.stringify(series.data) !== JSON.stringify(newData)) {
+            series.data = newData;
+          }
+        }
+      } catch (_) {}
+    }
+  }, [wordsList]);
+
+  return (
+    <div className="w-full flex-1 flex flex-col justify-center items-center mx-auto my-auto mb-2 pt-2 relative">
+      <div
+        ref={containerRef}
+        style={{
+          width: "100%",
+          height: "360px",
+          minHeight: "300px",
+          display: wordsList.length > 0 ? "block" : "none"
+        }}
+        className="overflow-visible"
+      />
+      {wordsList.length === 0 && (
+        <div className="flex items-center justify-center w-full h-[360px] min-h-[300px]">
+          <svg viewBox="0 0 24 24" className="w-20 h-20" style={{ color: themeStyles.secondaryTextColor }}>
+            <path
+              d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.08)"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+            <path
+              d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              className="animate-cloud-dash"
+            />
+          </svg>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Inject global styles once into <head> ──────────────────────────────────────
@@ -422,71 +555,7 @@ export default function StandardPresent({
     }));
   }, [poll.wordCloudCounts, currentQuestionIndex]);
 
-  const chartInstance = useRef(null);
 
-  const getWordColor = (word) => {
-    if (!word) return themeStyles.paletteColors[0] || "#60a5fa";
-    let hash = 0;
-    for (let i = 0; i < word.length; i++) { hash = (hash << 5) - hash + word.charCodeAt(i); hash |= 0; }
-    return themeStyles.paletteColors[Math.abs(hash) % themeStyles.paletteColors.length];
-  };
-
-  useEffect(() => {
-    let disposed = false;
-    const loadScript = (src) => new Promise((resolve, reject) => {
-      if (typeof window === "undefined") return resolve();
-      if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
-      const s = document.createElement("script");
-      s.src = src; s.async = false;
-      s.onload = () => resolve(); s.onerror = () => reject();
-      document.body.appendChild(s);
-    });
-
-    const initChart = async () => {
-      try {
-        await loadScript("https://cdn.amcharts.com/lib/4/core.js");
-        await loadScript("https://cdn.amcharts.com/lib/4/charts.js");
-        await loadScript("https://cdn.amcharts.com/lib/4/plugins/wordCloud.js");
-        await loadScript("https://cdn.amcharts.com/lib/4/themes/animated.js");
-        if (disposed || !window.am4core || !window.am4plugins_wordCloud) return;
-        if (window.am4themes_animated) window.am4core.useTheme(window.am4themes_animated.default || window.am4themes_animated);
-        setTimeout(() => {
-          if (disposed) return;
-          const container = document.getElementById("chartdiv");
-          if (!container) return;
-          if (chartInstance.current) chartInstance.current.dispose();
-          const chart = window.am4core.create("chartdiv", window.am4plugins_wordCloud.WordCloud);
-          if (chart.logo) chart.logo.dispose();
-          const series = chart.series.push(new window.am4plugins_wordCloud.WordCloudSeries());
-          series.accuracy = 4; series.step = 15; series.rotationThreshold = 0.7;
-          series.maxCount = 100; series.minWordLength = 2;
-          series.randomness = 0;
-          series.interpolationDuration = 800;
-          series.labels.template.tooltipText = "{word}: {value}";
-          series.fontFamily = themeStyles.containerStyle?.fontFamily || "Inter";
-          series.maxFontSize = window.am4core.percent(30);
-          series.minFontSize = window.am4core.percent(6);
-          series.dataFields.word = "word"; series.dataFields.value = "count";
-          series.labels.template.adapter.add("fill", (fill, target) => {
-            if (target.dataItem?.word) return window.am4core.color(getWordColor(target.dataItem.word));
-            return fill;
-          });
-          series.data = wordsList.map((w) => ({ word: w.text, count: w.count }));
-          chartInstance.current = chart;
-        }, 80);
-      } catch (err) { console.error("Failed to load amCharts wordCloud", err); }
-    };
-
-    if (wordsList.length > 0) initChart();
-    return () => { disposed = true; if (chartInstance.current) { chartInstance.current.dispose(); chartInstance.current = null; } };
-  }, [wordsList.length > 0, themeStyles.paletteColors]);
-
-  useEffect(() => {
-    if (chartInstance.current && wordsList.length > 0) {
-      const series = chartInstance.current.series.getIndex(0);
-      if (series) series.data = wordsList.map((w) => ({ word: w.text, count: w.count }));
-    }
-  }, [wordsList]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -578,7 +647,7 @@ export default function StandardPresent({
             </div>
 
             {isRanking ? (
-              <div className="w-full flex-1 flex flex-col justify-center max-w-4xl mx-auto mb-4 px-4 space-y-3">
+              <div className="w-full flex-1 flex flex-col justify-center max-w-3xl mx-auto mb-4 px-4 space-y-4">
                 {(() => {
                   const rankingsData = poll?.rankingCounts?.[currentQuestionIndex.toString()] || {};
                   const options = currentQuestion?.options || [];
@@ -590,39 +659,54 @@ export default function StandardPresent({
                     })
                     .sort((a, b) => b.points - a.points);
                   const maxPoints = Math.max(...sorted.map((s) => s.points), 1);
+                  const totalPoints = sorted.reduce((acc, curr) => acc + curr.points, 0);
 
                   return sorted.map((item, rankIdx) => {
-                    const pct = Math.round((item.points / maxPoints) * 100);
+                    const hasVotes = item.points > 0;
+                    const pct = totalPoints > 0 ? Math.round((item.points / maxPoints) * 100) : 0;
                     const itemColor = themeStyles.paletteColors[rankIdx % themeStyles.paletteColors.length];
                     return (
-                      <div
-                        key={item.idx}
-                        className="flex items-center gap-4 p-3.5 rounded-xl shadow-lg transition-all duration-700 border"
-                        style={{
-                          backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
-                          borderColor: themeStyles.cardBorderColor,
-                        }}
-                      >
-                        <div
-                          className="w-9 h-9 rounded-full font-black text-lg flex items-center justify-center shadow-md shrink-0"
-                          style={{ backgroundColor: itemColor, color: "#ffffff" }}
-                        >
-                          #{rankIdx + 1}
+                      <div key={item.idx} className="flex flex-col gap-1.5 w-full">
+                        {/* Rank Badge + Item Text */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <span
+                              className="px-2 py-0.5 rounded-md text-xs font-bold border shadow-2xs"
+                              style={{
+                                backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)",
+                                borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.2)",
+                                color: themeStyles.primaryTextColor,
+                              }}
+                            >
+                              {rankIdx + 1}
+                            </span>
+                            <span className="font-semibold text-sm md:text-base" style={{ color: themeStyles.primaryTextColor }}>
+                              {item.text}
+                            </span>
+                          </div>
+
+                          {currentQuestion?.showPercentage ? (
+                            <span className="text-xs md:text-sm font-bold" style={{ color: themeStyles.primaryTextColor }}>
+                              {pct}%
+                            </span>
+                          ) : null}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="font-bold text-base md:text-lg truncate" style={{ color: themeStyles.primaryTextColor }}>{item.text}</span>
-                            <span className="font-extrabold text-base shrink-0 ml-2" style={{ color: themeStyles.accentColor }}>{item.points} pts</span>
-                          </div>
+
+                        {/* Progress Bar Track (Full width with colored fill going forward based on votes) */}
+                        <div
+                          className="w-full h-3 rounded-full overflow-hidden p-0.5 border"
+                          style={{
+                            backgroundColor: themeStyles.isDarkText ? "#E2E8F0" : "rgba(255, 255, 255, 0.15)",
+                            borderColor: themeStyles.isDarkText ? "#CBD5E1" : "rgba(255, 255, 255, 0.1)",
+                          }}
+                        >
                           <div
-                            className="w-full h-2.5 rounded-full overflow-hidden"
-                            style={{ backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.2)" }}
-                          >
-                            <div
-                              className="h-full rounded-full transition-all duration-700 ease-out"
-                              style={{ width: `${Math.max(pct, 4)}%`, backgroundColor: itemColor }}
-                            />
-                          </div>
+                            className="h-full rounded-full transition-all duration-700 ease-out"
+                            style={{
+                              width: hasVotes ? `${Math.max(pct, 2)}%` : "0%",
+                              backgroundColor: itemColor,
+                            }}
+                          />
                         </div>
                       </div>
                     );
@@ -630,84 +714,100 @@ export default function StandardPresent({
                 })()}
               </div>
             ) : isOpenEnded ? (
-              <div className="w-full flex-1 overflow-y-auto max-h-[48vh] max-w-5xl mx-auto my-auto p-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+              <div className="w-full flex-1 overflow-y-auto max-h-[58vh] max-w-5xl mx-auto pt-2 pb-4 px-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5 items-start">
                 {(() => {
                   const responses = poll?.openEndedResponses?.[currentQuestionIndex.toString()] || [];
                   if (responses.length === 0) {
                     return (
-                      <div className="col-span-full text-center py-12 text-lg" style={{ color: themeStyles.secondaryTextColor }}>
-                        Waiting for audience responses...
+                      <div className="col-span-full flex flex-col items-center justify-center py-12">
+                        <div className="flex items-center justify-center w-full h-[240px]">
+                          <svg viewBox="0 0 24 24" className="w-18 h-18" style={{ color: themeStyles.secondaryTextColor }}>
+                            <path
+                              d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+                              fill="none"
+                              stroke="rgba(255, 255, 255, 0.08)"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                            <path
+                              d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="1.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="animate-cloud-dash"
+                            />
+                          </svg>
+                        </div>
+                        <p className="text-sm md:text-base font-medium mt-2" style={{ color: themeStyles.secondaryTextColor }}>
+                          Waiting for audience responses...
+                        </p>
                       </div>
                     );
                   }
-                  return responses.map((resp, idx) => {
-                    const respId = resp.responseId || resp.id || resp._id;
-                    return (
-                      <div
-                        key={respId || idx}
-                        className="relative group border rounded-2xl p-4 shadow-xl flex flex-col justify-between transition-all"
-                        style={{
-                          backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
-                          borderColor: themeStyles.cardBorderColor,
-                          color: themeStyles.primaryTextColor,
-                        }}
-                      >
-                        <p className="text-sm md:text-base font-medium leading-relaxed break-words">{resp.text}</p>
-                        <div
-                          className="flex justify-between items-center mt-3 text-xs border-t pt-2"
-                          style={{
-                            borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.1)",
-                            color: themeStyles.secondaryTextColor,
-                          }}
-                        >
-                          <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                          <button
-                            onClick={async () => {
-                              if (deleteResponse && respId) {
-                                try {
-                                  await deleteResponse(pollId, currentQuestionIndex, respId);
-                                } catch (err) {
-                                  console.error("Error deleting response:", err);
-                                }
-                              }
-                            }}
-                            className="p-1 rounded-lg bg-red-500/80 hover:bg-red-600 text-white opacity-80 hover:opacity-100 transition-all cursor-pointer"
-                            title="Delete response"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    );
+
+                  // 3-Column Masonry distribution (left-to-right round-robin, shifting upwards into empty vertical space)
+                  const cols = [[], [], []];
+                  responses.forEach((resp, idx) => {
+                    cols[idx % 3].push({ resp, idx });
                   });
+
+                  return cols.map((colItems, colIdx) => (
+                    <div key={colIdx} className="flex flex-col gap-3.5 w-full">
+                      {colItems.map(({ resp, idx }) => {
+                        const respId = resp.responseId || resp.id || resp._id;
+                        return (
+                          <div
+                            key={respId || idx}
+                            className="relative group border rounded-xl p-3.5 sm:p-4 shadow-md flex flex-col justify-between transition-all hover:scale-[1.02] w-full"
+                            style={{
+                              backgroundColor: themeStyles.cardBackgroundColor || (themeStyles.isDarkText ? "#FFFFFF" : "#1E293B"),
+                              borderColor: themeStyles.cardBorderColor || (themeStyles.isDarkText ? "#E2E8F0" : "rgba(255,255,255,0.15)"),
+                              color: themeStyles.primaryTextColor,
+                            }}
+                          >
+                            <p className="text-sm md:text-[15px] font-semibold leading-snug break-words pr-2">
+                              "{resp.text}"
+                            </p>
+                            <div
+                              className="flex justify-between items-center mt-2.5 text-[11px] border-t pt-1.5 opacity-80"
+                              style={{
+                                borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.1)",
+                                color: themeStyles.secondaryTextColor,
+                              }}
+                            >
+                              <span>{new Date(resp.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <button
+                                onClick={async () => {
+                                  if (deleteResponse && respId) {
+                                    try {
+                                      await deleteResponse(pollId, currentQuestionIndex, respId);
+                                    } catch (err) {
+                                      console.error("Error deleting response:", err);
+                                    }
+                                  }
+                                }}
+                                className="p-1 rounded-md text-red-400 bg-red-500/10 hover:bg-red-500/20 cursor-pointer transition-colors"
+                                title="Delete response"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ));
                 })()}
               </div>
             ) : isWordCloud ? (
-              <div className="w-full flex-1 flex flex-col justify-center items-center mx-auto my-auto mb-2 pt-2">
-                {wordsList.length > 0 ? (
-                  <div id="chartdiv" style={{ width: "100%", height: "360px", minHeight: "300px" }} className="overflow-visible" />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-[360px] min-h-[300px]">
-                    <svg viewBox="0 0 24 24" className="w-20 h-20" style={{ color: themeStyles.secondaryTextColor }}>
-                      <path
-                        d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
-                        fill="none"
-                        stroke="rgba(255, 255, 255, 0.08)"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        className="animate-cloud-dash"
-                      />
-                    </svg>
-                  </div>
-                )}
-              </div>
+              <WordCloudView
+                wordsList={wordsList}
+                themeStyles={themeStyles}
+                currentQuestionIndex={currentQuestionIndex}
+              />
             ) : (currentQuestion?.visualization === "Pie" || currentQuestion?.visualization === "Donut") ? (
               /* Pie / Donut Visualization */
               <div className="flex flex-col md:flex-row items-center justify-center gap-10 my-auto p-4 w-full max-w-5xl mx-auto">

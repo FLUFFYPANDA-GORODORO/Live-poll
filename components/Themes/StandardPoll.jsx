@@ -525,35 +525,36 @@ export default function StandardPoll({
               {activeQuestion.options.map((option, idx) => {
                 const isOptionSelected = hasVoted && selectedOption === idx;
                 const isOptionUnselected = hasVoted && selectedOption !== idx;
-
-                const buttonStyleClass = `w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${
-                  isOptionSelected
-                    ? themeStyles.isDarkText
-                      ? "bg-emerald-100/80 border-emerald-500 shadow-md font-bold text-slate-950 cursor-default opacity-100"
-                      : "bg-emerald-950/50 border-emerald-500 shadow-md font-bold text-white cursor-default opacity-100"
-                    : isOptionUnselected
-                      ? themeStyles.isDarkText
-                        ? "bg-slate-100/70 border-slate-200 opacity-40 cursor-default text-slate-400"
-                        : "bg-slate-900/40 border-white/5 opacity-40 cursor-default text-slate-500"
-                      : poll.currentQuestionActive && !voting
-                        ? themeStyles.isDarkText
-                          ? "bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300 cursor-pointer active:scale-[0.98] text-slate-800"
-                          : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/20 cursor-pointer active:scale-[0.98] text-white"
-                        : themeStyles.isDarkText
-                          ? "bg-slate-100 border-slate-200 cursor-not-allowed opacity-60 text-slate-400"
-                          : "bg-white/5 border-white/5 cursor-not-allowed opacity-60 text-slate-500"
-                }`;
-
-                const badgeStyle = { backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] };
-
                 return (
                   <button
                     key={idx}
                     onClick={() => voteForOptionHandler(idx)}
                     disabled={!poll.currentQuestionActive || voting || hasVoted}
-                    className={buttonStyleClass}
+                    className={`w-full p-2.5 sm:p-3 rounded-md text-left transition-all flex items-center gap-2.5 sm:gap-3 border ${
+                      isOptionSelected
+                        ? "border-emerald-500 shadow-md font-bold opacity-100"
+                        : isOptionUnselected
+                        ? "opacity-35 cursor-default"
+                        : poll.currentQuestionActive && !voting
+                        ? "cursor-pointer active:scale-[0.98]"
+                        : "cursor-not-allowed opacity-50"
+                    }`}
+                    style={{
+                      backgroundColor: isOptionSelected
+                        ? (themeStyles.isDarkText ? "#D1FAE5" : "#064E3B")
+                        : themeStyles.optionButtonBg,
+                      borderColor: isOptionSelected
+                        ? "#10B981"
+                        : themeStyles.optionButtonBorder,
+                      color: isOptionSelected
+                        ? (themeStyles.isDarkText ? "#064E3B" : "#FFFFFF")
+                        : themeStyles.primaryTextColor,
+                    }}
                   >
-                    <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0" style={badgeStyle}>
+                    <div
+                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0"
+                      style={{ backgroundColor: themeStyles.paletteColors[idx % themeStyles.paletteColors.length] }}
+                    >
                       {String.fromCharCode(65 + idx)}
                     </div>
                     <span className="font-semibold text-xs sm:text-sm md:text-base">
@@ -576,8 +577,8 @@ export default function StandardPoll({
                   key={idx}
                   className="flex items-center justify-between p-3 border rounded-lg shadow-sm"
                   style={{
-                    backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
-                    borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.15)",
+                    backgroundColor: themeStyles.optionButtonBg,
+                    borderColor: themeStyles.optionButtonBorder,
                     color: themeStyles.primaryTextColor,
                   }}
                 >
@@ -634,8 +635,8 @@ export default function StandardPoll({
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1"
                   style={{
-                    backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
-                    borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)",
+                    backgroundColor: themeStyles.optionButtonBg,
+                    borderColor: themeStyles.optionButtonBorder,
                     color: themeStyles.primaryTextColor,
                   }}
                 />
@@ -668,8 +669,8 @@ export default function StandardPoll({
                   disabled={!poll.currentQuestionActive || localSubmitting}
                   className="w-full p-3 border rounded-md text-sm focus:outline-none focus:ring-1"
                   style={{
-                    backgroundColor: themeStyles.isDarkText ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.06)",
-                    borderColor: themeStyles.isDarkText ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.15)",
+                    backgroundColor: themeStyles.optionButtonBg,
+                    borderColor: themeStyles.optionButtonBorder,
                     color: themeStyles.primaryTextColor,
                   }}
                 />

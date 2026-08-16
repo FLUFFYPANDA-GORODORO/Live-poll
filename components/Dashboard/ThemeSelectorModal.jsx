@@ -11,12 +11,12 @@ const DEFAULT_STANDARD_DARK = {
   id: "11111111-1111-1111-1111-111111111111",
   name: "Standard Dark",
   backgroundType: "color",
-  backgroundValue: "#0F172A",
-  cardBackgroundColor: "#0F172A",
+  backgroundValue: "#151515",
+  cardBackgroundColor: "#151515",
   primaryTextColor: "#FFFFFF",
   secondaryTextColor: "#94A3B8",
   accentColor: "#6366F1",
-  palette: { colors: ["#6366F1", "#EC4899", "#10B981", "#F59E0B", "#8B5CF6"] },
+  palette: { colors: ["#6366F1", "#A855F7", "#06B6D4", "#10B981", "#F59E0B"] },
   isPreset: true,
 };
 

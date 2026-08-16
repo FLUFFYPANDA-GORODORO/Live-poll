@@ -7,7 +7,6 @@ import {
   Presentation,
   LogOut,
   LayoutTemplate,
-  Bell,
 } from "lucide-react";
 
 export default function Sidebar({ user, logout }) {
@@ -18,12 +17,6 @@ export default function Sidebar({ user, logout }) {
     { icon: Presentation, label: "Projects", href: "/home/presentations" },
     { icon: LayoutTemplate, label: "Templates", href: "/home/templates" },
   ];
-
-  const getUserInitial = () => {
-    if (user?.displayName) return user.displayName[0].toUpperCase();
-    if (user?.email) return user.email[0].toUpperCase();
-    return "U";
-  };
 
   return (
     <aside className="w-[72px] bg-slate-950 border-r border-slate-800 flex flex-col items-center h-screen sticky top-0 shrink-0 z-20 py-4 text-white">
@@ -49,28 +42,16 @@ export default function Sidebar({ user, logout }) {
         })}
       </nav>
 
-      {/* Bottom Section */}
-      <div className="flex flex-col items-center gap-1.5 pb-2">
-        {/* Bell */}
-        <button className="flex flex-col items-center justify-center w-14 h-10 rounded-md text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition-all cursor-pointer">
-          <Bell className="w-5 h-5" />
-        </button>
-
-        {/* Logout */}
+      {/* Bottom Section - Only Logout */}
+      <div className="flex flex-col items-center pb-2 w-full px-1">
         <button
           onClick={logout}
-          className="flex flex-col items-center justify-center w-14 h-10 rounded-md text-slate-400 hover:bg-red-950/60 hover:text-red-400 transition-all cursor-pointer"
+          title="Log out"
+          className="flex flex-col items-center justify-center w-14 h-14 rounded-md text-red-400 hover:bg-red-500/15 hover:text-red-300 text-[10px] font-semibold transition-all gap-1 cursor-pointer active:scale-95"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-5 h-5 text-red-400" />
+          <span className="leading-none">Logout</span>
         </button>
-
-        {/* User Avatar */}
-        <div
-          className="w-9 h-9 rounded-md bg-white text-slate-950 flex items-center justify-center font-bold text-xs cursor-pointer shadow-md border border-slate-300 mt-1"
-          title={user?.email || "User Profile"}
-        >
-          {getUserInitial()}
-        </div>
       </div>
     </aside>
   );
